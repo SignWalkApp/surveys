@@ -1,0 +1,3 @@
+# PUBLISH_KEY is the publish password. SurveyWalk makes it for you: open More… → Setup →
+# Publishing setup in the app, press Copy, and paste it where the deploy page asks for PUBLISH_KEY.
+PUBLISH_KEY=

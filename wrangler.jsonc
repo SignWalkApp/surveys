@@ -1,0 +1,12 @@
+{
+  // SurveyWalk publisher — one small Worker that keeps published surveys in an R2 bucket.
+  // Deployed with the Deploy to Cloudflare button in README.md: Cloudflare reads this file,
+  // creates the bucket, wires the SURVEYS binding, and asks for PUBLISH_KEY (.dev.vars.example).
+  "name": "surveys",
+  "main": "worker.js",
+  "compatibility_date": "2025-10-01",
+  "workers_dev": true,
+  "r2_buckets": [
+    { "binding": "SURVEYS", "bucket_name": "surveys","preview_bucket_name": "surveys" }
+  ]
+}
