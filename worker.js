@@ -25,10 +25,9 @@ export default {
     if (req.method === 'GET' || req.method === 'HEAD') {
       const page = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Robots-Tag': 'noindex' };
       if (!env.SURVEYS) return say('No survey at this address.', 404);
-      if (req.method === 'HEAD') return say(null, (await env.SURVEYS.head(slug)) ? 200 : 404, page);
-      const obj = await env.SURVEYS.get(slug);
+      const obj = req.method === 'HEAD' ? await env.SURVEYS.head(slug) : await env.SURVEYS.get(slug);
       if (!obj) return say('No survey at this address.', 404);
-      return say(obj.body, 200, page);
+      return say(req.method === 'HEAD' ? null : obj.body, 200, { ...page, 'Last-Modified': obj.uploaded.toUTCString() });
     }
     return say('Method not allowed.', 405);
   }
