@@ -22,6 +22,15 @@ export default {
                  200, { 'Content-Type': 'application/json' });
     }
     if (!/^[a-z0-9][a-z0-9-]{2,63}$/.test(slug)) return say('No survey at this address.', 404);
+    // the app itself: /start (staff) and /admin (the office) are app.html from this repository,
+    // so every push updates them; no survey can take either address
+    const APP = slug === 'start' || slug === 'admin';
+    if (APP && env.ASSETS && (req.method === 'GET' || req.method === 'HEAD')) {
+      const a = await env.ASSETS.fetch(new Request(url.origin + '/app.html'));
+      if (a.status === 200) return say(req.method === 'HEAD' ? null : a.body, 200,
+        { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Robots-Tag': 'noindex' });
+    }
+    if (APP && req.method === 'PUT' && env.ASSETS) return say('That address is the app, not a survey.', 409);
     if (req.method === 'PUT') {
       // the staff key, HMAC(master, '~staff'), makes a NEW address only, and is answered with that
       // address's own key; it never overwrites a survey that is already there

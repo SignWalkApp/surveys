@@ -6,6 +6,8 @@
   "main": "worker.js",
   "compatibility_date": "2025-10-01",
   "workers_dev": true,
+  // public/app.html is SurveyWalk itself; the Worker serves it at /start and /admin
+  "assets": { "directory": "./public", "binding": "ASSETS", "html_handling": "none", "not_found_handling": "none" },
   "r2_buckets": [
     { "binding": "SURVEYS", "bucket_name": "surveys","preview_bucket_name": "surveys" }
   ]
