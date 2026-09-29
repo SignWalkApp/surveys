@@ -23,12 +23,22 @@ export default {
     }
     if (!/^[a-z0-9][a-z0-9-]{2,63}$/.test(slug)) return say('No survey at this address.', 404);
     if (req.method === 'PUT') {
-      if (!(await keyOK())) return say('Wrong publish key.', 401);
+      // the staff key, HMAC(master, '~staff'), makes a NEW address only, and is answered with that
+      // address's own key; it never overwrites a survey that is already there
+      let staff = false;
+      if (!(await keyOK())) {
+        if (!(env.PUBLISH_KEY && given !== '' && given === await derive('~staff'))) return say('Wrong publish key.', 401);
+        if (!env.SURVEYS) return say('The publisher has no storage attached — open the setup screen for what to check.', 500);
+        if (await env.SURVEYS.head(slug)) return say('This survey was published from another device, so this one cannot change it. Ask the shop.', 409);
+        staff = true;
+      }
       if (!env.SURVEYS) return say('The publisher has no storage attached — open the setup screen for what to check.', 500);
       if (Number(req.headers.get('Content-Length') || 0) > 64 * 1024 * 1024) return say('Too big for one survey.', 413);
       try { await env.SURVEYS.put(slug, req.body, { httpMetadata: { contentType: 'text/html; charset=utf-8' } }); }
       catch (e) { return say('Storage refused the survey: ' + e.message + ' — check R2 in Cloudflare.', 507); }
-      return say(JSON.stringify({ url: url.origin + '/' + slug }), 200, { 'Content-Type': 'application/json' });
+      const out = { url: url.origin + '/' + slug };
+      if (staff) out.key = await derive(slug);
+      return say(JSON.stringify(out), 200, { 'Content-Type': 'application/json' });
     }
     if (req.method === 'GET' || req.method === 'HEAD') {
       const page = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Robots-Tag': 'noindex' };
