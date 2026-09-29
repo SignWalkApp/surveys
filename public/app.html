@@ -1308,6 +1308,7 @@ body.measuring #measbar{display:block}
  border-radius:6px;font-size:11px;cursor:pointer;min-height:31px}
 .dlg .mini:hover{background:#2e3342;border-color:var(--edit)}
 .dlg .mini.danger{background:#3a1c1c;border-color:#7a3030;color:#ff8a8a}
+.dlg .mini.on{background:#ffb703;border-color:#ffb703;color:#141414;font-weight:600}
 .dlg .foot{display:flex;gap:8px;justify-content:flex-end;padding:14px 17px 16px;
  position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line);
  margin-top:4px}
@@ -3116,6 +3117,7 @@ body.measuring #measbar{display:block}
  border-radius:6px;font-size:11px;cursor:pointer;min-height:31px}
 .dlg .mini:hover{background:#2e3342;border-color:var(--edit)}
 .dlg .mini.danger{background:#3a1c1c;border-color:#7a3030;color:#ff8a8a}
+.dlg .mini.on{background:#ffb703;border-color:#ffb703;color:#141414;font-weight:600}
 .dlg .foot{display:flex;gap:8px;justify-content:flex-end;padding:14px 17px 16px;
  position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line);
  margin-top:4px}
@@ -7119,6 +7121,55 @@ function openStaffLink(){
   },()=>banner('This browser cannot work out the staff link — open SurveyWalk in Chrome, Edge or Safari.',8000));
 }
 
+const HELP={
+ admin:['The office',
+  ['Open SurveyWalk on the shop computer, or <b>…/admin</b> on any computer or phone. The first <b>Share</b> asks for the publish password — once per device.',
+   'Staff: <b>More… → Staff start link → Copy link</b>, and text it to them. One link for everyone; it always opens the latest SurveyWalk.',
+   'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>More… → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
+   '<b>Save</b> keeps it in <b>My surveys</b> on this device.',
+   'The client: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the same link shows the change.',
+   'Finish it somewhere else: <b>Share → Work on this from another device</b>. That link can edit the survey — never forward it.',
+   'The crew: <b>Share → Send to the installer</b>. When they are done, <b>Share → Bring install photos in</b>.',
+   'Changing PUBLISH_KEY in Cloudflare turns off every staff and working link. Make a new staff link afterwards.']],
+ staff:['Staff',
+  ['Open the staff link once and keep it: iPhone <b>Share → Add to Home Screen</b>; Android <b>⋮ → Add to Home screen</b>. Always open SurveyWalk from that icon — your surveys live on this phone, in that one place.',
+   'At each sign location, stand where the sign goes, face it and press <b>Take photo</b>. Photos you already took: <b>Add photos</b>.',
+   'Tap a location to name it and add sizes and notes.',
+   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not.',
+   'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
+   'Finish on a computer: <b>Share → Work on this from another device</b>, and send it to yourself.',
+   'The crew: <b>Share → Send to the installer</b>.',
+   '“The publisher refused this device’s staff link”: ask the shop for the new staff link.']],
+ inst:['Installer',
+  ['Open the installer link on your phone at the site.',
+   'Tap a location in the list first.',
+   '<b>Take photo</b> or <b>Add photos</b> — the photo goes on that location.',
+   'Set <b>Done</b> or <b>Problem</b>, and write a note if something is off.',
+   '<b>Save</b> sends it back to the shop. No signal? Keep going and Save when you have it.',
+   'You cannot move, add or remove locations. Call the shop for changes.']],
+ client:['Client',
+  ['Every numbered pin on the aerial is a sign location.',
+   'Tap a pin, or a row in the list, for the photo, sizes and notes.',
+   '<b>Print schedule</b> prints the list of locations.',
+   'Nothing to download or install. Questions? Reply to the email the link came in.']]
+};
+const HELP_ROLE=()=>VIEWONLY?'client':INSTALL?'inst':(HOSTED||STAFF())?'staff':'admin';
+const HELP_TABS={client:['client'],inst:['inst'],staff:['staff','inst','client'],admin:['admin','staff','inst','client']};
+function openHelp(role){
+  const mine=HELP_ROLE(), tabs=HELP_TABS[mine]; role=tabs.indexOf(role)>=0?role:mine;
+  const h=HELP[role];
+  openModal('<h2>How to use SurveyWalk</h2><div class="body">'
+   +(tabs.length>1?'<div class="row2" style="flex-wrap:wrap">'+tabs.map(t=>'<button class="mini'+(t===role?' on':'')
+     +'" data-help="'+t+'"'+(t===role?' aria-pressed="true"':'')+'>'+HELP[t][0]+'</button>').join('')+'</div>':'')
+   +'<ol class="steps">'+h[1].map(x=>'<li>'+x+'</li>').join('')+'</ol></div>',null,null,{cancel:'Close'});
+  setTimeout(()=>document.querySelectorAll('[data-help]').forEach(b=>b.onclick=()=>{ closeModal(); openHelp(b.dataset.help); }),0);
+}
+function helpNudge(){
+  const k='surveywalk.help.'+HELP_ROLE();
+  try{ if(localStorage.getItem(k)) return; localStorage.setItem(k,'1'); }catch(_){ return; }
+  banner('New to SurveyWalk? More… → How to use SurveyWalk.',7000);
+}
+
 function mailText(link){
   const job=BRAND.job||'Site survey';
   const body='Here is the site survey for '+job+(BRAND.site?' at '+BRAND.site:'')+'.\n\n'
@@ -7989,6 +8040,7 @@ $('emStart').onclick=locate;
 $('emSkip').onclick=hideEmpty;
 
 const MORE_GROUPS=[
+  ['Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]]],
   ['Surveys',[['bLib','My surveys']]],
   ['Map',[['bFit','Fit all'],['bCone','Shot direction'],['bMeasure','Measure'],
           ['bEdit','Edit pin positions'],['bSelect','Select locations']]],
@@ -8007,7 +8059,7 @@ function openMore(){
     return !!b && b.style.display!=='none' && !b.getClientRects().length; };
   let rows='', acts={};
   MORE_GROUPS.forEach(([head,items])=>{
-    const on=items.filter(([id,l,fn])=>fn?!LOCKED&&!((HOSTED||STAFF())&&(id==='aPub'||id==='aStaff')):live(id));
+    const on=items.filter(([id,l,fn])=>fn?id==='aHelp'||(!LOCKED&&!((HOSTED||STAFF())&&(id==='aPub'||id==='aStaff'))):live(id));
     if(!on.length) return;              // a customer copy has no Files and no Danger
     rows+='<div class="moregrp">'+he(head)+'</div>'
       +on.map(([id,label,fn])=>{
@@ -8338,6 +8390,7 @@ if(VIEWONLY){ document.querySelector('.findrow').style.display='none';
               $('listbar').style.display='none';
               $('bGeoStat').style.display='none'; $('shUndo').style.display='none'; }
 render(false); if(PTS.length&&!INSTALL) select(0,false); setDirty(false);
+setTimeout(helpNudge,2500);
 
 if(TOUCH()) ['bOpen','bMerge','bWO'].forEach(id=>{
   const e=$(id); if(e) e.style.display='none'; });
@@ -12988,6 +13041,62 @@ function openStaffLink(){
   },()=>banner('This browser cannot work out the staff link — open SurveyWalk in Chrome, Edge or Safari.',8000));
 }
 
+// ---- how to use (r9c) ------------------------------------------------------
+// Aaron, 2026-09-29: "add in a how-to tutorial to the html file for Admin, Staff, Install and Client".
+// One screen, one tab per role, opened from More… → How to use SurveyWalk. It opens on the role this
+// copy is, and shows only the tabs that copy can use: the client sees the client's, the installer the
+// installer's, staff the three they hand out, the office all four. Words match the buttons exactly.
+const HELP={
+ admin:['The office',
+  ['Open SurveyWalk on the shop computer, or <b>…/admin</b> on any computer or phone. The first <b>Share</b> asks for the publish password — once per device.',
+   'Staff: <b>More… → Staff start link → Copy link</b>, and text it to them. One link for everyone; it always opens the latest SurveyWalk.',
+   'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>More… → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
+   '<b>Save</b> keeps it in <b>My surveys</b> on this device.',
+   'The client: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the same link shows the change.',
+   'Finish it somewhere else: <b>Share → Work on this from another device</b>. That link can edit the survey — never forward it.',
+   'The crew: <b>Share → Send to the installer</b>. When they are done, <b>Share → Bring install photos in</b>.',
+   'Changing PUBLISH_KEY in Cloudflare turns off every staff and working link. Make a new staff link afterwards.']],
+ staff:['Staff',
+  ['Open the staff link once and keep it: iPhone <b>Share → Add to Home Screen</b>; Android <b>⋮ → Add to Home screen</b>. Always open SurveyWalk from that icon — your surveys live on this phone, in that one place.',
+   'At each sign location, stand where the sign goes, face it and press <b>Take photo</b>. Photos you already took: <b>Add photos</b>.',
+   'Tap a location to name it and add sizes and notes.',
+   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not.',
+   'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
+   'Finish on a computer: <b>Share → Work on this from another device</b>, and send it to yourself.',
+   'The crew: <b>Share → Send to the installer</b>.',
+   '“The publisher refused this device’s staff link”: ask the shop for the new staff link.']],
+ inst:['Installer',
+  ['Open the installer link on your phone at the site.',
+   'Tap a location in the list first.',
+   '<b>Take photo</b> or <b>Add photos</b> — the photo goes on that location.',
+   'Set <b>Done</b> or <b>Problem</b>, and write a note if something is off.',
+   '<b>Save</b> sends it back to the shop. No signal? Keep going and Save when you have it.',
+   'You cannot move, add or remove locations. Call the shop for changes.']],
+ client:['Client',
+  ['Every numbered pin on the aerial is a sign location.',
+   'Tap a pin, or a row in the list, for the photo, sizes and notes.',
+   '<b>Print schedule</b> prints the list of locations.',
+   'Nothing to download or install. Questions? Reply to the email the link came in.']]
+};
+const HELP_ROLE=()=>VIEWONLY?'client':INSTALL?'inst':(HOSTED||STAFF())?'staff':'admin';
+const HELP_TABS={client:['client'],inst:['inst'],staff:['staff','inst','client'],admin:['admin','staff','inst','client']};
+function openHelp(role){
+  const mine=HELP_ROLE(), tabs=HELP_TABS[mine]; role=tabs.indexOf(role)>=0?role:mine;
+  const h=HELP[role];
+  openModal('<h2>How to use SurveyWalk</h2><div class="body">'
+   +(tabs.length>1?'<div class="row2" style="flex-wrap:wrap">'+tabs.map(t=>'<button class="mini'+(t===role?' on':'')
+     +'" data-help="'+t+'"'+(t===role?' aria-pressed="true"':'')+'>'+HELP[t][0]+'</button>').join('')+'</div>':'')
+   +'<ol class="steps">'+h[1].map(x=>'<li>'+x+'</li>').join('')+'</ol></div>',null,null,{cancel:'Close'});
+  setTimeout(()=>document.querySelectorAll('[data-help]').forEach(b=>b.onclick=()=>{ closeModal(); openHelp(b.dataset.help); }),0);
+}
+// Once per device per role, a line that says where the how-to is. Never a modal: the survey is
+// what they opened the link for.
+function helpNudge(){
+  const k='surveywalk.help.'+HELP_ROLE();
+  try{ if(localStorage.getItem(k)) return; localStorage.setItem(k,'1'); }catch(_){ return; }
+  banner('New to SurveyWalk? More… → How to use SurveyWalk.',7000);
+}
+
 // The email a client actually receives. This, and the banners a dozen lines up, are the only
 // words in the whole app a customer reads in their own inbox — and every escape in them had
 // once been written with TWO backslashes instead of one. The body arrived as one unbroken line
@@ -14099,6 +14208,8 @@ $('emSkip').onclick=hideEmpty;
 const MORE_GROUPS=[
   // First, above everything, because getting back to your own work is the thing the crew does
   // most and it used to be the thing they could not do at all.
+  // r9c: the how-to, for every copy — the client's and the installer's too (openMore lets aHelp through LOCKED)
+  ['Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]]],
   ['Surveys',[['bLib','My surveys']]],
   ['Map',[['bFit','Fit all'],['bCone','Shot direction'],['bMeasure','Measure'],
           ['bEdit','Edit pin positions'],['bSelect','Select locations']]],
@@ -14137,7 +14248,7 @@ function openMore(){
   // lines here and nothing anywhere else.
   let rows='', acts={};
   MORE_GROUPS.forEach(([head,items])=>{
-    const on=items.filter(([id,l,fn])=>fn?!LOCKED&&!((HOSTED||STAFF())&&(id==='aPub'||id==='aStaff')):live(id));
+    const on=items.filter(([id,l,fn])=>fn?id==='aHelp'||(!LOCKED&&!((HOSTED||STAFF())&&(id==='aPub'||id==='aStaff'))):live(id));
     if(!on.length) return;              // a customer copy has no Files and no Danger
     rows+='<div class="moregrp">'+he(head)+'</div>'
       +on.map(([id,label,fn])=>{
@@ -14522,6 +14633,7 @@ if(VIEWONLY){ document.querySelector('.findrow').style.display='none';
 // so a preselected row 1 would put an installer's first photo on location 1 unasked — and
 // their first tap on row 1 would deselect it instead of opening it.
 render(false); if(PTS.length&&!INSTALL) select(0,false); setDirty(false);
+setTimeout(helpNudge,2500);
 
 // Three dead ends leave the crew's menu. All three are desk jobs and the desk has a computer:
 // opening a loose survey file, merging two surveys and importing a CoreBridge work order are
