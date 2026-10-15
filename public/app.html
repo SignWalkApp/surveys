@@ -1564,7 +1564,19 @@ body.measuring #measbar{display:block}
 #sheet .strow button.prob.on,.btnrow.strow button.prob.on{border-color:#7a3030;color:#ff8a8a;background:#3a1c1c}
 .strow{margin-top:4px}
 textarea.lblinp{resize:vertical;min-height:44px;font:inherit;line-height:1.4}
-.instro{margin:6px 0 2px}.inote{font-size:11.5px;color:var(--txt);white-space:pre-wrap;margin-top:4px}
+.instro{margin:6px 0 2px}
+/* r10: notes. A yellow tab on the pin says this location has notes; the popup and the sheet say what. */
+.pin.noted::after{content:'';position:absolute;top:-6px;right:-7px;width:11px;height:12px;border-radius:2px;
+ border:1.5px solid #111;background:#ffd166 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 12'%3E%3Cpath d='M2.5 3.5h6M2.5 6h6M2.5 8.5h4' stroke='%23111' stroke-width='1.3'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+ transform:rotate(calc(-1 * var(--unrot,0deg)))}
+.ntbox{border:1px solid #6b5a1e;background:rgba(255,209,102,.07);border-radius:9px;padding:8px 10px;margin:9px 0}
+.ntx{font-size:12px;line-height:1.45;color:var(--txt);white-space:pre-wrap;margin-top:4px}
+.ntx i{color:var(--dim);font-style:normal;font-size:10.5px}
+textarea.memo{min-height:54px;resize:vertical}
+.shotcount.nt{background:#6b5a1e;color:#ffd166}
+.cpyrow{display:flex;align-items:center;gap:10px;margin:6px 0 4px}
+.cpyrow button{min-width:44px;min-height:40px;font-size:18px}
+.cpyrow b{min-width:110px;text-align:center}.inote{font-size:11.5px;color:var(--txt);white-space:pre-wrap;margin-top:4px}
 #sheet .strip img.inst{outline:2px dashed var(--edit);outline-offset:-2px}
 .hdrbtn{background:#242835;border:1px solid var(--line);color:var(--dim);cursor:pointer;
  font-size:11px;padding:6px 9px;border-radius:6px;white-space:nowrap;min-height:31px}
@@ -3314,7 +3326,18 @@ body.measuring #measbar{display:block}
 #sheet .strow button.prob.on,.btnrow.strow button.prob.on{border-color:#7a3030;color:#ff8a8a;background:#3a1c1c}
 .strow{margin-top:4px}
 textarea.lblinp{resize:vertical;min-height:44px;font:inherit;line-height:1.4}
-.instro{margin:6px 0 2px}.inote{font-size:11.5px;color:var(--txt);white-space:pre-wrap;margin-top:4px}
+.instro{margin:6px 0 2px}
+.pin.noted::after{content:'';position:absolute;top:-6px;right:-7px;width:11px;height:12px;border-radius:2px;
+ border:1.5px solid #111;background:#ffd166 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 12'%3E%3Cpath d='M2.5 3.5h6M2.5 6h6M2.5 8.5h4' stroke='%23111' stroke-width='1.3'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+ transform:rotate(calc(-1 * var(--unrot,0deg)))}
+.ntbox{border:1px solid #6b5a1e;background:rgba(255,209,102,.07);border-radius:9px;padding:8px 10px;margin:9px 0}
+.ntx{font-size:12px;line-height:1.45;color:var(--txt);white-space:pre-wrap;margin-top:4px}
+.ntx i{color:var(--dim);font-style:normal;font-size:10.5px}
+textarea.memo{min-height:54px;resize:vertical}
+.shotcount.nt{background:#6b5a1e;color:#ffd166}
+.cpyrow{display:flex;align-items:center;gap:10px;margin:6px 0 4px}
+.cpyrow button{min-width:44px;min-height:40px;font-size:18px}
+.cpyrow b{min-width:110px;text-align:center}.inote{font-size:11.5px;color:var(--txt);white-space:pre-wrap;margin-top:4px}
 #sheet .strip img.inst{outline:2px dashed var(--edit);outline-offset:-2px}
 .hdrbtn{background:#242835;border:1px solid var(--line);color:var(--dim);cursor:pointer;
  font-size:11px;padding:6px 9px;border-radius:6px;white-space:nowrap;min-height:31px}
@@ -3992,6 +4015,7 @@ let bounds=START.length?L.latLngBounds(START.map(p=>[p.dlat,p.dlon])):null;
 if(bounds) map.fitBounds(bounds,{padding:[55,55]});
 else map.setView([M.center.lat,M.center.lon],M.center.z||17);
 
+var AHEAD=false;      // r10: this device has work its working link does not have yet
 let editing=false, dirty=false, marks=[], curFile=null, hIdx=-1, handle=null;
 let sheetIdx=-1, sheetFile=null, emptyDismissed=false;
 
@@ -4046,7 +4070,7 @@ PTS.forEach(migratePoint);
 
 const UNDO=[], REDO=[], STACK_MAX=50;
 const SNAPF=['lat','lon','dlat','dlon','head','headman','label','note','man','moved',
-             'unplaced','nudged','ord','shot','src','time','date','acc','alt','egps','pnm','status','inote'];
+             'unplaced','nudged','ord','shot','src','time','date','acc','alt','egps','pnm','status','inote','memo'];
 const snapPt =p=>{const o={};SNAPF.forEach(k=>o[k]=p[k]);o._shots=p.shots.slice();
                   o._lines=p.lines?p.lines.slice():null;return o;};
 const restorePt=(p,o)=>{SNAPF.forEach(k=>p[k]=o[k]);p.shots=o._shots.slice();
@@ -4449,17 +4473,20 @@ function render(keepView){
                +(p.head==null?'display:none':'')+'"></div>';
     const ic=L.divIcon({className:'',html:'<div class="wrap">'+cone
       +'<div class="pin'+(p.shots&&p.shots.length>1?' multi':'')+(byGPS(p)?'':' hand')
-      +(selSet.has(p.file)?' picked':'')+'" id="pin'+idx+'">'+p.i+'</div></div>',
+      +(selSet.has(p.file)?' picked':'')+(hasNotes(p)?' noted':'')+'" id="pin'+idx+'">'+p.i+'</div></div>',
       iconSize:[24,24],iconAnchor:[12,12]});
     const m=L.marker([p.dlat,p.dlon],{icon:ic,riseOnHover:true,zIndexOffset:idx,draggable:editing}).addTo(map);
     if(!TOUCH()) m.bindPopup(pop(p),{maxWidth:306,minWidth:296});
     m.on('click',ev=>{
       if(selMode){ selToggle(p.file); return; }
+      if(placing&&placeMove){ placeAt(placing,ev&&ev.latlng?ev.latlng:L.latLng(p.dlat,p.dlon)); return; }
       if(placing){ dropOrAttach(placing, ev&&ev.containerPoint?ev.containerPoint:null,
                    ev&&ev.latlng?ev.latlng:L.latLng(p.dlat,p.dlon), idx); return; }
       const near=ev&&ev.containerPoint?pinsNear(ev.containerPoint):[idx];
       if(near.length>1){ chooseLocation(near); return; }
       select(idx,false); if(TOUCH()) openSheet(idx); });
+    m.on('contextmenu',ev=>{ if(ev&&ev.originalEvent) ev.originalEvent.preventDefault();
+      if(selMode||placing) return; m.closePopup(); select(idx,false); locMenu(p.file); });
     m.on('dragstart',()=>{ m.closePopup(); undoPoint(p,'move pin'); });
     m.on('drag',e=>showDrag(p,e.target.getLatLng()));
     m.on('dragend',e=>{
@@ -4539,7 +4566,7 @@ function aimFromPhoto(file){
 let aiming=-1;
 map.on('click',e=>{
   if(measOn){ measAdd(e.latlng); return; }
-  if(placing){ dropOrAttach(placing,e.containerPoint,e.latlng); return; }
+  if(placing){ if(placeMove) placeAt(placing,e.latlng); else dropOrAttach(placing,e.containerPoint,e.latlng); return; }
   if(aiming<0){ if(map.hasLayer(parcelGroup)&&parcelNow) lookupParcel(e.latlng); return; }
   const p=PTS[aiming];
   const c=map.latLngToLayerPoint([p.dlat,p.dlon]), q=map.latLngToLayerPoint(e.latlng);
@@ -4574,7 +4601,7 @@ window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{
 },220); });
 
 function setDirty(v){
-  dirty=v;
+  dirty=v; if(v) AHEAD=true;
   const bar=document.getElementById('savebar'), b=document.getElementById('bSave');
   if(bar) bar.classList.toggle('show',v);
   if(b) b.textContent = v ? 'Save \u25cf'
@@ -4698,6 +4725,113 @@ function instNote(file,v){
 const instActs=(p,sheet)=>{ const sh=shotOf(p), f=js(p.file);
   return (sheet?'<button id="shAdd">':'<button onclick="addToPin(\''+f+'\')">')+'Add photo</button>'
     +(sh&&sh.inst?(sheet?'<button id="shDelShot">':'<button onclick="removeShot(\''+f+'\','+(p.shot||0)+')">')+'Remove this photo</button>':''); };
+function photoNotes(p){ const o=[];
+  (p.shots||[]).forEach(sh=>(sh.marks||[]).forEach(m=>{ if(m.t==='note'&&m.x&&o.indexOf(m.x)<0) o.push(m.x); }));
+  return o; }
+const hasNotes=p=>!!(p.memo||(p.inote&&!VIEWONLY)||photoNotes(p).length);
+function notesBlock(p){
+  const pn=photoNotes(p), ro=LOCKED&&p.memo;
+  if(!ro&&!pn.length) return '';
+  return '<div class="ntbox"><div class="lnhead">Notes</div>'+(ro?'<div class="ntx">'+he(p.memo)+'</div>':'')
+    +pn.map(x=>'<div class="ntx">'+he(x)+' <i>· on the photo</i></div>').join('')+'</div>';
+}
+const memoBox=(p,id)=>'<textarea class="lblinp memo"'+(id?' id="'+id+'"':'')+' placeholder="Notes for this location…"'
+  +(id?'':' oninput="setMemo(\''+js(p.file)+'\',this.value)"')+'>'+he(p.memo||'')+'</textarea>';
+function setMemo(file,v){
+  const p=PTS.find(x=>x.file===file); if(!p||LOCKED) return;
+  undoCoalesced(p,'notes','m:'+file);
+  if(v.trim()) p.memo=v; else delete p.memo;
+  const el=document.getElementById('pin'+PTS.indexOf(p)); if(el) el.classList.toggle('noted',hasNotes(p));
+  setDirty(true); refreshList();
+}
+function locMenu(file){
+  const p=PTS.find(x=>x.file===file); if(!p) return;
+  const sh=shotOf(p), mk=!!(sh&&sh.marks&&sh.marks.length), it=[];
+  if(!LOCKED){
+    it.push(['ed','Edit name and notes'],[ 'mv',p.unplaced?'Place it on the map':'Move this pin'],
+            ['dup','Duplicate this location'],['add','Add photo']);
+    if(sh) it.push(['mk','Mark up the photo']);
+  }
+  if(sh){ it.push(['dl','Download photo']); if(mk) it.push(['dlm','Download photo with markup']); }
+  if(!LOCKED) it.push(['rm','Remove this location','danger']);
+  if(!it.length){ banner('This location has no photo yet.',3000); return; }
+  openModal('<h2>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</h2><div class="body"><div class="morelist">'
+    +it.map(([k,l,c])=>'<button class="moreitem'+(c?' '+c:'')+'" data-a="'+k+'">'+he(l)+'</button>').join('')
+    +'</div></div>',null,null,{cancel:'Close'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-a]').forEach(el=>el.onclick=()=>{
+    const a=el.dataset.a, i=PTS.indexOf(p); closeModal(); if(i<0) return;
+    if(a==='ed'){ map.closePopup(); select(i,false); openSheet(i); }
+    else if(a==='mv'){ closeSheet(); map.closePopup(); armPlace(p.file);
+      banner('Tap the map where '+title(p)+' goes. Esc cancels.',5000); }
+    else if(a==='dup') dupAsk(p.file);
+    else if(a==='add') addToPin(p.file);
+    else if(a==='mk') mkOpen(p.file,p.shot||0);
+    else if(a==='dl') dlShot(p.file);
+    else if(a==='dlm') dlShot(p.file,true);
+    else if(a==='rm'){ closeSheet(); removePhoto(p.file); }
+  }),0);
+}
+const isProof=sh=>!!(sh&&(sh.proof||/ — proof \d/.test(sh.name||'')));
+function dupAsk(file){
+  const p=PTS.find(x=>x.file===file); if(!p||LOCKED) return;
+  const site=(p.shots||[]).filter(sh=>!isProof(sh)&&!sh.inst);
+  if(!site.length){ dupLoc(file,false); return; }
+  openModal('<h2>Duplicate '+he(title(p))+'</h2><div class="body">'
+   +'<div class="svnote">The copy gets the name, sizes, line items, notes and any proof. Its own spot on the map comes next.</div>'
+   +'<div class="morelist"><button class="saveopt" data-d="0"><b>Without the site photos</b>'
+   +'<span>The usual choice — the copy is a different place, so it gets its own photos.</span></button>'
+   +'<button class="saveopt" data-d="1"><b>With the site photos too</b>'
+   +'<span>'+site.length+' photo'+(site.length===1?'':'s')+' copied across.</span></button></div></div>',
+   null,null,{cancel:'Cancel'});
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-d]').forEach(el=>el.onclick=()=>{
+    const w=el.dataset.d==='1'; closeModal(); dupLoc(file,w); }),0);
+}
+function dupName(p){
+  const base=String(p.label||title(p)).replace(/_(\d+)$/,''); let n=2;
+  while(PTS.some(x=>x.label===base+'_'+n)) n++;
+  return base+'_'+n;
+}
+const cloneShot=sh=>Object.assign({},sh,sh.marks?{marks:sh.marks.map(m=>Object.assign({},m,{a:m.a.slice()},m.b?{b:m.b.slice()}:{}))}:{});
+function dupLoc(file,photos){
+  const p=PTS.find(x=>x.file===file); if(!p||LOCKED) return null;
+  pushWorld('duplicate location');
+  const q=makeLoc(dupName(p),null);
+  if(p.pnm) q.pnm=q.label; else delete q.pnm;
+  if(p.lines&&p.lines.length) q.lines=p.lines.map(l=>JSON.parse(JSON.stringify(l)));
+  if(p.memo) q.memo=p.memo;
+  q.head=p.head; q.headman=p.headman;
+  const keep=(p.shots||[]).filter(sh=>!sh.inst&&(photos||isProof(sh)));
+  q.shots=keep.map(cloneShot);
+  const cur=shotOf(p), k=keep.indexOf(cur); q.shot=k>=0?k:0;
+  if(q.shots.length) syncPrimary(q);
+  q.note='Copy of '+title(p)+' — tap the map where it goes';
+  PTS.push(q);
+  closeSheet(); map.closePopup();
+  render(true); setDirty(true);
+  armPlace(q.file);
+  banner('Copy made: “'+q.label+'”. Tap the map where it goes — or leave it in the tray for later.',6000);
+  return q;
+}
+function dlShot(file,withMarks){
+  const p=PTS.find(x=>x.file===file), sh=shotOf(p); if(!sh||!sh.src){ banner('This location has no photo yet.',3000); return; }
+  const nm=(title(p)+(p.shots.length>1?' - photo '+((p.shot||0)+1):'')+(withMarks?' - markup':''))
+    .replace(/[\\/:*?"<>|]+/g,'-').trim()+'.jpg';
+  const give=b=>{ const f=new File([b],nm,{type:'image/jpeg'});
+    return (TOUCH()?shareFile(f,nm):Promise.resolve('unsupported')).then(r=>{
+      if(r==='unsupported'){ download(nm,b); banner('Downloaded '+nm,3500); } }); };
+  const plain=()=>fetch(sh.src).then(r=>r.blob());
+  const make=!withMarks?plain():new Promise((res,rej)=>{
+    const im=new Image(); im.onload=()=>{
+      const W=im.naturalWidth, H=im.naturalHeight, ar=W/H, c=document.createElement('canvas');
+      c.width=W; c.height=H; const g=c.getContext('2d'); g.drawImage(im,0,0);
+      const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 1000 '
+        +Math.round(1000/ar)+'" preserveAspectRatio="none">'+mkInner(sh.marks,ar)+'</svg>';
+      const o=new Image(); o.onload=()=>{ g.drawImage(o,0,0,W,H); c.toBlob(b=>b?res(b):rej(),'image/jpeg',0.9); };
+      o.onerror=rej; o.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+    }; im.onerror=rej; im.src=sh.src; }).catch(plain);
+  return make.then(give).catch(()=>banner('Could not make the download.',4000));
+}
 function pop(p){
   const f=n=>n==null?'&ndash;':n, hand=p.man||p.moved;
   return '<div class="pop"><img src="'+imgOf(p)+'" onclick="openSheet('+PTS.indexOf(p)+')">'
@@ -4715,12 +4849,15 @@ function pop(p){
    +'<a href="https://www.google.com/maps?q='+p.lat+','+p.lon+'" target="_blank">Open in Google Maps &rarr;</a><br>'
    +'<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+p.lat+','+p.lon+(p.head!=null?'&heading='+p.head:'')+'" target="_blank">Street View from here &rarr;</a>'
    +mkPopLine(p)
+   +notesBlock(p)
    +linesBlock(p)
    +(p.unplaced&&!VIEWONLY?'<div style="color:#ff5d5d;font-size:10.5px;margin-top:7px;line-height:1.45"><b>Not placed yet.</b><br>'+he(p.note||'')+'</div>':'')
    +(VIEWONLY?'':instBlock(p,true))
    +(INSTALL?'<div class="btnrow">'+instActs(p)+'</div>':'')
+   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlShot(\''+js(p.file)+'\')">Download photo</button></div>':'')
    +(LOCKED?'':'<input class="lblinp" placeholder="Label this location…" value="'+he(p.label)+'" '
      +'oninput="setLabel(\''+js(p.file)+'\',this.value)">'
+     +memoBox(p)
      +'<div class="headrow"><span>Facing</span>'
      +'<input class="headinp" type="number" min="0" max="359" step="1" placeholder="—" '
      +'value="'+(p.head==null?'':Math.round(p.head))+'" '
@@ -4728,6 +4865,7 @@ function pop(p){
      +'<span class="headcmp">'+(p.head==null?'not set':cmp(p.head))+'</span>'
      +'<button class="aimb" onclick="aimFromPhoto(\''+js(p.file)+'\')">Aim on map</button></div>'
      +'<div class="btnrow">'
+     +'<button onclick="locMenu(\''+js(p.file)+'\')">Edit…</button>'
      +'<button onclick="addToPin(\''+js(p.file)+'\')">Add photo</button>'
      +(shotOf(p)?'<button onclick="mkOpen(\''+js(p.file)+'\','+(p.shot||0)+')">Mark up</button>':'')
      +(waiting().length?'<button onclick="attachFromTray(\''+js(p.file)+'\')">Attach from tray</button>':'')
@@ -4857,10 +4995,12 @@ function openSheet(i,keep){
     +'<tr><td>Photo</td><td>'+(sh?(multi?(p.shot+1)+' of '+p.shots.length+' · ':'')+he(sh.name||p.file)+(im(sh)?' · install photo':'')
         :'none yet')+'</td></tr>'
     +'</table></details>';
-  $('shMeta').innerHTML=(VIEWONLY?linesBlock(p)+details
-    :INSTALL?instBlock(p)+linesBlock(p)+details+'<div class="acts">'+instActs(p,true)+'</div>'
+  $('shMeta').innerHTML=(VIEWONLY?notesBlock(p)+linesBlock(p)+details
+      +(sh?'<div class="acts"><button id="shDl">Download photo</button></div>':'')
+    :INSTALL?instBlock(p)+notesBlock(p)+linesBlock(p)+details+'<div class="acts">'+instActs(p,true)+'</div>'
     :'<div class="lblq">What is this sign?</div>'
       +'<input class="lblinp" id="shLbl" placeholder="Monument sign at the entry, wall sign, directional…" value="'+he(p.label)+'">'
+      +memoBox(p,'shMemo')+notesBlock(p)
       +'<div class="headrow"><span>Facing</span>'
       +'<input class="headinp" id="shHead" type="number" min="0" max="359" step="1" placeholder="—" value="'
       +(p.head==null?'':Math.round(p.head))+'">'
@@ -4870,6 +5010,7 @@ function openSheet(i,keep){
       +linesBlock(p)
       +details
       +'<div class="acts">'
+      +'<button id="shMenu">Edit…</button>'
       +'<button id="shAdd">Add photo</button>'
       +(multi?'<button id="shDelShot">Remove this photo</button>':'')
       +((p.egps&&!byGPS(p))?'<button class="gps" id="shGps">Revert to GPS</button>':'')
@@ -4878,12 +5019,15 @@ function openSheet(i,keep){
       +(sh?'<button id="shMark">Mark up</button>':'')
       +'<button class="danger" id="shDel">Remove pin</button>'
       +'</div>');
+  if(VIEWONLY&&$('shDl')) $('shDl').onclick=()=>dlShot(p.file);
   if(!VIEWONLY){
     $('shAdd').onclick=()=>addToPin(p.file);
     const ds=$('shDelShot'); if(ds) ds.onclick=()=>removeShot(p.file,p.shot);
   }
   if(!LOCKED){
     $('shLbl').oninput=e=>{ setLabel(p.file,e.target.value); $('shTtl').textContent=title(p); };
+    $('shMemo').oninput=e=>setMemo(p.file,e.target.value);
+    $('shMenu').onclick=()=>locMenu(p.file);
     $('shHead').oninput=e=>{ const i2=PTS.indexOf(p); if(e.target.value==='')return;
                              setHeading(i2,+e.target.value,true);
                              $('shCmp').textContent=p.head==null?'not set':cmp(p.head); };
@@ -4989,7 +5133,8 @@ function refreshList(){
         +(p.shots&&p.shots.length>1?'<span class="shotcount">'+p.shots.length+' photos</span>':'')
         +((p.status&&!VIEWONLY)?'<span class="shotcount'+(p.status==='problem'?' prob':'')+'">'+p.status+'</span>':'')
         +((p.lines||[]).length?'<span class="shotcount">'+he(docChip(p))+' \u00b7 '
-            +p.lines.length+'</span>':'')+'</b>'
+            +p.lines.length+'</span>':'')
+        +(hasNotes(p)?'<span class="shotcount nt">notes</span>':'')+'</b>'
     +'<span class="mt">'
     +((VIEWONLY||!realFile(p))?'':'<i>'+he(p.file)+' &middot; </i>')
     +((multiDay&&p.date)?p.date+' ':'')+(p.time||'no timestamp')
@@ -5002,6 +5147,8 @@ function refreshList(){
     select(i,true);
     if(TOUCH()) openSheet(i);
   });
+  list.querySelectorAll('.item[data-i]').forEach(el=>el.oncontextmenu=ev=>{
+    const q=PTS[+el.dataset.i]; if(!q||selMode) return; ev.preventDefault(); locMenu(q.file); });
   if(!LOCKED) list.querySelectorAll('.nm').forEach(el=>{
     el.onclick=ev=>{ if(selMode) return; ev.stopPropagation(); startRename(el);};
   });
@@ -5039,12 +5186,12 @@ function startRename(span){
   inp.onclick=e=>e.stopPropagation();
 }
 
-let placing=null;
+let placing=null, placeMove=false;   // placeMove: a pin already on the map is being moved (r10)
 function armPlace(file){
   const p=PTS.find(x=>x.file===file);
   if(!p){armPlace.cancel&&armPlace.cancel();return;}
   if(placing===file){ cancelPlace(); return; }        // tap again to cancel
-  placing=file;
+  placing=file; placeMove=!p.unplaced;
   document.querySelectorAll('.trayitem').forEach(x=>
     x.classList.toggle('armed', x.dataset.file===file));
   document.getElementById('map').classList.add('dropready');
@@ -5054,7 +5201,7 @@ function armPlace(file){
   h.style.display='block';
 }
 function cancelPlace(){
-  placing=null;
+  placing=null; placeMove=false;
   document.querySelectorAll('.trayitem').forEach(x=>x.classList.remove('armed'));
   document.getElementById('map').classList.remove('dropready');
   document.getElementById('drophint').style.display='none';
@@ -5198,7 +5345,7 @@ function select(i,fly){
   pinPanel();
 }
 document.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT')return;
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   const i=curIdx();
   if(e.key==='ArrowDown'||e.key==='ArrowRight'){e.preventDefault();select(Math.min(i+1,PTS.length-1),true);}
   if(e.key==='ArrowUp'||e.key==='ArrowLeft'){e.preventDefault();select(Math.max(i-1,0),true);}
@@ -5739,7 +5886,8 @@ function importProofs(f,raw,doc,lineFail,warn){
             mp:Math.round(img.naturalWidth*img.naturalHeight/1e5)/10,
             mb:Math.round(bytes.length/104857.6)/10,
             src:proof,
-            shots:[{src:proof,name:name,time:'',date:'',
+            _k:k,
+            shots:[{src:proof,name:name,time:'',date:'',proof:true,
                     alt:null,acc:null,head:null,
                     mp:Math.round(img.naturalWidth*img.naturalHeight/1e5)/10,
                     mb:Math.round(bytes.length/104857.6)/10}], shot:0});
@@ -5752,6 +5900,17 @@ function importProofs(f,raw,doc,lineFail,warn){
     function finish(){
       btn.textContent=old; btn.disabled=false;
       const added=pending.length;
+      const toTray=()=>{ if(!pending.length) return; pushWorld('import work order');
+        pending.forEach(p=>{ delete p._k; PTS.push(p); }); render(true); setDirty(true); };
+      if(added&&pair&&doc&&doc.items&&doc.items.length&&!lineFail){
+        const by=[]; pending.forEach(p=>{ by[p._k]=p.shots[0]; });
+        banner(added+' proof'+(added===1?'':'s')+' read — each one goes with its sign in the list.'
+          +((warn||[]).length?' Check the line items against the paperwork.':''),5000);
+        setTimeout(()=>importLines(f,doc,by,()=>{ toTray();
+          banner('The line items were not added, so the '+added+' proof'+(added===1?' is':'s are')+' in the tray.',6000); }),700);
+        return;
+      }
+      pending.forEach(p=>{ delete p._k; });
       if(added){
         pushWorld('import work order');
         pending.forEach(p=>PTS.push(p));
@@ -5824,8 +5983,8 @@ function addLocByHand(){
 const inch=v=>v==null?'':(+(Math.round(v*100)/100))+'"';
 
 let WOD=null;                   // the dialog's working state. Nothing reaches PTS until Add.
-function importLines(f,doc){
-  if(!doc||!doc.items.length){ banner(MSG['no-items'],8000); return; }
+function importLines(f,doc,proofs,fallback){
+  if(!doc||!doc.items.length){ banner(MSG['no-items'],8000); if(fallback) fallback(); return; }
   let onLoc=0, wait=0;
   const seenOn={}, seenWait={};
   PTS.forEach(p=>(p.lines||[]).forEach(l=>{
@@ -5837,11 +5996,11 @@ function importLines(f,doc){
     banner(doc.no+' is already on this survey — '+onLoc+' of its lines '
       +(onLoc===1?'is':'are')+' on locations and '+wait+' '+(wait===1?'is':'are')
       +' waiting. Nothing has been imported.',9000);
-    return;
+    return;   // the proofs of a document already here are not added a second time either
   }
-  WOD={doc:doc, rows:doc.items.filter(i=>!i.omit).map(it=>({it:it,dest:null})),
-       out:doc.items.filter(i=>i.omit), mk:[]};
-  if(!WOD.rows.length){ WOD=null;
+  WOD={doc:doc, rows:doc.items.filter(i=>!i.omit).map((it,k)=>({it:it,dest:null,cp:1,pf:(proofs&&proofs[k])||null})),
+       out:doc.items.filter(i=>i.omit), mk:[], fallback:fallback||null};
+  if(!WOD.rows.length){ WOD=null; if(fallback) fallback();
     banner(doc.no+' has no sign lines on it — every line is installation, design or '
       +'labour. Nothing has been imported.',8000); return; }
   woDialog();
@@ -5861,9 +6020,10 @@ function woRow(r,k){
         +(pt.qty>1?' ×'+pt.qty:'')
         +(pt.sides>1?' · '+pt.sides+' sides':'');
   });
+  if(r.pf) sub+='<br>proof attached';
   return '<button class="liner" data-k="'+k+'">'
    +'<span class="lnhd"><b>'+it.no+'</b><span>'+he(it.name)+'</span>'
-   +'<i class="lndest'+(r.dest==null?'':' set')+'">'+he(woDest(r))+'</i></span>'
+   +'<i class="lndest'+(r.dest==null?'':' set')+'">'+he(woDest(r))+(r.cp>1?' ×'+r.cp:'')+'</i></span>'
    +'<span class="lnsub">'+sub+'</span></button>';
 }
 function woDialog(){
@@ -5885,7 +6045,9 @@ function woDialog(){
    +'<div class="moregrp">When a line joins a location that already has a name</div>'
    +'<button class="liner" id="woMN"></button>'
    +'</div></div>',
-   woGo,'Add '+rows.length+' line'+(rows.length===1?'':'s'));
+   woGo,'Add '+rows.length+' line'+(rows.length===1?'':'s'),
+   {onClose:()=>setTimeout(()=>{ const w=WOD;
+      if(w&&!$('modal').classList.contains('show')){ WOD=null; if(w.fallback) w.fallback(); } },60)});
   $('modalDlg').classList.add('moresheet');
   setTimeout(()=>{ document.querySelectorAll('#modalDlg .liner[data-k]').forEach(el=>
     el.onclick=()=>woPick(+el.dataset.k));
@@ -5907,11 +6069,11 @@ function paintMN(){
     +'<br>A location with no name of its own always takes the product name.</span>';
 }
 function woGo(){
-  if(!WOD.qtyAsked&&WOD.rows.some(r=>(r.it.qty||1)>1)){ setTimeout(woQty,0); return; }
+  if(!WOD.qtyAsked&&WOD.rows.some(r=>(r.it.qty||1)>1&&!(r.cp>1))){ setTimeout(woQty,0); return; }
   woCommit();
 }
 function woQty(){
-  const many=WOD.rows.filter(r=>(r.it.qty||1)>1);
+  const many=WOD.rows.filter(r=>(r.it.qty||1)>1&&!(r.cp>1));
   let back='list';
   openModal('<h2>More than one of some signs</h2><div class="body">'
    +'<div class="svnote">A line with a quantity above one can be one location, or a location '
@@ -5949,11 +6111,23 @@ function woPick(k){
    +'<div class="moregrp">or</div>'
    +'<button data-new="1">Make a new location called “'+he(r.it.name)+'”</button>'
    +'<button data-none="1">Leave it in “to place”</button>';
+  const cpTxt=()=>r.cp>1?r.cp+' locations':'1 location';
   openModal('<h2>Where does line '+r.it.no+' go?</h2><div class="body">'
    +'<div class="svnote">'+he(r.it.name)+'</div>'
+   +'<div class="moregrp">Same sign at more than one place?</div>'
+   +'<div class="cpyrow"><button id="woCm" aria-label="One fewer">−</button><b id="woCp">'+cpTxt()+'</b>'
+   +'<button id="woCx" aria-label="One more">+</button></div>'
+   +'<div class="hint" id="woCh"></div>'
+   +'<div class="moregrp">Where '+(r.cp>1?'the first one':'it')+' goes</div>'
    +'<div class="morelist">'+rows+'</div></div>',null,null,{cancel:'Back',onClose:woDialog});
   $('modalDlg').classList.add('moresheet');
-  setTimeout(()=>{ document.querySelectorAll('#modalDlg .morelist button').forEach(el=>{
+  const cpSay=()=>{ $('woCp').textContent=cpTxt();
+    $('woCh').textContent=r.cp>1?'Named '+r.it.name+'_1 … _'+r.cp+', qty 1 each'+(r.pf?', each with the proof':'')
+      +'. The first goes where you pick below; the rest wait in “to place”.':''; };
+  setTimeout(()=>{ cpSay();
+    $('woCm').onclick=()=>{ r.cp=Math.max(1,(r.cp||1)-1); cpSay(); };
+    $('woCx').onclick=()=>{ r.cp=Math.min(SPLIT_MAX,(r.cp||1)+1); cpSay(); };
+    document.querySelectorAll('#modalDlg .morelist button').forEach(el=>{
     el.onclick=()=>{
       if(el.dataset.f!=null) r.dest={file:el.dataset.f};
       else if(el.dataset.mk!=null) r.dest={mk:+el.dataset.mk};
@@ -5970,9 +6144,11 @@ function woCommit(){
   const made={};
   rows.forEach(r=>{ if(r.dest&&r.dest.mk!=null&&!made[r.dest.mk]){
     const q=makeLoc(WOD.mk[r.dest.mk],null); PTS.push(q); made[r.dest.mk]=q; }});
-  let onLoc=0, wait=0, splitLines=0, splitMade=0, renamed=0, named=0;
+  let onLoc=0, wait=0, splitLines=0, splitMade=0, renamed=0, named=0, proofs=0;
   rows.forEach(r=>{
-    const n=r.many?splitCount(r.it.qty):1;
+    const n=r.cp>1?Math.min(r.cp,SPLIT_MAX):r.many?splitCount(r.it.qty):1;
+    const withProof=q=>{ if(r.pf&&q&&!(q.shots||[]).some(s=>s.src===r.pf.src)){
+      q.shots=(q.shots||[]).concat([cloneShot(r.pf)]); if(q.shots.length===1){ q.shot=0; } syncPrimary(q); proofs++; } };
     for(let k=0;k<n;k++){
       const line=lineFromItem(r.it,d.no);
       if(n>1) line.q=1;
@@ -5980,13 +6156,15 @@ function woCommit(){
       const p=k>0?null
              :(r.dest&&r.dest.file!=null)?PTS.find(x=>x.file===r.dest.file)
              :(r.dest&&r.dest.mk!=null)?made[r.dest.mk]:null;
+      if(p&&n>1&&r.dest&&r.dest.mk!=null&&p.label===WOD.mk[r.dest.mk]){ p.label=nm; p.pnm=nm; }
       if(p){
         p.lines=(p.lines||[]).concat([line]);
         const rn=nameFromProduct(p,nm);
         if(rn==='renamed') renamed++; else if(rn==='named') named++;
         if(p.unplaced) wait++; else onLoc++;
+        withProof(p);
       }else{
-        PTS.push(makeLoc(nm,[line])); wait++;
+        const q=makeLoc(nm,[line]); withProof(q); PTS.push(q); wait++;
       }
     }
     if(n>1){ splitLines++; splitMade+=n; }
@@ -6002,10 +6180,11 @@ function woCommit(){
   banner((d.no?d.no+' — ':'')+onLoc+' line'+(onLoc===1?'':'s')+' on locations, '+wait
     +' waiting to be placed'
     +(splitLines?' · '+splitMade+' of them came from '+splitLines+' line'
-        +(splitLines===1?'':'s')+' split by quantity':'')
+        +(splitLines===1?'':'s')+' made into several locations':'')
     +(renamed?' · '+renamed+' location'+(renamed===1?'':'s')+' renamed from the paperwork':'')
     +(named?' · '+named+' location'+(named===1?'':'s')+' named from the paperwork':'')
     +(notes.length?' · job notes added':'')
+    +(proofs?' · '+proofs+' proof'+(proofs===1?'':'s')+' attached':'')
     +(wait?'. Tap a card then tap the map, or drop one on a pin to add it there.':''),8000);
 }
 
@@ -6344,7 +6523,7 @@ function libRecord(id){
     bytes:approxBytes(), thumb:thumbData, namedByHand:!!LIBHAND,
     brand:Object.assign({},BRAND,{ui:Object.assign({},BRAND.ui||{})}),
     view:{lat:c.lat,lon:c.lng,z:z,bearing:BEARING},
-    reordered:REORDERED, pts:slimPts() };
+    reordered:REORDERED, pts:slimPts(), seen:SEEN_AT, ahead:!!AHEAD };
 }
 
 let lastQuota=null;
@@ -6385,6 +6564,7 @@ function doSave(){
         return libRefresh();
       }).then(()=>{ renderEmpty(); askPersist(); return quotaNow(); }).then(q=>{
         lastQuota=q;
+        if(linkSave()){ markTold(); saving=false; return publish('save'); }
         if(!toldOnce()){ firstSaveModal(); return; }
         if(q&&q.pct>=0.95)
           banner('Saved, but '+THIS_DEV()+' is nearly out of room. The next survey may not save. '
@@ -6396,6 +6576,7 @@ function doSave(){
     });
   }).catch(saveFailed).then(v=>{ saving=false; return v; });
 }
+const linkSave=()=>!INSTALL&&!VIEWONLY&&!!pubCfg();
 function saveFailed(e){
   saving=false;
   if(((e&&e.name)||'')==='QuotaExceededError'||/quota|storage/i.test(String((e&&e.message)||'')))
@@ -6565,8 +6746,12 @@ function libOpen(id){
     loadRecord(rec);
     CURID=rec.id; LIBSEEN=rec.updated; savedAt=rec.updated; conflicted=false;
     setDirty(false);
+    const pa=rec.brand&&rec.brand.pub&&rec.brand.pub.at;
+    SEEN_AT=rec.seen||(pa&&pa.length>10&&Date.parse(pa))||0;
+    AHEAD=rec.ahead!=null?!!rec.ahead:null; OPENED_AT=rec.updated||0;
     banner((rec.count||0)+' location'+(rec.count===1?'':'s')+' — '+rec.name
           +'. Carry on where you left off.',5000);
+    return pullCheck('open');
   }).catch(()=>{ busyClose(); banner('Could not open that survey.',5000); });
 }
 
@@ -6697,6 +6882,9 @@ if(STAFF_HASH){ try{ localStorage.setItem(STAFFK,JSON.stringify({url:location.or
 let SKMEM={};
 const skAll=()=>{ try{ return Object.assign({},SKMEM,JSON.parse(localStorage.getItem(SKEYS)||'{}')||{}); }catch(_){ return SKMEM; } };
 const skPut=(slug,key)=>{ SKMEM[slug]=key; try{ const o=skAll(); o[slug]=key; localStorage.setItem(SKEYS,JSON.stringify(o)); }catch(_){ } };
+if(HOSTED){ const ks=Object.keys(KEYS);
+  if(ks.length) ks.forEach(s=>skPut(s,KEYS[s]));
+  else { const a=skAll(), p=BRAND.pub||{}; [HKEY().slice(2),p.slug].forEach(s=>{ if(s&&a[s]) KEYS[s]=a[s]; }); } }
 const pubCfg=()=>{
   if(HOSTED) return KEYS[HKEY().slice(2)]?{url:location.origin,key:''}:null;
   try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
@@ -6817,6 +7005,63 @@ function staleCheck(){
     },()=>true);
 }
 
+let PULLING=false, PULL_ASKED=0, VIEW_BASE=0, OPENED_AT=0;
+const liveAddr=()=>VIEWONLY?(WEB?location.origin+location.pathname:'')
+  :(INSTALL||!(HOSTED||CURID))?'':pubWURL();
+const localAhead=at=>dirty||AHEAD===true||(AHEAD==null&&OPENED_AT>at);
+function pullCheck(why){
+  const a=liveAddr();
+  if(!a||PULLING||PUBLISHING||saving||navigator.onLine===false) return Promise.resolve(false);
+  PULLING=true;
+  return head(a).then(h=>{
+    const at=h.status===200?lastMod(h):0;
+    if(VIEWONLY){ if(!at) return false; if(!VIEW_BASE){ VIEW_BASE=at; return false; }
+      if(at>VIEW_BASE){ VIEW_BASE=at; location.reload(); } return false; }
+    if(why==='load'&&HOSTED){ SEEN_AT=Math.max(SEEN_AT,at); return false; }
+    if(!at||!(at>SEEN_AT)) return false;
+    if(localAhead(at)){ if(PULL_ASKED!==at){ PULL_ASKED=at; askPull(a,at); } return false; }
+    return pullNow(a,at);
+  },()=>false).then(v=>{ PULLING=false; return v; },()=>{ PULLING=false; return false; });
+}
+function askPull(a,at){
+  if($('modal')&&$('modal').classList.contains('show')) { PULL_ASKED=0; return; }   // ask on the next look
+  openModal('<h2>This survey was saved on another device '+touchedWords(at)+'</h2><div class="body">'
+   +'<div class="svnote">'+THIS_DEV().replace('this','This')+' has changes that are not on the link. '
+   +'Open the newer version (Undo brings yours back), or keep yours — the next Save replaces the link’s.</div></div>',
+   ()=>{ pullNow(a,at); return true; },'Open the newer version',{cancel:'Keep mine'});
+  $('mCancel').onclick=()=>{ SEEN_AT=Math.max(SEEN_AT,at); closeModal(); };
+}
+function pullNow(a,at){
+  PULLING=true;
+  return fetch(a,{cache:'no-store'}).then(r=>{
+    if(r.status!==200) throw new Error(String(r.status));
+    return r.text().then(h=>{
+      const doc=docFromMapHTML(h), brand=brandFromMapHTML(h);
+      if(!doc||!Array.isArray(doc.pts)) throw new Error('not a survey');
+      const got=lastMod(r)||at;
+      pushWorld('newer version from the link');
+      PTS.length=0; doc.pts.forEach(q=>PTS.push(migratePoint(q)));
+      REORDERED=!!doc.reordered;
+      if(brand){ const pub=Object.assign({},brand.pub||BRAND.pub||{},{at:new Date(got).toISOString()});
+        BRAND=Object.assign({},brand,{pub:pub}); applyBrand();
+        if(brand.ui){ setTools(brand.ui.tools!==false); setDense(!!brand.ui.dense); } }
+      SEEN_AT=Math.max(SEEN_AT,got);
+      if(sheetFile&&!PTS.some(x=>x.file===sheetFile)) closeSheet();
+      if(curFile&&!PTS.some(x=>x.file===curFile)) curFile=null;
+      render(true); setDirty(false); AHEAD=false;
+      if(HOSTED) draftDrop(HKEY()).catch(()=>{});
+      if(CURID&&!HOSTED){ const rec=libRecord(CURID);
+        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); AHEAD=false; },()=>{}); }
+      banner('Updated to the newest version — saved on another device '+touchedWords(got)+'.',6000);
+      return true;
+    });
+  }).catch(()=>false).then(v=>{ PULLING=false; return v; });
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pullCheck('front'); });
+window.addEventListener('focus',()=>{ pullCheck('front'); });
+setInterval(()=>{ if(!document.hidden) pullCheck('tick'); },60000);
+setTimeout(()=>{ pullCheck('load'); },4000);
+
 let PUBLISHING=false;
 function publish(kind){
   if(PUBLISHING) return;
@@ -6825,7 +7070,7 @@ function publish(kind){
   kind=kind||'update';
   const jobs=[];
   if(kind==='inst'||INSTALL) jobs.push('i');
-  else { if(pubWURL()||kind==='work') jobs.push('w'); if(pubURL()||kind==='link'||kind==='work') jobs.push(''); }
+  else { if(pubWURL()||kind==='work'||kind==='save') jobs.push('w'); if(pubURL()||kind==='link'||kind==='work') jobs.push(''); }
   if(!jobs.length) return;
   const oldLink=pubURL(), keep=BRAND.pub?Object.assign({},BRAND.pub):null, wasShare=!!$('shStat');
   const setBusy=on=>{ document.querySelectorAll('#modalDlg [data-sh],#modalDlg .pubnow button')
@@ -6848,9 +7093,14 @@ function publish(kind){
     return mintKeys().then(()=>{ card(); setBusy(true); return next(); }).then(()=>{
       PUBLISHING=false;
       if(HOSTED){ draftDrop(HKEY()).catch(()=>{}); setDirty(false); }
+      AHEAD=false;
+      if(!HOSTED&&CURID){ const rec=libRecord(CURID);
+        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); AHEAD=false; },()=>{}); }
       const moved=oldLink && pubURL()!==oldLink;
       if($('shStat')){ closeModal(); openShare(); }
-      banner(jobs.length>1?(kind==='save'?'Saved':'Published')+' — both links are current: the client’s, and your working link.'
+      banner(kind==='save'&&!HOSTED&&!INSTALL?'Saved on '+THIS_DEV()+' and at its link — open it on any device and it is this version.'
+        +(jobs.length>1?' The client’s link is current too.':'')
+        :jobs.length>1?(kind==='save'?'Saved':'Published')+' — both links are current: the client’s, and your working link.'
         :INSTALL?'Saved — the shop can bring your photos in.'
         :kind==='inst'?'Sent — the installer link is on the Share card: Copy link, or Send the link.'
         :moved?'Published at a new address — send this one; the old link still opens.'
@@ -7126,7 +7376,7 @@ const HELP={
   ['Open SurveyWalk on the shop computer, or <b>…/admin</b> on any computer or phone. The first <b>Share</b> asks for the publish password — once per device.',
    'Staff: <b>More… → Staff start link → Copy link</b>, and text it to them. One link for everyone; it always opens the latest SurveyWalk.',
    'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>More… → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
-   '<b>Save</b> keeps it in <b>My surveys</b> on this device.',
+   '<b>Save</b> keeps it in <b>My surveys</b> on this device and at its own link, so any device opens the newest version.',
    'The client: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the same link shows the change.',
    'Finish it somewhere else: <b>Share → Work on this from another device</b>. That link can edit the survey — never forward it.',
    'The crew: <b>Share → Send to the installer</b>. When they are done, <b>Share → Bring install photos in</b>.',
@@ -7135,7 +7385,7 @@ const HELP={
   ['Open the staff link once and keep it: in your browser’s <b>Share</b> or <b>⋮</b> menu, tap <b>Add to Home Screen</b> (Safari or Chrome, iPhone or Android). Always open SurveyWalk from that icon — your surveys live on this phone, in that one place.',
    'At each sign location, stand where the sign goes, face it and press <b>Take photo</b>. Photos you already took: <b>Add photos</b>.',
    'Tap a location to name it and add sizes and notes.',
-   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
+   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
    'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
    'Finish on a computer: <b>Share → Work on this from another device</b>, and send it to yourself.',
    'The crew: <b>Share → Send to the installer</b>.',
@@ -7550,11 +7800,12 @@ function schedCells(p){
       j?'':(l.q||1),
       (pt.nm||'')+(pt.q>1?' \u00d7'+pt.q:'')+(pt.sd>1?' \u00b7 '+pt.sd+' sides':'')]));
   });
+  const memo=p.memo?'<div class="fr">'+he(p.memo)+'</div>':'';
   if(!rows.length) return '<td class="fill w-type"></td><td class="fill w-size"></td>'
-                         +'<td class="fill w-qty"></td><td class="fill w-notes"></td>';
+                         +'<td class="fill w-qty"></td><td class="fill w-notes">'+memo+'</td>';
   const col=k=>rows.map(r=>'<div class="fr">'+(r[k]===''?'&nbsp;':he(String(r[k])))+'</div>').join('');
   return '<td class="fill w-type">'+col(0)+'</td><td class="fill w-size">'+col(1)+'</td>'
-        +'<td class="fill w-qty">'+col(2)+'</td><td class="fill w-notes">'+col(3)+'</td>';
+        +'<td class="fill w-qty">'+col(2)+'</td><td class="fill w-notes">'+col(3)+memo+'</td>';
 }
 function buildPrint(){
   const ds=[...new Set(PTS.filter(p=>p.date).map(p=>p.date))].sort();
@@ -8740,6 +8991,7 @@ let bounds=START.length?L.latLngBounds(START.map(p=>[p.dlat,p.dlon])):null;
 if(bounds) map.fitBounds(bounds,{padding:[55,55]});
 else map.setView([M.center.lat,M.center.lon],M.center.z||17);
 
+var AHEAD=false;      // r10: this device has work its working link does not have yet
 let editing=false, dirty=false, marks=[], curFile=null, hIdx=-1, handle=null;
 let sheetIdx=-1, sheetFile=null, emptyDismissed=false;
 
@@ -8847,7 +9099,7 @@ const UNDO=[], REDO=[], STACK_MAX=50;
 // the installer copy and brought onto the office's location by Bring install photos in. A shot's
 // `inst:true` needs no entry: a snapshot shares the shot objects, so it rides with the shot.
 const SNAPF=['lat','lon','dlat','dlon','head','headman','label','note','man','moved',
-             'unplaced','nudged','ord','shot','src','time','date','acc','alt','egps','pnm','status','inote'];
+             'unplaced','nudged','ord','shot','src','time','date','acc','alt','egps','pnm','status','inote','memo'];
 // SNAPF is a whitelist of SCALARS, so an array has to be named on its own or undo never sees it.
 // `shots` always was. `lines` is the same shape of thing and the same trap: measured, moving a
 // line item from one location to another and pressing Undo left it on the new location and took
@@ -9416,7 +9668,7 @@ function render(keepView){
                +(p.head==null?'display:none':'')+'"></div>';
     const ic=L.divIcon({className:'',html:'<div class="wrap">'+cone
       +'<div class="pin'+(p.shots&&p.shots.length>1?' multi':'')+(byGPS(p)?'':' hand')
-      +(selSet.has(p.file)?' picked':'')+'" id="pin'+idx+'">'+p.i+'</div></div>',
+      +(selSet.has(p.file)?' picked':'')+(hasNotes(p)?' noted':'')+'" id="pin'+idx+'">'+p.i+'</div></div>',
       iconSize:[24,24],iconAnchor:[12,12]});
     const m=L.marker([p.dlat,p.dlon],{icon:ic,riseOnHover:true,zIndexOffset:idx,draggable:editing}).addTo(map);
     // TOUCH(), not MOBILE(): a phone held sideways and an iPad are 852px and 820px wide, so
@@ -9431,11 +9683,16 @@ function render(keepView){
       // every tap within 12px of a disc, and refusing was the wrong answer to the right
       // question: a crew member aiming at a pin with a card armed means "this belongs HERE",
       // which is Aaron's third ask. One route in for the tap, the aerial and the desktop drag.
+      if(placing&&placeMove){ placeAt(placing,ev&&ev.latlng?ev.latlng:L.latLng(p.dlat,p.dlon)); return; }
       if(placing){ dropOrAttach(placing, ev&&ev.containerPoint?ev.containerPoint:null,
                    ev&&ev.latlng?ev.latlng:L.latLng(p.dlat,p.dlon), idx); return; }
       const near=ev&&ev.containerPoint?pinsNear(ev.containerPoint):[idx];
       if(near.length>1){ chooseLocation(near); return; }
       select(idx,false); if(TOUCH()) openSheet(idx); });
+    // r10 — Aaron: "Right click or have button that allow edits for each location pin." A long
+    // press on a phone arrives as the same contextmenu event.
+    m.on('contextmenu',ev=>{ if(ev&&ev.originalEvent) ev.originalEvent.preventDefault();
+      if(selMode||placing) return; m.closePopup(); select(idx,false); locMenu(p.file); });
     m.on('dragstart',()=>{ m.closePopup(); undoPoint(p,'move pin'); });
     m.on('drag',e=>showDrag(p,e.target.getLatLng()));
     m.on('dragend',e=>{
@@ -9520,7 +9777,7 @@ function aimFromPhoto(file){
 let aiming=-1;
 map.on('click',e=>{
   if(measOn){ measAdd(e.latlng); return; }
-  if(placing){ dropOrAttach(placing,e.containerPoint,e.latlng); return; }
+  if(placing){ if(placeMove) placeAt(placing,e.latlng); else dropOrAttach(placing,e.containerPoint,e.latlng); return; }
   if(aiming<0){ if(map.hasLayer(parcelGroup)&&parcelNow) lookupParcel(e.latlng); return; }
   const p=PTS[aiming];
   const c=map.latLngToLayerPoint([p.dlat,p.dlon]), q=map.latLngToLayerPoint(e.latlng);
@@ -9561,7 +9818,7 @@ window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{
 // that is something they can act on. The button stays live when saved \u2014 pressing it saves
 // again, which is harmless and is what a worried person will do anyway.
 function setDirty(v){
-  dirty=v;
+  dirty=v; if(v) AHEAD=true;
   const bar=document.getElementById('savebar'), b=document.getElementById('bSave');
   if(bar) bar.classList.toggle('show',v);
   if(b) b.textContent = v ? 'Save \u25cf'
@@ -9725,6 +9982,125 @@ function instNote(file,v){
 const instActs=(p,sheet)=>{ const sh=shotOf(p), f=js(p.file);
   return (sheet?'<button id="shAdd">':'<button onclick="addToPin(\''+f+'\')">')+'Add photo</button>'
     +(sh&&sh.inst?(sheet?'<button id="shDelShot">':'<button onclick="removeShot(\''+f+'\','+(p.shot||0)+')">')+'Remove this photo</button>':''); };
+// ---- notes on a location (r10) ------------------------------------------
+// Aaron: "show notes in location popup" and "icon that shows it has a note/s". A location's own
+// notes (memo — `note` was already taken by the app's placement message), the notes written on
+// its photos in Mark up, and the installer's note all count. The client sees them read-only.
+function photoNotes(p){ const o=[];
+  (p.shots||[]).forEach(sh=>(sh.marks||[]).forEach(m=>{ if(m.t==='note'&&m.x&&o.indexOf(m.x)<0) o.push(m.x); }));
+  return o; }
+const hasNotes=p=>!!(p.memo||(p.inote&&!VIEWONLY)||photoNotes(p).length);
+function notesBlock(p){
+  const pn=photoNotes(p), ro=LOCKED&&p.memo;
+  if(!ro&&!pn.length) return '';
+  return '<div class="ntbox"><div class="lnhead">Notes</div>'+(ro?'<div class="ntx">'+he(p.memo)+'</div>':'')
+    +pn.map(x=>'<div class="ntx">'+he(x)+' <i>· on the photo</i></div>').join('')+'</div>';
+}
+const memoBox=(p,id)=>'<textarea class="lblinp memo"'+(id?' id="'+id+'"':'')+' placeholder="Notes for this location…"'
+  +(id?'':' oninput="setMemo(\''+js(p.file)+'\',this.value)"')+'>'+he(p.memo||'')+'</textarea>';
+function setMemo(file,v){
+  const p=PTS.find(x=>x.file===file); if(!p||LOCKED) return;
+  undoCoalesced(p,'notes','m:'+file);
+  if(v.trim()) p.memo=v; else delete p.memo;
+  const el=document.getElementById('pin'+PTS.indexOf(p)); if(el) el.classList.toggle('noted',hasNotes(p));
+  setDirty(true); refreshList();
+}
+// ---- one menu per location (r10) -------------------------------------------
+// Right-click a pin or a list row, long-press a pin, or Edit… in the popup or the sheet. Every
+// line here calls the routine that already does the job — nothing is re-implemented.
+function locMenu(file){
+  const p=PTS.find(x=>x.file===file); if(!p) return;
+  const sh=shotOf(p), mk=!!(sh&&sh.marks&&sh.marks.length), it=[];
+  if(!LOCKED){
+    it.push(['ed','Edit name and notes'],[ 'mv',p.unplaced?'Place it on the map':'Move this pin'],
+            ['dup','Duplicate this location'],['add','Add photo']);
+    if(sh) it.push(['mk','Mark up the photo']);
+  }
+  if(sh){ it.push(['dl','Download photo']); if(mk) it.push(['dlm','Download photo with markup']); }
+  if(!LOCKED) it.push(['rm','Remove this location','danger']);
+  if(!it.length){ banner('This location has no photo yet.',3000); return; }
+  openModal('<h2>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</h2><div class="body"><div class="morelist">'
+    +it.map(([k,l,c])=>'<button class="moreitem'+(c?' '+c:'')+'" data-a="'+k+'">'+he(l)+'</button>').join('')
+    +'</div></div>',null,null,{cancel:'Close'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-a]').forEach(el=>el.onclick=()=>{
+    const a=el.dataset.a, i=PTS.indexOf(p); closeModal(); if(i<0) return;
+    if(a==='ed'){ map.closePopup(); select(i,false); openSheet(i); }
+    else if(a==='mv'){ closeSheet(); map.closePopup(); armPlace(p.file);
+      banner('Tap the map where '+title(p)+' goes. Esc cancels.',5000); }
+    else if(a==='dup') dupAsk(p.file);
+    else if(a==='add') addToPin(p.file);
+    else if(a==='mk') mkOpen(p.file,p.shot||0);
+    else if(a==='dl') dlShot(p.file);
+    else if(a==='dlm') dlShot(p.file,true);
+    else if(a==='rm'){ closeSheet(); removePhoto(p.file); }
+  }),0);
+}
+// A proof is a picture of the sign, not of the site: it belongs on every copy of the location.
+const isProof=sh=>!!(sh&&(sh.proof||/ — proof \d/.test(sh.name||'')));
+function dupAsk(file){
+  const p=PTS.find(x=>x.file===file); if(!p||LOCKED) return;
+  const site=(p.shots||[]).filter(sh=>!isProof(sh)&&!sh.inst);
+  if(!site.length){ dupLoc(file,false); return; }
+  openModal('<h2>Duplicate '+he(title(p))+'</h2><div class="body">'
+   +'<div class="svnote">The copy gets the name, sizes, line items, notes and any proof. Its own spot on the map comes next.</div>'
+   +'<div class="morelist"><button class="saveopt" data-d="0"><b>Without the site photos</b>'
+   +'<span>The usual choice — the copy is a different place, so it gets its own photos.</span></button>'
+   +'<button class="saveopt" data-d="1"><b>With the site photos too</b>'
+   +'<span>'+site.length+' photo'+(site.length===1?'':'s')+' copied across.</span></button></div></div>',
+   null,null,{cancel:'Cancel'});
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-d]').forEach(el=>el.onclick=()=>{
+    const w=el.dataset.d==='1'; closeModal(); dupLoc(file,w); }),0);
+}
+// The copy's name: Door sign → Door sign_2, Door sign_2 → Door sign_3 — the same _N the
+// quantity split uses, so a schedule reads one way whichever route made the copies.
+function dupName(p){
+  const base=String(p.label||title(p)).replace(/_(\d+)$/,''); let n=2;
+  while(PTS.some(x=>x.label===base+'_'+n)) n++;
+  return base+'_'+n;
+}
+const cloneShot=sh=>Object.assign({},sh,sh.marks?{marks:sh.marks.map(m=>Object.assign({},m,{a:m.a.slice()},m.b?{b:m.b.slice()}:{}))}:{});
+function dupLoc(file,photos){
+  const p=PTS.find(x=>x.file===file); if(!p||LOCKED) return null;
+  pushWorld('duplicate location');
+  const q=makeLoc(dupName(p),null);
+  if(p.pnm) q.pnm=q.label; else delete q.pnm;
+  if(p.lines&&p.lines.length) q.lines=p.lines.map(l=>JSON.parse(JSON.stringify(l)));
+  if(p.memo) q.memo=p.memo;
+  q.head=p.head; q.headman=p.headman;
+  const keep=(p.shots||[]).filter(sh=>!sh.inst&&(photos||isProof(sh)));
+  q.shots=keep.map(cloneShot);
+  const cur=shotOf(p), k=keep.indexOf(cur); q.shot=k>=0?k:0;
+  if(q.shots.length) syncPrimary(q);
+  q.note='Copy of '+title(p)+' — tap the map where it goes';
+  PTS.push(q);
+  closeSheet(); map.closePopup();
+  render(true); setDirty(true);
+  armPlace(q.file);
+  banner('Copy made: “'+q.label+'”. Tap the map where it goes — or leave it in the tray for later.',6000);
+  return q;
+}
+// Aaron: "ability to download image". The photo as the survey holds it — 900 px on the long side,
+// the working copy, not the camera original. With markup: the measurements and notes drawn in.
+function dlShot(file,withMarks){
+  const p=PTS.find(x=>x.file===file), sh=shotOf(p); if(!sh||!sh.src){ banner('This location has no photo yet.',3000); return; }
+  const nm=(title(p)+(p.shots.length>1?' - photo '+((p.shot||0)+1):'')+(withMarks?' - markup':''))
+    .replace(/[\\/:*?"<>|]+/g,'-').trim()+'.jpg';
+  const give=b=>{ const f=new File([b],nm,{type:'image/jpeg'});
+    return (TOUCH()?shareFile(f,nm):Promise.resolve('unsupported')).then(r=>{
+      if(r==='unsupported'){ download(nm,b); banner('Downloaded '+nm,3500); } }); };
+  const plain=()=>fetch(sh.src).then(r=>r.blob());
+  const make=!withMarks?plain():new Promise((res,rej)=>{
+    const im=new Image(); im.onload=()=>{
+      const W=im.naturalWidth, H=im.naturalHeight, ar=W/H, c=document.createElement('canvas');
+      c.width=W; c.height=H; const g=c.getContext('2d'); g.drawImage(im,0,0);
+      const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 1000 '
+        +Math.round(1000/ar)+'" preserveAspectRatio="none">'+mkInner(sh.marks,ar)+'</svg>';
+      const o=new Image(); o.onload=()=>{ g.drawImage(o,0,0,W,H); c.toBlob(b=>b?res(b):rej(),'image/jpeg',0.9); };
+      o.onerror=rej; o.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+    }; im.onerror=rej; im.src=sh.src; }).catch(plain);
+  return make.then(give).catch(()=>banner('Could not make the download.',4000));
+}
 function pop(p){
   const f=n=>n==null?'&ndash;':n, hand=p.man||p.moved;
   // No Expand button in the button row: the photograph 200px above it is already the thing
@@ -9744,12 +10120,15 @@ function pop(p){
    +'<a href="https://www.google.com/maps?q='+p.lat+','+p.lon+'" target="_blank">Open in Google Maps &rarr;</a><br>'
    +'<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+p.lat+','+p.lon+(p.head!=null?'&heading='+p.head:'')+'" target="_blank">Street View from here &rarr;</a>'
    +mkPopLine(p)
+   +notesBlock(p)
    +linesBlock(p)
    +(p.unplaced&&!VIEWONLY?'<div style="color:#ff5d5d;font-size:10.5px;margin-top:7px;line-height:1.45"><b>Not placed yet.</b><br>'+he(p.note||'')+'</div>':'')
    +(VIEWONLY?'':instBlock(p,true))
    +(INSTALL?'<div class="btnrow">'+instActs(p)+'</div>':'')
+   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlShot(\''+js(p.file)+'\')">Download photo</button></div>':'')
    +(LOCKED?'':'<input class="lblinp" placeholder="Label this location…" value="'+he(p.label)+'" '
      +'oninput="setLabel(\''+js(p.file)+'\',this.value)">'
+     +memoBox(p)
      +'<div class="headrow"><span>Facing</span>'
      +'<input class="headinp" type="number" min="0" max="359" step="1" placeholder="—" '
      +'value="'+(p.head==null?'':Math.round(p.head))+'" '
@@ -9757,6 +10136,7 @@ function pop(p){
      +'<span class="headcmp">'+(p.head==null?'not set':cmp(p.head))+'</span>'
      +'<button class="aimb" onclick="aimFromPhoto(\''+js(p.file)+'\')">Aim on map</button></div>'
      +'<div class="btnrow">'
+     +'<button onclick="locMenu(\''+js(p.file)+'\')">Edit…</button>'
      +'<button onclick="addToPin(\''+js(p.file)+'\')">Add photo</button>'
      // Camera is gone from this row. The photo sheet dropped it in round 2 for a reason written
      // at :2456 that is exactly as true with a mouse: the operating system's own picker offers
@@ -9917,11 +10297,13 @@ function openSheet(i,keep){
     +'<tr><td>Photo</td><td>'+(sh?(multi?(p.shot+1)+' of '+p.shots.length+' · ':'')+he(sh.name||p.file)+(im(sh)?' · install photo':'')
         :'none yet')+'</td></tr>'
     +'</table></details>';
-  $('shMeta').innerHTML=(VIEWONLY?linesBlock(p)+details
+  $('shMeta').innerHTML=(VIEWONLY?notesBlock(p)+linesBlock(p)+details
+      +(sh?'<div class="acts"><button id="shDl">Download photo</button></div>':'')
     // The installer copy: their report first, then what is being made, then the reference.
-    :INSTALL?instBlock(p)+linesBlock(p)+details+'<div class="acts">'+instActs(p,true)+'</div>'
+    :INSTALL?instBlock(p)+notesBlock(p)+linesBlock(p)+details+'<div class="acts">'+instActs(p,true)+'</div>'
     :'<div class="lblq">What is this sign?</div>'
       +'<input class="lblinp" id="shLbl" placeholder="Monument sign at the entry, wall sign, directional…" value="'+he(p.label)+'">'
+      +memoBox(p,'shMemo')+notesBlock(p)
       +'<div class="headrow"><span>Facing</span>'
       +'<input class="headinp" id="shHead" type="number" min="0" max="359" step="1" placeholder="—" value="'
       +(p.head==null?'':Math.round(p.head))+'">'
@@ -9941,6 +10323,7 @@ function openSheet(i,keep){
       // app stamps the live fix) does not apply here, and iOS's own picker offers Take Photo
       // or Photo Library anyway.
       +'<div class="acts">'
+      +'<button id="shMenu">Edit…</button>'
       +'<button id="shAdd">Add photo</button>'
       +(multi?'<button id="shDelShot">Remove this photo</button>':'')
       +((p.egps&&!byGPS(p))?'<button class="gps" id="shGps">Revert to GPS</button>':'')
@@ -9952,12 +10335,15 @@ function openSheet(i,keep){
       +(sh?'<button id="shMark">Mark up</button>':'')
       +'<button class="danger" id="shDel">Remove pin</button>'
       +'</div>');
+  if(VIEWONLY&&$('shDl')) $('shDl').onclick=()=>dlShot(p.file);
   if(!VIEWONLY){
     $('shAdd').onclick=()=>addToPin(p.file);
     const ds=$('shDelShot'); if(ds) ds.onclick=()=>removeShot(p.file,p.shot);
   }
   if(!LOCKED){
     $('shLbl').oninput=e=>{ setLabel(p.file,e.target.value); $('shTtl').textContent=title(p); };
+    $('shMemo').oninput=e=>setMemo(p.file,e.target.value);
+    $('shMenu').onclick=()=>locMenu(p.file);
     $('shHead').oninput=e=>{ const i2=PTS.indexOf(p); if(e.target.value==='')return;
                              setHeading(i2,+e.target.value,true);
                              $('shCmp').textContent=p.head==null?'not set':cmp(p.head); };
@@ -10104,7 +10490,8 @@ function refreshList(){
         // the estimate \u2014 while counting the order's line into the estimate's total. docChip names
         // the LAST document, and a leading + says there is an earlier one on the same pin.
         +((p.lines||[]).length?'<span class="shotcount">'+he(docChip(p))+' \u00b7 '
-            +p.lines.length+'</span>':'')+'</b>'
+            +p.lines.length+'</span>':'')
+        +(hasNotes(p)?'<span class="shotcount nt">notes</span>':'')+'</b>'
     // one span so the compact view can flow this onto the same line as the name
     +'<span class="mt">'
     // the separator lives inside the <i>, so hiding the filename in the compact
@@ -10123,6 +10510,8 @@ function refreshList(){
     // TOUCH(), not MOBILE(): an iPad is 820px wide and its user still has fingers.
     if(TOUCH()) openSheet(i);
   });
+  list.querySelectorAll('.item[data-i]').forEach(el=>el.oncontextmenu=ev=>{
+    const q=PTS[+el.dataset.i]; if(!q||selMode) return; ev.preventDefault(); locMenu(q.file); });
   if(!LOCKED) list.querySelectorAll('.nm').forEach(el=>{
     // While you are SELECTING, the name is not a rename target — let the tap fall through
     // to the row above, which toggles the tick across its whole 61px. The name is a 60x15
@@ -10167,12 +10556,12 @@ function startRename(span){
 }
 
 // ---- tap-to-place (works on touch, where HTML5 drag does not) -------
-let placing=null;
+let placing=null, placeMove=false;   // placeMove: a pin already on the map is being moved (r10)
 function armPlace(file){
   const p=PTS.find(x=>x.file===file);
   if(!p){armPlace.cancel&&armPlace.cancel();return;}
   if(placing===file){ cancelPlace(); return; }        // tap again to cancel
-  placing=file;
+  placing=file; placeMove=!p.unplaced;
   document.querySelectorAll('.trayitem').forEach(x=>
     x.classList.toggle('armed', x.dataset.file===file));
   document.getElementById('map').classList.add('dropready');
@@ -10184,7 +10573,7 @@ function armPlace(file){
   h.style.display='block';
 }
 function cancelPlace(){
-  placing=null;
+  placing=null; placeMove=false;
   document.querySelectorAll('.trayitem').forEach(x=>x.classList.remove('armed'));
   document.getElementById('map').classList.remove('dropready');
   document.getElementById('drophint').style.display='none';
@@ -10380,7 +10769,7 @@ function select(i,fly){
   pinPanel();
 }
 document.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT')return;
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   const i=curIdx();
   if(e.key==='ArrowDown'||e.key==='ArrowRight'){e.preventDefault();select(Math.min(i+1,PTS.length-1),true);}
   if(e.key==='ArrowUp'||e.key==='ArrowLeft'){e.preventDefault();select(Math.max(i-1,0),true);}
@@ -11140,7 +11529,8 @@ function importProofs(f,raw,doc,lineFail,warn){
             mp:Math.round(img.naturalWidth*img.naturalHeight/1e5)/10,
             mb:Math.round(bytes.length/104857.6)/10,
             src:proof,
-            shots:[{src:proof,name:name,time:'',date:'',
+            _k:k,
+            shots:[{src:proof,name:name,time:'',date:'',proof:true,
                     alt:null,acc:null,head:null,
                     mp:Math.round(img.naturalWidth*img.naturalHeight/1e5)/10,
                     mb:Math.round(bytes.length/104857.6)/10}], shot:0});
@@ -11153,6 +11543,22 @@ function importProofs(f,raw,doc,lineFail,warn){
     function finish(){
       btn.textContent=old; btn.disabled=false;
       const added=pending.length;
+      // r10 — Aaron: "work order import has ability to duplicate item for multi locations with
+      // same proof." When the proofs pair with the sign lines, each proof now rides WITH its line
+      // into the import list — onto every location that line makes or joins — instead of landing
+      // as a second, separate card of the same name. Nothing is lost if the list is cancelled or
+      // refused: the proofs then go to the tray exactly as before.
+      const toTray=()=>{ if(!pending.length) return; pushWorld('import work order');
+        pending.forEach(p=>{ delete p._k; PTS.push(p); }); render(true); setDirty(true); };
+      if(added&&pair&&doc&&doc.items&&doc.items.length&&!lineFail){
+        const by=[]; pending.forEach(p=>{ by[p._k]=p.shots[0]; });
+        banner(added+' proof'+(added===1?'':'s')+' read — each one goes with its sign in the list.'
+          +((warn||[]).length?' Check the line items against the paperwork.':''),5000);
+        setTimeout(()=>importLines(f,doc,by,()=>{ toTray();
+          banner('The line items were not added, so the '+added+' proof'+(added===1?' is':'s are')+' in the tray.',6000); }),700);
+        return;
+      }
+      pending.forEach(p=>{ delete p._k; });
       if(added){
         pushWorld('import work order');
         pending.forEach(p=>PTS.push(p));
@@ -11309,8 +11715,8 @@ const inch=v=>v==null?'':(+(Math.round(v*100)/100))+'"';
 // ever does come back, it comes back one row at a time, in amber, for a person to accept — and
 // not in the same round as the reader.
 let WOD=null;                   // the dialog's working state. Nothing reaches PTS until Add.
-function importLines(f,doc){
-  if(!doc||!doc.items.length){ banner(MSG['no-items'],8000); return; }
+function importLines(f,doc,proofs,fallback){
+  if(!doc||!doc.items.length){ banner(MSG['no-items'],8000); if(fallback) fallback(); return; }
   // The same document twice, refused BY NAME before anything is added. Two copies of line 5 is
   // two signs made. Same posture as merge's "Nothing new to merge — all 5 are already here".
   // COUNT THE PAPERWORK'S OWN LINE NUMBERS, not the copies on the survey. A qty-3 line split
@@ -11327,11 +11733,11 @@ function importLines(f,doc){
     banner(doc.no+' is already on this survey — '+onLoc+' of its lines '
       +(onLoc===1?'is':'are')+' on locations and '+wait+' '+(wait===1?'is':'are')
       +' waiting. Nothing has been imported.',9000);
-    return;
+    return;   // the proofs of a document already here are not added a second time either
   }
-  WOD={doc:doc, rows:doc.items.filter(i=>!i.omit).map(it=>({it:it,dest:null})),
-       out:doc.items.filter(i=>i.omit), mk:[]};
-  if(!WOD.rows.length){ WOD=null;
+  WOD={doc:doc, rows:doc.items.filter(i=>!i.omit).map((it,k)=>({it:it,dest:null,cp:1,pf:(proofs&&proofs[k])||null})),
+       out:doc.items.filter(i=>i.omit), mk:[], fallback:fallback||null};
+  if(!WOD.rows.length){ WOD=null; if(fallback) fallback();
     banner(doc.no+' has no sign lines on it — every line is installation, design or '
       +'labour. Nothing has been imported.',8000); return; }
   woDialog();
@@ -11356,9 +11762,10 @@ function woRow(r,k){
         +(pt.qty>1?' ×'+pt.qty:'')
         +(pt.sides>1?' · '+pt.sides+' sides':'');
   });
+  if(r.pf) sub+='<br>proof attached';
   return '<button class="liner" data-k="'+k+'">'
    +'<span class="lnhd"><b>'+it.no+'</b><span>'+he(it.name)+'</span>'
-   +'<i class="lndest'+(r.dest==null?'':' set')+'">'+he(woDest(r))+'</i></span>'
+   +'<i class="lndest'+(r.dest==null?'':' set')+'">'+he(woDest(r))+(r.cp>1?' ×'+r.cp:'')+'</i></span>'
    +'<span class="lnsub">'+sub+'</span></button>';
 }
 function woDialog(){
@@ -11394,7 +11801,10 @@ function woDialog(){
    +'<div class="moregrp">When a line joins a location that already has a name</div>'
    +'<button class="liner" id="woMN"></button>'
    +'</div></div>',
-   woGo,'Add '+rows.length+' line'+(rows.length===1?'':'s'));
+   woGo,'Add '+rows.length+' line'+(rows.length===1?'':'s'),
+   // r10: closed with nothing added and no other step of the import on screen — cancelled
+   {onClose:()=>setTimeout(()=>{ const w=WOD;
+      if(w&&!$('modal').classList.contains('show')){ WOD=null; if(w.fallback) w.fallback(); } },60)});
   $('modalDlg').classList.add('moresheet');
   setTimeout(()=>{ document.querySelectorAll('#modalDlg .liner[data-k]').forEach(el=>
     el.onclick=()=>woPick(+el.dataset.k));
@@ -11430,7 +11840,7 @@ function woGo(){
   // in meant Escape out of that screen and press Add again committed without ever being asked —
   // the default is the safe answer, so nothing was lost, but a question that can be skipped by
   // pressing Escape is not a question.
-  if(!WOD.qtyAsked&&WOD.rows.some(r=>(r.it.qty||1)>1)){ setTimeout(woQty,0); return; }
+  if(!WOD.qtyAsked&&WOD.rows.some(r=>(r.it.qty||1)>1&&!(r.cp>1))){ setTimeout(woQty,0); return; }
   woCommit();
 }
 // Aaron: "if product qty is more than 1, ask to either keep as one or add multiple locations
@@ -11439,7 +11849,7 @@ function woGo(){
 // Only the lines with a quantity above one are on this screen. On an estimate where every line
 // is qty 1 — which is most of them — it never opens at all, and Add commits straight through.
 function woQty(){
-  const many=WOD.rows.filter(r=>(r.it.qty||1)>1);
+  const many=WOD.rows.filter(r=>(r.it.qty||1)>1&&!(r.cp>1));
   let back='list';
   openModal('<h2>More than one of some signs</h2><div class="body">'
    +'<div class="svnote">A line with a quantity above one can be one location, or a location '
@@ -11489,11 +11899,24 @@ function woPick(k){
    +'<div class="moregrp">or</div>'
    +'<button data-new="1">Make a new location called “'+he(r.it.name)+'”</button>'
    +'<button data-none="1">Leave it in “to place”</button>';
+  // r10: the same sign at several places — one line, N locations, every one carrying the proof.
+  const cpTxt=()=>r.cp>1?r.cp+' locations':'1 location';
   openModal('<h2>Where does line '+r.it.no+' go?</h2><div class="body">'
    +'<div class="svnote">'+he(r.it.name)+'</div>'
+   +'<div class="moregrp">Same sign at more than one place?</div>'
+   +'<div class="cpyrow"><button id="woCm" aria-label="One fewer">−</button><b id="woCp">'+cpTxt()+'</b>'
+   +'<button id="woCx" aria-label="One more">+</button></div>'
+   +'<div class="hint" id="woCh"></div>'
+   +'<div class="moregrp">Where '+(r.cp>1?'the first one':'it')+' goes</div>'
    +'<div class="morelist">'+rows+'</div></div>',null,null,{cancel:'Back',onClose:woDialog});
   $('modalDlg').classList.add('moresheet');
-  setTimeout(()=>{ document.querySelectorAll('#modalDlg .morelist button').forEach(el=>{
+  const cpSay=()=>{ $('woCp').textContent=cpTxt();
+    $('woCh').textContent=r.cp>1?'Named '+r.it.name+'_1 … _'+r.cp+', qty 1 each'+(r.pf?', each with the proof':'')
+      +'. The first goes where you pick below; the rest wait in “to place”.':''; };
+  setTimeout(()=>{ cpSay();
+    $('woCm').onclick=()=>{ r.cp=Math.max(1,(r.cp||1)-1); cpSay(); };
+    $('woCx').onclick=()=>{ r.cp=Math.min(SPLIT_MAX,(r.cp||1)+1); cpSay(); };
+    document.querySelectorAll('#modalDlg .morelist button').forEach(el=>{
     el.onclick=()=>{
       if(el.dataset.f!=null) r.dest={file:el.dataset.f};
       else if(el.dataset.mk!=null) r.dest={mk:+el.dataset.mk};
@@ -11514,7 +11937,7 @@ function woCommit(){
   const made={};
   rows.forEach(r=>{ if(r.dest&&r.dest.mk!=null&&!made[r.dest.mk]){
     const q=makeLoc(WOD.mk[r.dest.mk],null); PTS.push(q); made[r.dest.mk]=q; }});
-  let onLoc=0, wait=0, splitLines=0, splitMade=0, renamed=0, named=0;
+  let onLoc=0, wait=0, splitLines=0, splitMade=0, renamed=0, named=0, proofs=0;
   rows.forEach(r=>{
     // Aaron, 2026-09-26: "if product qty is more than 1, ask to either keep as one or add
     // multiple locations based on the product qty, naming them _1, _2, _3 and so on."
@@ -11526,7 +11949,10 @@ function woCommit(){
     // documents has a line above Qty 1. INV-69607 line 1 looks like two doors and is Qty 1 with
     // two SUB-PARTS, 1.1 and 1.2 — which is the exact conflation the line-item spec forbids.
     // So this screen stays out of the way on every job Aaron has sent so far.
-    const n=r.many?splitCount(r.it.qty):1;
+    const n=r.cp>1?Math.min(r.cp,SPLIT_MAX):r.many?splitCount(r.it.qty):1;
+    // r10: the proof goes on every location this line makes or joins, once each
+    const withProof=q=>{ if(r.pf&&q&&!(q.shots||[]).some(s=>s.src===r.pf.src)){
+      q.shots=(q.shots||[]).concat([cloneShot(r.pf)]); if(q.shots.length===1){ q.shot=0; } syncPrimary(q); proofs++; } };
     for(let k=0;k<n;k++){
       const line=lineFromItem(r.it,d.no);
       // THE LINE'S OWN NAME IS NEVER TOUCHED — it came off the paperwork verbatim and that rule
@@ -11540,18 +11966,21 @@ function woCommit(){
       const p=k>0?null
              :(r.dest&&r.dest.file!=null)?PTS.find(x=>x.file===r.dest.file)
              :(r.dest&&r.dest.mk!=null)?made[r.dest.mk]:null;
+      // a location this import made is the paperwork's own, so it takes the _1 too (r10)
+      if(p&&n>1&&r.dest&&r.dest.mk!=null&&p.label===WOD.mk[r.dest.mk]){ p.label=nm; p.pnm=nm; }
       if(p){
         p.lines=(p.lines||[]).concat([line]);
         // MERGING, so the location keeps its own name unless the box says otherwise.
         const rn=nameFromProduct(p,nm);
         if(rn==='renamed') renamed++; else if(rn==='named') named++;
         if(p.unplaced) wait++; else onLoc++;
+        withProof(p);
       }else{
         // Still "to place": one tray card per line, named for the line, so it is on the screen,
         // counted in the tray, and listed on the printed schedule as not placed. A line that was
         // imported and never placed must reach the paper, or an estimator prices a job missing
         // a sign. NOT merging, so it takes the product name outright.
-        PTS.push(makeLoc(nm,[line])); wait++;
+        const q=makeLoc(nm,[line]); withProof(q); PTS.push(q); wait++;
       }
     }
     if(n>1){ splitLines++; splitMade+=n; }
@@ -11572,10 +12001,11 @@ function woCommit(){
   banner((d.no?d.no+' — ':'')+onLoc+' line'+(onLoc===1?'':'s')+' on locations, '+wait
     +' waiting to be placed'
     +(splitLines?' · '+splitMade+' of them came from '+splitLines+' line'
-        +(splitLines===1?'':'s')+' split by quantity':'')
+        +(splitLines===1?'':'s')+' made into several locations':'')
     +(renamed?' · '+renamed+' location'+(renamed===1?'':'s')+' renamed from the paperwork':'')
     +(named?' · '+named+' location'+(named===1?'':'s')+' named from the paperwork':'')
     +(notes.length?' · job notes added':'')
+    +(proofs?' · '+proofs+' proof'+(proofs===1?'':'s')+' attached':'')
     +(wait?'. Tap a card then tap the map, or drop one on a pin to add it there.':''),8000);
 }
 
@@ -12046,7 +12476,7 @@ function libRecord(id){
     brand:Object.assign({},BRAND,{ui:Object.assign({},BRAND.ui||{})}),
     // Landing on the county default instead of the site is how a crew stops trusting a tool.
     view:{lat:c.lat,lon:c.lng,z:z,bearing:BEARING},
-    reordered:REORDERED, pts:slimPts() };
+    reordered:REORDERED, pts:slimPts(), seen:SEEN_AT, ahead:!!AHEAD };
 }
 
 // ---- how full is this device ------------------------------------------
@@ -12093,6 +12523,10 @@ function doSave(){
         return libRefresh();
       }).then(()=>{ renderEmpty(); askPersist(); return quotaNow(); }).then(q=>{
         lastQuota=q;
+        // r10 — Aaron: "when saving on computer or phone, the link live updates." A survey that
+        // can reach the publisher is kept at its working link too, so whichever device opens it
+        // next opens this version. The first such Save makes the link (Share shows it).
+        if(linkSave()){ markTold(); saving=false; return publish('save'); }
         if(!toldOnce()){ firstSaveModal(); return; }
         if(q&&q.pct>=0.95)
           banner('Saved, but '+THIS_DEV()+' is nearly out of room. The next survey may not save. '
@@ -12104,6 +12538,10 @@ function doSave(){
     });
   }).catch(saveFailed).then(v=>{ saving=false; return v; });
 }
+// Save goes to the link when this copy can publish: the office (password set), a staff device, or
+// a survey that already has a working link. Never an installer copy (its own path), never a
+// client's.
+const linkSave=()=>!INSTALL&&!VIEWONLY&&!!pubCfg();
 function saveFailed(e){
   saving=false;
   if(((e&&e.name)||'')==='QuotaExceededError'||/quota|storage/i.test(String((e&&e.message)||'')))
@@ -12286,8 +12724,15 @@ function libOpen(id){
     loadRecord(rec);
     CURID=rec.id; LIBSEEN=rec.updated; savedAt=rec.updated; conflicted=false;
     setDirty(false);
+    // r10: what this copy last matched on the link, and whether it has work the link does not.
+    // A record from before r10 carries neither: its publish time stands in, and "ahead" is left
+    // unknown for pullCheck to judge by the save time.
+    const pa=rec.brand&&rec.brand.pub&&rec.brand.pub.at;
+    SEEN_AT=rec.seen||(pa&&pa.length>10&&Date.parse(pa))||0;
+    AHEAD=rec.ahead!=null?!!rec.ahead:null; OPENED_AT=rec.updated||0;
     banner((rec.count||0)+' location'+(rec.count===1?'':'s')+' — '+rec.name
           +'. Carry on where you left off.',5000);
+    return pullCheck('open');
   }).catch(()=>{ busyClose(); banner('Could not open that survey.',5000); });
 }
 
@@ -12511,6 +12956,12 @@ if(STAFF_HASH){ try{ localStorage.setItem(STAFFK,JSON.stringify({url:location.or
 let SKMEM={};
 const skAll=()=>{ try{ return Object.assign({},SKMEM,JSON.parse(localStorage.getItem(SKEYS)||'{}')||{}); }catch(_){ return SKMEM; } };
 const skPut=(slug,key)=>{ SKMEM[slug]=key; try{ const o=skAll(); o[slug]=key; localStorage.setItem(SKEYS,JSON.stringify(o)); }catch(_){ } };
+// r10: a working link keeps its keys on this device, by slug, so it still saves when it is opened
+// again without them — a home-screen icon or a bookmark drops the #k=…, and the draft slot that
+// used to carry them is dropped by every successful Save. Same store as the staff keys (r9 ruling).
+if(HOSTED){ const ks=Object.keys(KEYS);
+  if(ks.length) ks.forEach(s=>skPut(s,KEYS[s]));
+  else { const a=skAll(), p=BRAND.pub||{}; [HKEY().slice(2),p.slug].forEach(s=>{ if(s&&a[s]) KEYS[s]=a[s]; }); } }
 const pubCfg=()=>{
   // A hosted copy: the publisher is where the page came from; the key is the one in its link.
   if(HOSTED) return KEYS[HKEY().slice(2)]?{url:location.origin,key:''}:null;
@@ -12683,6 +13134,73 @@ function staleCheck(){
     },()=>true);
 }
 
+// ---- live: the newest copy, wherever it was saved (r10) -----------------
+// Aaron, 2026-10-15: "when saving on computer or phone, the link live updates the information
+// changed so that when the project is opened again on either platform the new version is live."
+// Save publishes (doSave), and every editable copy with a working link looks at that link when it
+// opens, when the app comes back to the front, and once a minute while it is on screen. Nothing
+// here ever overwrites work that is not on the link: that is asked, once per newer version.
+// The client's copy reloads itself when the office publishes an update.
+let PULLING=false, PULL_ASKED=0, VIEW_BASE=0, OPENED_AT=0;
+const liveAddr=()=>VIEWONLY?(WEB?location.origin+location.pathname:'')
+  :(INSTALL||!(HOSTED||CURID))?'':pubWURL();
+// Work here the link does not have: unsaved changes, a Save that never reached the link, or —
+// for a record older than r10 — a save made after the link's version.
+const localAhead=at=>dirty||AHEAD===true||(AHEAD==null&&OPENED_AT>at);
+function pullCheck(why){
+  const a=liveAddr();
+  if(!a||PULLING||PUBLISHING||saving||navigator.onLine===false) return Promise.resolve(false);
+  PULLING=true;
+  return head(a).then(h=>{
+    const at=h.status===200?lastMod(h):0;
+    if(VIEWONLY){ if(!at) return false; if(!VIEW_BASE){ VIEW_BASE=at; return false; }
+      if(at>VIEW_BASE){ VIEW_BASE=at; location.reload(); } return false; }
+    // a hosted copy was just served from this address, so on load the link IS what is on screen
+    if(why==='load'&&HOSTED){ SEEN_AT=Math.max(SEEN_AT,at); return false; }
+    if(!at||!(at>SEEN_AT)) return false;
+    if(localAhead(at)){ if(PULL_ASKED!==at){ PULL_ASKED=at; askPull(a,at); } return false; }
+    return pullNow(a,at);
+  },()=>false).then(v=>{ PULLING=false; return v; },()=>{ PULLING=false; return false; });
+}
+function askPull(a,at){
+  if($('modal')&&$('modal').classList.contains('show')) { PULL_ASKED=0; return; }   // ask on the next look
+  openModal('<h2>This survey was saved on another device '+touchedWords(at)+'</h2><div class="body">'
+   +'<div class="svnote">'+THIS_DEV().replace('this','This')+' has changes that are not on the link. '
+   +'Open the newer version (Undo brings yours back), or keep yours — the next Save replaces the link’s.</div></div>',
+   ()=>{ pullNow(a,at); return true; },'Open the newer version',{cancel:'Keep mine'});
+  $('mCancel').onclick=()=>{ SEEN_AT=Math.max(SEEN_AT,at); closeModal(); };
+}
+function pullNow(a,at){
+  PULLING=true;
+  return fetch(a,{cache:'no-store'}).then(r=>{
+    if(r.status!==200) throw new Error(String(r.status));
+    return r.text().then(h=>{
+      const doc=docFromMapHTML(h), brand=brandFromMapHTML(h);
+      if(!doc||!Array.isArray(doc.pts)) throw new Error('not a survey');
+      const got=lastMod(r)||at;
+      pushWorld('newer version from the link');
+      PTS.length=0; doc.pts.forEach(q=>PTS.push(migratePoint(q)));
+      REORDERED=!!doc.reordered;
+      if(brand){ const pub=Object.assign({},brand.pub||BRAND.pub||{},{at:new Date(got).toISOString()});
+        BRAND=Object.assign({},brand,{pub:pub}); applyBrand();
+        if(brand.ui){ setTools(brand.ui.tools!==false); setDense(!!brand.ui.dense); } }
+      SEEN_AT=Math.max(SEEN_AT,got);
+      if(sheetFile&&!PTS.some(x=>x.file===sheetFile)) closeSheet();
+      if(curFile&&!PTS.some(x=>x.file===curFile)) curFile=null;
+      render(true); setDirty(false); AHEAD=false;
+      if(HOSTED) draftDrop(HKEY()).catch(()=>{});
+      if(CURID&&!HOSTED){ const rec=libRecord(CURID);
+        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); AHEAD=false; },()=>{}); }
+      banner('Updated to the newest version — saved on another device '+touchedWords(got)+'.',6000);
+      return true;
+    });
+  }).catch(()=>false).then(v=>{ PULLING=false; return v; });
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pullCheck('front'); });
+window.addEventListener('focus',()=>{ pullCheck('front'); });
+setInterval(()=>{ if(!document.hidden) pullCheck('tick'); },60000);
+setTimeout(()=>{ pullCheck('load'); },4000);
+
 // THE one press. Every Share button comes here, and Save on a hosted copy: kind is 'link', 'work',
 // 'update', 'save' or 'inst'. It pushes every address the survey has plus the one asked for — working
 // copy FIRST, then the client copy, so a failure halfway leaves the client on an older but complete
@@ -12699,7 +13217,7 @@ function publish(kind){
   kind=kind||'update';
   const jobs=[];
   if(kind==='inst'||INSTALL) jobs.push('i');
-  else { if(pubWURL()||kind==='work') jobs.push('w'); if(pubURL()||kind==='link'||kind==='work') jobs.push(''); }
+  else { if(pubWURL()||kind==='work'||kind==='save') jobs.push('w'); if(pubURL()||kind==='link'||kind==='work') jobs.push(''); }
   if(!jobs.length) return;
   const oldLink=pubURL(), keep=BRAND.pub?Object.assign({},BRAND.pub):null, wasShare=!!$('shStat');
   const setBusy=on=>{ document.querySelectorAll('#modalDlg [data-sh],#modalDlg .pubnow button')
@@ -12723,11 +13241,18 @@ function publish(kind){
       PUBLISHING=false;
       // A hosted copy: what is on screen is now on the server, so the slot is redundant.
       if(HOSTED){ draftDrop(HKEY()).catch(()=>{}); setDirty(false); }
+      // r10: the link now has exactly what is on screen. A library copy records that, so the next
+      // time it opens it knows whether the link moved on without it.
+      AHEAD=false;
+      if(!HOSTED&&CURID){ const rec=libRecord(CURID);
+        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); AHEAD=false; },()=>{}); }
       // moved: an old Netlify link, or the same slug now on Aaron's own domain. Either way the
       // old link still opens (the old copy, or — same store, same object — this one).
       const moved=oldLink && pubURL()!==oldLink;
       if($('shStat')){ closeModal(); openShare(); }
-      banner(jobs.length>1?(kind==='save'?'Saved':'Published')+' — both links are current: the client’s, and your working link.'
+      banner(kind==='save'&&!HOSTED&&!INSTALL?'Saved on '+THIS_DEV()+' and at its link — open it on any device and it is this version.'
+        +(jobs.length>1?' The client’s link is current too.':'')
+        :jobs.length>1?(kind==='save'?'Saved':'Published')+' — both links are current: the client’s, and your working link.'
         :INSTALL?'Saved — the shop can bring your photos in.'
         :kind==='inst'?'Sent — the installer link is on the Share card: Copy link, or Send the link.'
         :moved?'Published at a new address — send this one; the old link still opens.'
@@ -13051,7 +13576,7 @@ const HELP={
   ['Open SurveyWalk on the shop computer, or <b>…/admin</b> on any computer or phone. The first <b>Share</b> asks for the publish password — once per device.',
    'Staff: <b>More… → Staff start link → Copy link</b>, and text it to them. One link for everyone; it always opens the latest SurveyWalk.',
    'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>More… → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
-   '<b>Save</b> keeps it in <b>My surveys</b> on this device.',
+   '<b>Save</b> keeps it in <b>My surveys</b> on this device and at its own link, so any device opens the newest version.',
    'The client: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the same link shows the change.',
    'Finish it somewhere else: <b>Share → Work on this from another device</b>. That link can edit the survey — never forward it.',
    'The crew: <b>Share → Send to the installer</b>. When they are done, <b>Share → Bring install photos in</b>.',
@@ -13060,7 +13585,7 @@ const HELP={
   ['Open the staff link once and keep it: in your browser’s <b>Share</b> or <b>⋮</b> menu, tap <b>Add to Home Screen</b> (Safari or Chrome, iPhone or Android). Always open SurveyWalk from that icon — your surveys live on this phone, in that one place.',
    'At each sign location, stand where the sign goes, face it and press <b>Take photo</b>. Photos you already took: <b>Add photos</b>.',
    'Tap a location to name it and add sizes and notes.',
-   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
+   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
    'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
    'Finish on a computer: <b>Share → Work on this from another device</b>, and send it to yourself.',
    'The crew: <b>Share → Send to the installer</b>.',
@@ -13591,11 +14116,13 @@ function schedCells(p){
       j?'':(l.q||1),
       (pt.nm||'')+(pt.q>1?' \u00d7'+pt.q:'')+(pt.sd>1?' \u00b7 '+pt.sd+' sides':'')]));
   });
+  // r10: the location's own notes print in the Notes column, under whatever the lines put there
+  const memo=p.memo?'<div class="fr">'+he(p.memo)+'</div>':'';
   if(!rows.length) return '<td class="fill w-type"></td><td class="fill w-size"></td>'
-                         +'<td class="fill w-qty"></td><td class="fill w-notes"></td>';
+                         +'<td class="fill w-qty"></td><td class="fill w-notes">'+memo+'</td>';
   const col=k=>rows.map(r=>'<div class="fr">'+(r[k]===''?'&nbsp;':he(String(r[k])))+'</div>').join('');
   return '<td class="fill w-type">'+col(0)+'</td><td class="fill w-size">'+col(1)+'</td>'
-        +'<td class="fill w-qty">'+col(2)+'</td><td class="fill w-notes">'+col(3)+'</td>';
+        +'<td class="fill w-qty">'+col(2)+'</td><td class="fill w-notes">'+col(3)+memo+'</td>';
 }
 function buildPrint(){
   const ds=[...new Set(PTS.filter(p=>p.date).map(p=>p.date))].sort();
