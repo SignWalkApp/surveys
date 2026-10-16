@@ -62,6 +62,7 @@ export default {
       for (let n = 0; n < 20; n++) {
         const r = await env.SURVEYS.list({ cursor: cursor, limit: 1000, include: ['customMetadata'] });
         r.objects.forEach(o => {
+          if (o.key.charAt(0) === '~') return;            // pairing codes and old versions
           const m = /^(.*?)(?:-\d{4}-\d{2})?-w-[a-z0-9]{10}$/.exec(o.key); if (!m) return;
           const cm = o.customMetadata || {};
           const guess = m[1].replace(/-+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -71,6 +72,27 @@ export default {
       }
       rows.sort((a, b) => b.at < a.at ? -1 : 1);
       return say(JSON.stringify({ surveys: rows }), 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    }
+    // r12 — version history. Aaron: "add 20 version history for backup", "versions fall off after
+    // 30 days". Every Save that overwrites a survey first copies what was there to
+    // ~v/<slug>/<ms>, at most one copy per 10 minutes so a burst of saves keeps a spread of
+    // backups rather than twenty from the last five minutes. Kept: the newest 20, none older
+    // than 30 days. GET ~versions/<slug> lists them; GET ~versions/<slug>/<id> returns one.
+    if (slug.startsWith('~versions/')) {
+      if (!env.SURVEYS) return say('The publisher has no storage attached.', 500);
+      const [, s2, id] = slug.split('/');
+      if (!/^[a-z0-9][a-z0-9-]{2,63}$/.test(s2 || '')) return say('No survey at this address.', 404);
+      if (!env.PUBLISH_KEY || !(given === env.PUBLISH_KEY || (given !== '' && (given === await derive(s2) || given === await derive('~staff')))))
+        return say('Wrong publish key.', 401);
+      if (req.method !== 'GET') return say('Method not allowed.', 405);
+      if (id) {
+        if (!/^\d{13}$/.test(id)) return say('No such version.', 404);
+        const obj = await env.SURVEYS.get('~v/' + s2 + '/' + id);
+        if (!obj) return say('That version is gone — versions are kept for 30 days.', 404);
+        return say(obj.body, 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      }
+      const vs = await versions(env, s2, true);
+      return say(JSON.stringify({ versions: vs }), 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     }
     if (slug === '') {                                   // the app's Check talks to the root
       if (req.method === 'PUT') return (await keyOK()) ? say(null, 204) : say('Wrong publish key.', 401);
@@ -101,6 +123,7 @@ export default {
       // the job name and count ride beside the survey so the company list needs no survey opened
       let job = ''; try { job = decodeURIComponent(req.headers.get('X-Survey-Job') || '').slice(0, 120); } catch (_) {}
       const meta = { job: job, count: String(parseInt(req.headers.get('X-Survey-Count') || '0', 10) || 0) };
+      try { await keepVersion(env, slug); } catch (_) { /* a backup that fails never blocks the save */ }
       try { await env.SURVEYS.put(slug, req.body, { httpMetadata: { contentType: 'text/html; charset=utf-8' }, customMetadata: meta }); }
       catch (e) { return say('Storage refused the survey: ' + e.message + ' — check R2 in Cloudflare.', 507); }
       const out = { url: url.origin + '/' + slug };
@@ -131,6 +154,29 @@ export default {
 // than the free plan allows per request. Every marker searched for is ASCII, and in UTF-8 every
 // byte of a multi-byte character is >= 0x80, so byte positions are exact. The survey data is
 // never decoded — it is sliced out of the stored bytes and handed to the response as is.
+const VMAX = 20, VDAYS = 30, VGAP = 10 * 60 * 1000;
+async function versions(env, slug, prune) {
+  const r = await env.SURVEYS.list({ prefix: '~v/' + slug + '/', limit: 1000, include: ['customMetadata'] });
+  const all = r.objects.map(o => ({ key: o.key, id: o.key.split('/').pop(), size: o.size,
+    job: (o.customMetadata || {}).job || '', count: (o.customMetadata || {}).count ? +o.customMetadata.count : null }))
+    .filter(v => /^\d{13}$/.test(v.id)).sort((a, b) => b.id < a.id ? -1 : 1);
+  const cut = Date.now() - VDAYS * 864e5;
+  const keep = [], drop = [];
+  all.forEach((v, i) => (i < VMAX && +v.id >= cut ? keep : drop).push(v));
+  if (prune && drop.length) { try { await env.SURVEYS.delete(drop.map(v => v.key)); } catch (_) {} }
+  return keep.map(v => ({ id: v.id, at: new Date(+v.id).toISOString(), size: v.size, job: v.job, count: v.count }));
+}
+async function keepVersion(env, slug) {
+  const vs = await versions(env, slug, true);
+  if (vs.length && Date.now() - +vs[0].id < VGAP) return;
+  const cur = await env.SURVEYS.get(slug);
+  if (!cur) return;
+  await env.SURVEYS.put('~v/' + slug + '/' + String(Date.now()).padStart(13, '0'),
+    // R2 only takes a stream of known length; a copy straight out of get() needs telling its size
+    typeof FixedLengthStream === 'function' && cur.size != null ? cur.body.pipeThrough(new FixedLengthStream(cur.size)) : await cur.arrayBuffer(),
+    { httpMetadata: { contentType: 'text/html; charset=utf-8' }, customMetadata: cur.customMetadata || {} });
+  if (vs.length >= VMAX) await versions(env, slug, true);
+}
 const te = new TextEncoder(), td = new TextDecoder();
 const B = s => te.encode(s);
 function find(h, pat, from) {                       // pat: Uint8Array, h: Uint8Array
