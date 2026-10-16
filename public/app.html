@@ -1693,6 +1693,63 @@ body.viewonly .pin.sel{background:#fff;color:#111;border-color:var(--edit);
  header{padding:7px 12px 6px}
 }
 
+/* ---- r12 menu bar: seven headers, each a short menu ------------------------
+   The tool row keeps only what is pressed while walking (Take photo, Add photos, My location,
+   Fit all) plus whichever mode is switched on, so it can be switched off where it is seen.
+   Everything else lives under one of the seven headers. The buttons stay in the markup as the
+   targets the menus press, so every existing route to them still works. */
+#menubar{display:flex;gap:2px;padding:6px 6px 5px;border-bottom:1px solid var(--line);background:#171a22}
+#menubar button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:3px;background:none;border:0;color:#c9cedb;padding:5px 0 4px;border-radius:10px;cursor:pointer;
+ font:inherit;font-size:10px;font-weight:560;letter-spacing:-.1px;min-height:46px;white-space:nowrap}
+#menubar button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;
+ stroke-linecap:round;stroke-linejoin:round}
+#menubar button:hover{background:#242835;color:#fff}
+#menubar button.open{background:#2b2412;color:var(--edit)}
+#mbpop{position:fixed;z-index:3000;min-width:236px;max-width:310px;display:none;padding:6px;
+ background:rgba(34,38,50,.97);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+ border:1px solid #3a4052;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+#mbpop.show{display:block}
+#mbpop .mh{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;padding:6px 10px 5px}
+#mbpop hr{border:0;border-top:1px solid #3a4052;margin:5px 6px}
+.mi{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:0;
+ color:var(--txt);font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;min-height:34px;cursor:pointer}
+.mi:hover{background:#323a4f}
+.mi:disabled{opacity:.4;cursor:default}
+.mi .ck{flex:0 0 14px;color:var(--edit);font-weight:700;text-align:center}
+.mi.danger{color:#ff8a8a}
+/* the action sheet a phone gets instead of a dropdown: the More… sheet's own rows */
+.moresheet .mi{min-height:48px;font-size:14.5px;padding:0 12px;border-bottom:1px solid var(--line);border-radius:0}
+.moresheet .mi:last-child{border-bottom:0}
+#bMore{display:none!important}
+/* r12 QC — iOS grouped lists for every short action sheet: one rounded group, hairlines between
+   rows, labels at the left edge, a check on the RIGHT only for something that is on, and a
+   destructive row in red text rather than a red block. */
+.ioslist{gap:0!important;background:#232733;border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.ioslist>button{border:0!important;border-radius:0!important;border-bottom:1px solid #343a4b!important;
+ background:none!important;min-height:50px;padding:0 16px!important;margin:0!important;font-size:16px!important;
+ font-weight:450!important;text-align:left;display:flex!important;align-items:center;gap:10px;color:var(--txt)}
+.ioslist>button:last-child{border-bottom:0!important}
+.ioslist>button:hover,.ioslist>button:active{background:#2e3342!important}
+.ioslist>button.danger{color:#ff6b6b!important}
+.ioslist .ck{order:2;margin-left:auto}
+.ioslist .ck:empty{display:none}
+/* the popup's buttons stay in view while its details scroll */
+.pop .b>.btnrow:last-child{position:sticky;bottom:-1px;background:var(--panel);padding-top:8px;padding-bottom:4px;
+ box-shadow:0 -10px 12px var(--panel);z-index:1}
+.pop .shotbar{padding-right:34px}
+.ordhint{opacity:1!important;font-size:11.5px!important}
+#menubar{gap:3px}
+.tools .secondary:not(.on){display:none!important}
+#savebar .secondary{display:none!important}
+@media(max-width:760px){
+ #menubar{order:-5;padding:4px 4px 3px}
+ #menubar button{min-height:50px;font-size:10px}
+ #side .tools #bFit{display:block}
+}
+@media(pointer:coarse){ #menubar button{min-height:50px} .mi{min-height:44px;font-size:15px} }
+@media(min-width:761px){ #listbar #bDense{display:none} }
+
 /* ---- 30px is the house minimum on a pointer device -------------------------
    All of these were invisible to the audit until round 2, because it measured <button> and
    these are <a>, <input> and <div>. Leaflet's own zoom control shipped at 26x26. */
@@ -1885,13 +1942,17 @@ body.sidehidden #showtools{display:block}
      <button class="hdrbtn" id="bSetup">Project setup</button></div>
    </div>
   </header>
+  <!-- r12 — Aaron: group the buttons "File" "Location" "Mark Up" "View" "Share" "Setup" "Help".
+       Seven headers, each opens its own short menu. Filled in by buildMenubar(). -->
+  <nav id="menubar" aria-label="Menus"></nav>
+  <div id="mbpop" role="menu"></div>
   <div class="tools">
    <button id="bCam" class="edit">Take photo</button>
    <button id="bAdd" class="edit">Add photos</button>
    <button id="bLoc">My location</button>
    <button id="bSelect" class="secondary">Select</button>
    <button id="bCone" class="secondary on">Shot direction</button>
-   <button id="bFit" class="secondary">Fit all</button>
+   <button id="bFit">Fit all</button>
    <button id="bEdit" class="secondary edit">Edit pin positions</button>
    <button id="bWO" class="secondary edit">Import work order or estimate</button>
    <button id="bMeasure" class="secondary">Measure</button>
@@ -3429,6 +3490,53 @@ body.viewonly .pin.sel{background:#fff;color:#111;border-color:var(--edit);
  header{padding:7px 12px 6px}
 }
 
+#menubar{display:flex;gap:2px;padding:6px 6px 5px;border-bottom:1px solid var(--line);background:#171a22}
+#menubar button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:3px;background:none;border:0;color:#c9cedb;padding:5px 0 4px;border-radius:10px;cursor:pointer;
+ font:inherit;font-size:10px;font-weight:560;letter-spacing:-.1px;min-height:46px;white-space:nowrap}
+#menubar button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;
+ stroke-linecap:round;stroke-linejoin:round}
+#menubar button:hover{background:#242835;color:#fff}
+#menubar button.open{background:#2b2412;color:var(--edit)}
+#mbpop{position:fixed;z-index:3000;min-width:236px;max-width:310px;display:none;padding:6px;
+ background:rgba(34,38,50,.97);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+ border:1px solid #3a4052;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+#mbpop.show{display:block}
+#mbpop .mh{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;padding:6px 10px 5px}
+#mbpop hr{border:0;border-top:1px solid #3a4052;margin:5px 6px}
+.mi{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:0;
+ color:var(--txt);font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;min-height:34px;cursor:pointer}
+.mi:hover{background:#323a4f}
+.mi:disabled{opacity:.4;cursor:default}
+.mi .ck{flex:0 0 14px;color:var(--edit);font-weight:700;text-align:center}
+.mi.danger{color:#ff8a8a}
+.moresheet .mi{min-height:48px;font-size:14.5px;padding:0 12px;border-bottom:1px solid var(--line);border-radius:0}
+.moresheet .mi:last-child{border-bottom:0}
+#bMore{display:none!important}
+.ioslist{gap:0!important;background:#232733;border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.ioslist>button{border:0!important;border-radius:0!important;border-bottom:1px solid #343a4b!important;
+ background:none!important;min-height:50px;padding:0 16px!important;margin:0!important;font-size:16px!important;
+ font-weight:450!important;text-align:left;display:flex!important;align-items:center;gap:10px;color:var(--txt)}
+.ioslist>button:last-child{border-bottom:0!important}
+.ioslist>button:hover,.ioslist>button:active{background:#2e3342!important}
+.ioslist>button.danger{color:#ff6b6b!important}
+.ioslist .ck{order:2;margin-left:auto}
+.ioslist .ck:empty{display:none}
+.pop .b>.btnrow:last-child{position:sticky;bottom:-1px;background:var(--panel);padding-top:8px;padding-bottom:4px;
+ box-shadow:0 -10px 12px var(--panel);z-index:1}
+.pop .shotbar{padding-right:34px}
+.ordhint{opacity:1!important;font-size:11.5px!important}
+#menubar{gap:3px}
+.tools .secondary:not(.on){display:none!important}
+#savebar .secondary{display:none!important}
+@media(max-width:760px){
+ #menubar{order:-5;padding:4px 4px 3px}
+ #menubar button{min-height:50px;font-size:10px}
+ #side .tools #bFit{display:block}
+}
+@media(pointer:coarse){ #menubar button{min-height:50px} .mi{min-height:44px;font-size:15px} }
+@media(min-width:761px){ #listbar #bDense{display:none} }
+
 .leaflet-control-zoom a,.leaflet-container a.leaflet-popup-close-button,
 .leaflet-control-layers-toggle{min-width:30px;min-height:30px;line-height:30px}
 .pop a{min-height:30px;line-height:30px}
@@ -3573,13 +3681,17 @@ body.sidehidden #showtools{display:block}
      <button class="hdrbtn" id="bSetup">Project setup</button></div>
    </div>
   </header>
+  <!-- r12 — Aaron: group the buttons "File" "Location" "Mark Up" "View" "Share" "Setup" "Help".
+       Seven headers, each opens its own short menu. Filled in by buildMenubar(). -->
+  <nav id="menubar" aria-label="Menus"></nav>
+  <div id="mbpop" role="menu"></div>
   <div class="tools">
    <button id="bCam" class="edit">Take photo</button>
    <button id="bAdd" class="edit">Add photos</button>
    <button id="bLoc">My location</button>
    <button id="bSelect" class="secondary">Select</button>
    <button id="bCone" class="secondary on">Shot direction</button>
-   <button id="bFit" class="secondary">Fit all</button>
+   <button id="bFit">Fit all</button>
    <button id="bEdit" class="secondary edit">Edit pin positions</button>
    <button id="bWO" class="secondary edit">Import work order or estimate</button>
    <button id="bMeasure" class="secondary">Measure</button>
@@ -3931,6 +4043,28 @@ L.Draggable.prototype._updatePosition=function(){
 };
 
 MAPWIN.appendChild(map._controlContainer);
+
+map.options.zoomSnap=0; map.options.zoomDelta=0.5;
+map.scrollWheelZoom.disable();
+(function(){
+  let acc=0, t=null;
+  MAPWIN.addEventListener('wheel',e=>{
+    if(e.target.closest&&e.target.closest('.leaflet-popup,.leaflet-control,#compass')) return;
+    e.preventDefault();
+    const pt=map.mouseEventToContainerPoint(e);
+    const px=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;
+    const dx=e.deltaX*px, dy=e.deltaY*px;
+    const notch=e.deltaMode!==0||(dx===0&&Math.abs(dy)>=50&&Number.isInteger(dy));
+    if(e.ctrlKey){                                     // pinch on a trackpad, or Ctrl + wheel
+      map.setZoomAround(pt,Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),map.getZoom()-dy*0.01)),{animate:false});
+      return;
+    }
+    if(!notch){ map.panBy(turnPt(dx,dy,-BEARING),{animate:false}); return; }
+    acc+=dy; clearTimeout(t);
+    t=setTimeout(()=>{ const steps=Math.max(-3,Math.min(3,-acc/100)); acc=0;
+      map.setZoomAround(pt,Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),map.getZoom()+steps*0.5))); },40);
+  },{passive:false});
+})();
 
 (function(){
   const el=document.getElementById('compass'); if(!el) return;
@@ -4762,10 +4896,11 @@ function locMenu(file){
             ['dup','Duplicate this location'],['add','Add photo']);
     if(sh) it.push(['mk','Mark up the photo']);
   }
-  if(sh){ it.push(['dl','Download photo']); if(mk) it.push(['dlm','Download photo with markup']); }
+  if(sh){ it.push(['dl',PHOTO_SAVE()]); if(mk) it.push(['dlm',PHOTO_SAVE()+' with markup']);
+          if(p.shots.length>1) it.push(['dla',PHOTO_ALL(p.shots.length)]); }
   if(!LOCKED) it.push(['rm','Remove this location','danger']);
   if(!it.length){ banner('This location has no photo yet.',3000); return; }
-  openModal('<h2>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</h2><div class="body"><div class="morelist">'
+  openModal('<h2>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</h2><div class="body"><div class="morelist ioslist">'
     +it.map(([k,l,c])=>'<button class="moreitem'+(c?' '+c:'')+'" data-a="'+k+'">'+he(l)+'</button>').join('')
     +'</div></div>',null,null,{cancel:'Close'});
   $('modalDlg').classList.add('moresheet');
@@ -4779,6 +4914,7 @@ function locMenu(file){
     else if(a==='mk') mkOpen(p.file,p.shot||0);
     else if(a==='dl') dlShot(p.file);
     else if(a==='dlm') dlShot(p.file,true);
+    else if(a==='dla') saveAll(p.file);
     else if(a==='rm'){ closeSheet(); removePhoto(p.file); }
   }),0);
 }
@@ -4823,15 +4959,13 @@ function dupLoc(file,photos){
   banner('Copy made: “'+q.label+'”. Tap the map where it goes — or leave it in the tray for later.',6000);
   return q;
 }
-function dlShot(file,withMarks){
-  const p=PTS.find(x=>x.file===file), sh=shotOf(p); if(!sh||!sh.src){ banner('This location has no photo yet.',3000); return; }
-  const nm=(title(p)+(p.shots.length>1?' - photo '+((p.shot||0)+1):'')+(withMarks?' - markup':''))
-    .replace(/[\\/:*?"<>|]+/g,'-').trim()+'.jpg';
-  const give=b=>{ const f=new File([b],nm,{type:'image/jpeg'});
-    return (TOUCH()?shareFile(f,nm):Promise.resolve('unsupported')).then(r=>{
-      if(r==='unsupported'){ download(nm,b); banner('Downloaded '+nm,3500); } }); };
+const PHOTO_SAVE=()=>TOUCH()?'Save to Photos':'Download photo';
+const PHOTO_ALL=n=>TOUCH()?'Save all '+n+' to Photos':'Download all '+n+' photos';
+const fname=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+function shotBlob(sh,withMarks){
   const plain=()=>fetch(sh.src).then(r=>r.blob());
-  const make=!withMarks?plain():new Promise((res,rej)=>{
+  if(!withMarks||!(sh.marks&&sh.marks.length)) return plain();
+  return new Promise((res,rej)=>{
     const im=new Image(); im.onload=()=>{
       const W=im.naturalWidth, H=im.naturalHeight, ar=W/H, c=document.createElement('canvas');
       c.width=W; c.height=H; const g=c.getContext('2d'); g.drawImage(im,0,0);
@@ -4840,7 +4974,70 @@ function dlShot(file,withMarks){
       const o=new Image(); o.onload=()=>{ g.drawImage(o,0,0,W,H); c.toBlob(b=>b?res(b):rej(),'image/jpeg',0.9); };
       o.onerror=rej; o.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
     }; im.onerror=rej; im.src=sh.src; }).catch(plain);
-  return make.then(give).catch(()=>banner('Could not make the download.',4000));
+}
+const CRCT=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n;
+  for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRCT[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+async function makeZip(files){
+  const enc=new TextEncoder(), parts=[], cen=[]; let off=0;
+  const d=new Date(), dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1)),
+        dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate());
+  for(const f of files){
+    const data=new Uint8Array(await f.blob.arrayBuffer()), nm=enc.encode(f.name), crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+    h.setUint16(10,dt,true); h.setUint16(12,dd,true); h.setUint32(14,crc,true);
+    h.setUint32(18,data.length,true); h.setUint32(22,data.length,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+    parts.push(h.buffer,nm,data);
+    const c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true);
+    c.setUint16(10,0,true); c.setUint16(12,dt,true); c.setUint16(14,dd,true); c.setUint32(16,crc,true);
+    c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,nm.length,true);
+    c.setUint32(42,off,true);
+    cen.push(c.buffer,nm); off+=30+nm.length+data.length;
+  }
+  const csz=cen.reduce((a,b)=>a+(b.byteLength),0), e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true);
+  e.setUint32(12,csz,true); e.setUint32(16,off,true);
+  return new Blob(parts.concat(cen,[e.buffer]),{type:'application/zip'});
+}
+async function saveAll(file){
+  const list=[]; const ps=file?[PTS.find(x=>x.file===file)].filter(Boolean):PTS.slice();
+  ps.forEach(p=>(p.shots||[]).forEach((sh,k)=>{ if(sh&&sh.src) list.push({p,sh,k}); }));
+  if(!list.length){ banner(file?'This location has no photos yet.':'This survey has no photos yet.',3500); return; }
+  const job=fname(BRAND.job||'Site Survey');
+  busyOpen('Getting '+list.length+' photo'+(list.length===1?'':'s')+' ready…');
+  const files=[], used={};
+  try{
+    for(let j=0;j<list.length;j++){
+      busyStep((j+1)+' of '+list.length);
+      const {p,sh,k}=list[j];
+      let nm=fname((p.unplaced?'':p.i+' ')+title(p)+(p.shots.length>1?' - photo '+(k+1):''))||'photo';
+      while(used[nm]) nm+='_'; used[nm]=1;
+      files.push({name:nm+'.jpg',blob:await shotBlob(sh,true)});
+    }
+  }catch(e){ busyClose(); banner('Could not get the photos ready.',4000); return; }
+  busyClose();
+  if(TOUCH()){
+    const fl=files.map(f=>new File([f.blob],f.name,{type:'image/jpeg'}));
+    try{
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:fl})){
+        await navigator.share({files:fl,title:job}); return;
+      }
+    }catch(err){ if(err&&(err.name==='AbortError'||err.name==='NotAllowedError')) return; }
+  }
+  if(files.length===1){ download(files[0].name,files[0].blob); banner('Downloaded '+files[0].name,3500); return; }
+  const zn=fname(job+(file?' - '+title(ps[0]):'')+' - photos')+'.zip';
+  download(zn,await makeZip(files));
+  banner('Downloaded '+zn+' — '+files.length+' photos',4500);
+}
+function dlShot(file,withMarks){
+  const p=PTS.find(x=>x.file===file), sh=shotOf(p); if(!sh||!sh.src){ banner('This location has no photo yet.',3000); return; }
+  const nm=fname(title(p)+(p.shots.length>1?' - photo '+((p.shot||0)+1):'')+(withMarks&&sh.marks&&sh.marks.length?' - markup':''))+'.jpg';
+  const give=b=>{ const f=new File([b],nm,{type:'image/jpeg'});
+    return (TOUCH()?shareFile(f,nm):Promise.resolve('unsupported')).then(r=>{
+      if(r==='unsupported'){ download(nm,b); banner('Downloaded '+nm,3500); } }); };
+  return shotBlob(sh,!!withMarks).then(give).catch(()=>banner('Could not make the download.',4000));
 }
 function pop(p){
   const f=n=>n==null?'&ndash;':n, hand=p.man||p.moved;
@@ -4864,7 +5061,8 @@ function pop(p){
    +(p.unplaced&&!VIEWONLY?'<div style="color:#ff5d5d;font-size:10.5px;margin-top:7px;line-height:1.45"><b>Not placed yet.</b><br>'+he(p.note||'')+'</div>':'')
    +(VIEWONLY?'':instBlock(p,true))
    +(INSTALL?'<div class="btnrow">'+instActs(p)+'</div>':'')
-   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlShot(\''+js(p.file)+'\')">Download photo</button></div>':'')
+   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlShot(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>'
+     +(p.shots.length>1?'<button onclick="saveAll(\''+js(p.file)+'\')">'+PHOTO_ALL(p.shots.length)+'</button>':'')+'</div>':'')
    +(LOCKED?'':'<input class="lblinp" placeholder="Label this location…" value="'+he(p.label)+'" '
      +'oninput="setLabel(\''+js(p.file)+'\',this.value)">'
      +memoBox(p)
@@ -4878,9 +5076,11 @@ function pop(p){
      +'<button onclick="locMenu(\''+js(p.file)+'\')">Edit…</button>'
      +'<button onclick="addToPin(\''+js(p.file)+'\')">Add photo</button>'
      +(shotOf(p)?'<button onclick="mkOpen(\''+js(p.file)+'\','+(p.shot||0)+')">Mark up</button>':'')
+     +(shotOf(p)?'<button onclick="'+(p.shots.length>1?'saveAll':'dlShot')+'(\''+js(p.file)+'\')">'
+       +(p.shots.length>1?PHOTO_ALL(p.shots.length):PHOTO_SAVE())+'</button>':'')
      +(waiting().length?'<button onclick="attachFromTray(\''+js(p.file)+'\')">Attach from tray</button>':'')
      +((p.egps&&!byGPS(p))?'<button class="gps" onclick="revertGPS(\''+js(p.file)+'\')">Revert to GPS</button>':'')
-     +'<button class="danger" onclick="removePhoto(\''+js(p.file)+'\')">Remove</button>'
+     +'<button class="danger" onclick="removePhoto(\''+js(p.file)+'\')">Remove pin</button>'
      +'</div>')
    +'</div></div>';
 }
@@ -5006,7 +5206,7 @@ function openSheet(i,keep){
         :'none yet')+'</td></tr>'
     +'</table></details>';
   $('shMeta').innerHTML=(VIEWONLY?notesBlock(p)+linesBlock(p)+details
-      +(sh?'<div class="acts"><button id="shDl">Download photo</button></div>':'')
+      +(sh?'<div class="acts"><button id="shDl">'+PHOTO_SAVE()+'</button>'+(multi?'<button id="shDlA">'+PHOTO_ALL(p.shots.length)+'</button>':'')+'</div>':'')
     :INSTALL?instBlock(p)+notesBlock(p)+linesBlock(p)+details+'<div class="acts">'+instActs(p,true)+'</div>'
     :'<div class="lblq">What is this sign?</div>'
       +'<input class="lblinp" id="shLbl" placeholder="Monument sign at the entry, wall sign, directional…" value="'+he(p.label)+'">'
@@ -5027,9 +5227,12 @@ function openSheet(i,keep){
       +(p.unplaced&&lastFix?'<button class="gps" id="shHere">Place at my location'
         +(fixUsable(lastFix)?'':' (\u00b1'+accTxt(lastFix.acc)+')')+'</button>':'')
       +(sh?'<button id="shMark">Mark up</button>':'')
+      +(sh?'<button id="shDl">'+PHOTO_SAVE()+'</button>':'')
+      +(multi?'<button id="shDlA">'+PHOTO_ALL(p.shots.length)+'</button>':'')
       +'<button class="danger" id="shDel">Remove pin</button>'
       +'</div>');
-  if(VIEWONLY&&$('shDl')) $('shDl').onclick=()=>dlShot(p.file);
+  if($('shDl')) $('shDl').onclick=()=>dlShot(p.file,true);
+  if($('shDlA')) $('shDlA').onclick=()=>saveAll(p.file);
   if(!VIEWONLY){
     $('shAdd').onclick=()=>addToPin(p.file);
     const ds=$('shDelShot'); if(ds) ds.onclick=()=>removeShot(p.file,p.shot);
@@ -5711,9 +5914,10 @@ async function pdfLines(buf){
 }
 
 
-const NOTSIGN=/^(installation|install\b|design|layout|permit|freight|shipping|delivery|labor|labour|travel|mobilization|service call|removal only|rush)/i;
+const NOTSIGN0=/^(installation|install\b|design|layout|permit|freight|shipping|delivery|labor|labour|travel|mobilization|service call|removal only|remove\b|rush)/i;
+const NOTSIGN={test:s=>NOTSIGN0.test(s)||/\b(permits?|permitting|sign program design|design fee|site survey)\b/i.test(s)};
 
-function money(s){ return /^\$[\d,]+\.\d\d$/.test(s); }
+function money(s){ return /^-?\(?\$-?[\d,]+(\.\d{1,6})?\)?$/.test(s); }
 
 function parseDoc(lines){
   const doc={no:'',kind:'',created:'',job:'',site:'',items:[],warnings:[]};
@@ -5738,6 +5942,8 @@ function parseDoc(lines){
   }
   doc.site=addr.filter(s=>s&&!/^US$/i.test(s)).join(', ');
 
+  if(lines.some(l=>/^WORK ORDER:/.test(l.text.trim()))) return parseWOPages(lines,doc);
+
   let item=null, part=null, notes=null, started=false;
   const push=()=>{ if(item){ item.omit=NOTSIGN.test(item.name)||
         (item.parts.length===1&&NOTSIGN.test(item.parts[0].name));
@@ -5755,14 +5961,14 @@ function parseDoc(lines){
       continue;
     }
     if(!item) continue;
-    if(first&&first.x<60&&/^\d+\.\d+$/.test(first.s)){
+    if(first&&first.x<60&&/^\d+(\.\d+)+$/.test(first.s)){
       notes=null;
       part={ref:first.s,name:c.slice(1).map(o=>o.s).join(' ').replace(/\s*-\s*$/,'').trim(),
              qty:null,w:null,h:null,sides:null};
       item.parts.push(part); continue;
     }
     if(notes){                                  // inside a Notes: block
-      if(first&&first.x<60&&/^\d+\.\d+$/.test(first.s)) notes=null;
+      if(first&&first.x<60&&/^\d+(\.\d+)+$/.test(first.s)) notes=null;
       else if(c.length===1||c.every(o=>o.x<200)){ item.notes.push(c.map(o=>o.s).join(' ')); continue; }
       else notes=null;
     }
@@ -5788,6 +5994,58 @@ function parseDoc(lines){
   if(lines.unreadable) doc.warnings.push('pages-unreadable');
   if(!lines.length) doc.warnings.push('no-text');           // a scan
   else if(!doc.items.length) doc.warnings.push('no-items');  // text, but not a CoreBridge table
+  return doc;
+}
+
+function parseWOPages(lines,doc){
+  doc.kind='WORK ORDER';
+  let item=null, part=null, total=0, inName=false, ix=-1;
+  const push=()=>{ if(item){ item.omit=NOTSIGN.test(item.name)||
+        (item.parts.length>0&&item.parts.every(p=>NOTSIGN.test(p.name)));
+        doc.items.push(item); } item=null; part=null; };
+  for(let k=0;k<lines.length;k++){
+    const l=lines[k], t=l.text.trim(), c=l.cells, first=c[0];
+    if(/^WORK ORDER:/.test(t)){
+      const m=t.match(/Product:\s*(\d+)\s*\/\s*(\d+)/);
+      if(m){ const n=+m[1]; total=Math.max(total,+m[2]);
+        if(!item||item.no!==n){ push(); item={no:n,name:'',qty:1,unit:'',amount:'',parts:[],notes:[],page:l.page}; } }
+      if(!doc.job&&lines[k+1]&&lines[k+1].page===l.page&&lines[k+1].cells.length===1&&
+         !/:/.test(lines[k+1].cells[0].s)) doc.job=lines[k+1].cells[0].s;
+      inName=false; continue;
+    }
+    if(!item) continue;
+    if(/^INV-\d+\s+Page \d+ of \d+$/.test(t)||/^Page \d+ of \d+$/.test(t)) continue;
+    let m;
+    if(first&&/^Product Name:/.test(first.s)){
+      const rest=[first.s.replace(/^Product Name:\s*/,'')].concat(c.slice(1).map(o=>o.s)).join(' ').trim();
+      if(!item.name){ item.name=rest; inName=true; ix=c[1]?c[1].x:-1; } continue;
+    }
+    if(first&&(m=first.s.match(/^Product Qty:\s*([\d.]+)/))){ item.qty=parseFloat(m[1])||1; inName=false; continue; }
+    if(inName){
+      if(c.length===1&&ix>0&&Math.abs(first.x-ix)<6){ item.name=(item.name+' '+first.s).trim(); continue; }
+      inName=false;
+    }
+    if(first&&/^\d+\.(\s*\d+)*$/.test(first.s)&&first.x<40&&c[1]){
+      part={ref:item.no+'.'+first.s.replace(/\.\s*/g,'.').replace(/\.$/,''),name:c.slice(1).map(o=>o.s).join(' ').trim(),
+            qty:null,w:null,h:null,sides:null};
+      item.parts.push(part); continue;
+    }
+    if(!part) continue;
+    for(const o of c){
+      const s=o.s;
+      if((m=s.match(/^Part Qty:\s*([\d.]+)/i)))       part.qty=parseFloat(m[1]);
+      else if((m=s.match(/^Width:\s*([\d.]+)/i)))     part.w=parseFloat(m[1]);
+      else if((m=s.match(/^Height:\s*([\d.]+)/i)))    part.h=parseFloat(m[1]);
+      else if((m=s.match(/^Sides:\s*(\d+)/i)))        part.sides=+m[1];
+      else if((m=s.match(/#\s*of Hours:\s*([\d.]+)/i))) item.hours=parseFloat(m[1]);
+    }
+  }
+  push();
+  doc.textLines=lines.length;
+  const nos=doc.items.map(i=>i.no);
+  if(nos.length&&(nos.some((n,k)=>n!==k+1)||(total&&nos.length!==total))) doc.warnings.push('numbering-gap');
+  if(lines.unreadable) doc.warnings.push('pages-unreadable');
+  if(!doc.items.length) doc.warnings.push('no-items');
   return doc;
 }
 
@@ -6763,7 +7021,7 @@ function sendToDevice(){
   if(!cfg&&HOSTED){ closeModal();
     openModal('<h2>This copy cannot send</h2><div class="body"><div class="svnote">It was opened without its key, so it '
      +'cannot save or send. On the device where this survey was last saved: <b>Share → Send to device</b>, then '
-     +'type that code here: <b>More… → Enter a code</b>.</div></div>',()=>{ setTimeout(askCode,0); return true; },'Enter a code',{cancel:'Close'});
+     +'press <b>Enter a code</b> below and type it.</div></div>',()=>{ setTimeout(askCode,0); return true; },'Enter a code',{cancel:'Close'});
     return; }
   if(!cfg){ closeModal(); openPubSetup('',true); return; }
   closeModal();
@@ -7247,6 +7505,62 @@ function pullNow(a,at){
     });
   }).catch(()=>false).then(v=>{ PULLING=false; return v; });
 }
+function verAddr(){
+  const cfg=pubCfg(), w=pubWURL(), slug=urlLast(w);
+  if(!cfg||!w||!SLUG_RE.test(slug)) return null;
+  let o=''; try{ o=new URL(w).origin; }catch(_){ return null; }
+  return {base:o+'/~versions/'+slug, key:KEYS[slug]||cfg.key||''};
+}
+const whenTxt=ms=>{ const d=new Date(ms), now=new Date(), t=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  const day=Math.round((new Date(now.toDateString())-new Date(d.toDateString()))/864e5);
+  return (day===0?'Today':day===1?'Yesterday':d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'}))+', '+t; };
+function openVersions(){
+  if(LOCKED) return;
+  const v=verAddr();
+  if(!v){ banner('Version history starts once this survey is saved to its link — press Save first.',6000); return; }
+  busyOpen('Getting the versions…');
+  fetch(v.base,{cache:'no-store',headers:{'X-Publish-Key':v.key}}).then(r=>r.status===200?r.json():Promise.reject(r.status))
+  .then(j=>{ busyClose();
+    const vs=(j&&j.versions)||[];
+    openModal('<h2>Version history</h2><div class="body">'
+     +'<div class="svnote">Each Save keeps a backup of the copy before it — up to 20, for 30 days. '
+     +'Tap one to go back to it. The copy you have now is kept as a backup too.</div>'
+     +'<div class="morelist">'
+     +(vs.length?vs.map((x,k)=>'<button class="saveopt" data-v="'+k+'"><b>'+he(whenTxt(+x.id))+'</b><span>'
+        +(x.count!=null?x.count+' location'+(x.count===1?'':'s')+' · ':'')+(Math.round(x.size/104857.6)/10)+' MB'
+        +(x.job&&x.job!==BRAND.job?' · '+he(x.job):'')+'</span></button>').join('')
+       :'<div class="hint">No backups yet. The first one is made the next time this survey is saved.</div>')
+     +'</div></div>',null,null,{cancel:'Close'});
+    $('modalDlg').classList.add('moresheet');
+    setTimeout(()=>document.querySelectorAll('#modalDlg [data-v]').forEach(el=>el.onclick=()=>{
+      const x=vs[+el.dataset.v]; closeModal(); setTimeout(()=>askRestore(v,x),0); }),0);
+  },e=>{ busyClose(); banner(e===401?'This copy has no key for the versions. Open it from My surveys or the staff link.'
+      :'Could not reach the versions'+(navigator.onLine===false?' — no signal.':' — the publisher may need its update.'),7000); });
+}
+function askRestore(v,x){
+  openModal('<h2>Go back to '+he(whenTxt(+x.id))+'?</h2><div class="body"><div class="svnote">'
+   +'The survey changes to how it was then and is saved. What you have now becomes a backup, '
+   +'and Undo brings it straight back.</div></div>',
+   ()=>{ restoreVersion(v,x); return true; },'Go back to this version');
+}
+function restoreVersion(v,x){
+  busyOpen('Opening the version…');
+  fetch(v.base+'/'+x.id,{cache:'no-store',headers:{'X-Publish-Key':v.key}}).then(r=>r.status===200?r.text():Promise.reject(r.status))
+  .then(h=>{ busyClose();
+    const doc=docFromMapHTML(h), brand=brandFromMapHTML(h);
+    if(!doc||!Array.isArray(doc.pts)) throw new Error('not a survey');
+    pushWorld('go back to '+whenTxt(+x.id));
+    PTS.length=0; doc.pts.forEach(q=>PTS.push(migratePoint(q)));
+    REORDERED=!!doc.reordered;
+    if(brand){ BRAND=Object.assign({},brand,{pub:BRAND.pub}); applyBrand(); }
+    if(sheetFile&&!PTS.some(q=>q.file===sheetFile)) closeSheet();
+    if(curFile&&!PTS.some(q=>q.file===curFile)) curFile=null;
+    render(true); setDirty(true);
+    doSave();
+    banner('Back to the version from '+whenTxt(+x.id)+' — saved. Undo brings the other one back.',7000);
+  }).catch(()=>{ busyClose(); banner('Could not open that version.',5000); });
+}
+
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pullCheck('front'); });
 window.addEventListener('focus',()=>{ pullCheck('front'); });
 setInterval(()=>{ if(!document.hidden) pullCheck('tick'); },60000);
@@ -7564,20 +7878,20 @@ function openStaffLink(){
 const HELP={
  admin:['The office',
   ['Open SurveyWalk on the shop computer, or <b>…/admin</b> on any computer or phone. The first <b>Share</b> asks for the publish password — once per device.',
-   'Staff: <b>More… → Staff start link → Copy link</b>, and text it to them. One link for everyone; it always opens the latest SurveyWalk.',
-   'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>More… → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
+   'Staff: <b>Setup → Staff start link → Copy link</b>, and text it to them. One link for everyone; it always opens the latest SurveyWalk.',
+   'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>Location → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
    '<b>Save</b> keeps it in <b>My surveys</b> on this device and at its own link, so any device opens the newest version.',
    'The client: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the same link shows the change.',
-   'Any device: <b>My surveys</b> lists every company survey. Tap one and work; <b>Save</b> and every other device has it. <b>More… → Save as a new survey</b> makes a separate copy under a new name.',
+   'Any device: <b>My surveys</b> lists every company survey. Tap one and work; <b>Save</b> and every other device has it. <b>File → Save as…</b> makes a separate copy under a new name.',
    'The crew: <b>Share → Send to the installer</b>. When they are done, <b>Share → Bring install photos in</b>.',
    'Changing PUBLISH_KEY in Cloudflare turns off every staff and working link. Make a new staff link afterwards.']],
  staff:['Staff',
   ['Open the staff link once and keep it: in your browser’s <b>Share</b> or <b>⋮</b> menu, tap <b>Add to Home Screen</b> (Safari or Chrome, iPhone or Android). Always open SurveyWalk from that icon — your surveys live on this phone, in that one place.',
    'At each sign location, stand where the sign goes, face it and press <b>Take photo</b>. Photos you already took: <b>Add photos</b>.',
    'Tap a location to name it and add sizes and notes.',
-   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
+   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>File → My surveys</b>). Tap one and keep going.',
    'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
-   'Phone and computer: open the staff link on both. <b>My surveys</b> shows every company survey on either one — Save on one and the other has it. <b>More… → Save as a new survey</b> makes a separate copy.',
+   'Phone and computer: open the staff link on both. <b>My surveys</b> shows every company survey on either one — Save on one and the other has it. <b>File → Save as…</b> makes a separate copy.',
    'The crew: <b>Share → Send to the installer</b>.',
    '“The publisher refused this device’s staff link”: ask the shop for the new staff link.']],
  inst:['Installer',
@@ -7607,7 +7921,10 @@ function openHelp(role){
 function helpNudge(){
   const k='surveywalk.help.'+HELP_ROLE();
   try{ if(localStorage.getItem(k)) return; localStorage.setItem(k,'1'); }catch(_){ return; }
-  banner('New to SurveyWalk? More… → How to use SurveyWalk.',7000);
+  let n=0; (function go(){
+    const busy=$('sheet').classList.contains('show')||$('modal').classList.contains('show')||!!document.querySelector('.leaflet-popup');
+    if(busy){ if(++n<6) setTimeout(go,5000); return; }
+    banner('New here? Tap Help at the end of the menu bar to see how it works.',6000); })();
 }
 
 function mailText(link){
@@ -8523,6 +8840,116 @@ function openMore(){
 }
 $('bMore').onclick=openMore;
 
+const MB_ICON={
+ file:'<path d="M6.5 3h7.5l4.5 4.5V20a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M13.5 3v5h5"/><path d="M8.5 13h7M8.5 16.5h5"/>',
+ loc:'<path d="M12 21.5s-6.5-5.9-6.5-11.6a6.5 6.5 0 0 1 13 0c0 5.7-6.5 11.6-6.5 11.6z"/><circle cx="12" cy="9.8" r="2.4"/>',
+ mark:'<path d="M4 20l1.2-4.6L15.8 4.8a2 2 0 0 1 2.9 0l.5.5a2 2 0 0 1 0 2.9L8.6 18.8z"/><path d="M14 6.6l3.4 3.4"/>',
+ view:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+ share:'<path d="M12 3.5v11"/><path d="M8 7.3l4-3.8 4 3.8"/><path d="M8.5 10.5H6.5a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-8.5a1 1 0 0 0-1-1h-2"/>',
+ setup:'<circle cx="12" cy="12" r="3"/><path d="M10.3 3.3h3.4l.5 2.4 1.7.7 2-1.4 2.4 2.4-1.4 2 .7 1.7 2.4.5v3.4l-2.4.5-.7 1.7 1.4 2-2.4 2.4-2-1.4-1.7.7-.5 2.4h-3.4l-.5-2.4-1.7-.7-2 1.4-2.4-2.4 1.4-2-.7-1.7-2.4-.5v-3.4l2.4-.5.7-1.7-1.4-2 2.4-2.4 2 1.4 1.7-.7z"/>',
+ help:'<circle cx="12" cy="12" r="9.3"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.7c0 1.8-2.5 2.1-2.5 3.9"/><path d="M12 17.3v.1"/>'};
+const MENUS=[
+ ['file','File',[['bSave','Save'],['aSaveAs','Save as…',()=>saveAs()],['aVer','Version history…',()=>openVersions()],'-',
+   ['bLib','My surveys'],['bOpen','Open a survey file…'],['bMerge','Merge in a survey file…'],'-',
+   ['bWO','Import estimate, order or invoice…'],['aAll',()=>(TOUCH()?'Save all photos to Photos':'Download all photos (.zip)'),()=>saveAll()],
+   ['bPrint','Print schedule or save as PDF']]],
+ ['loc','Location',[['bCam','Take photo'],['bAdd','Add photos'],['aHand','Add a location by hand',()=>addLocByHand()],'-',
+   ['bSelect','Select several locations'],['bEdit','Edit pin positions'],'-',['bReset','Move every pin back to GPS',null,'danger']]],
+ ['mark','Mark Up',[['aMk','Mark up a photo…',()=>markPick()],['bMeasure','Measure on the map']]],
+ ['view','View',[['bFit','Fit all locations'],['bLoc','My location'],['aNorth','Face north',()=>faceNorth()],'-',
+   ['bCone','Show shot direction'],['bFind','Address search'],['bDense','Compact list',null,'desk'],['bPanel','Hide tools',null,'desk']]],
+ ['share','Share',[['bShare','Share…']],'direct'],
+ ['setup','Setup',[['bSetup','Project setup'],['bGeoStat','Location status'],['aPub','Publishing setup',()=>openPubSetup()],
+   ['aStaff','Staff start link',()=>openStaffLink()]]],
+ ['help','Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]],'direct']];
+const MB_FREE={aHelp:1,aAll:1,aNorth:1};
+function mbItems(items){
+  const out=[];
+  items.forEach(it=>{
+    if(it==='-'){ if(out.length&&out[out.length-1]!=='-') out.push('-'); return; }
+    const [id,label,fn,opt]=it;
+    if(opt==='desk'&&MOBILE()) return;
+    if(fn){ if(!MB_FREE[id]&&LOCKED) return;
+      if((id==='aPub'||id==='aStaff')&&(HOSTED||STAFF())) return;
+      out.push(it); return; }
+    const b=$(id); if(!b||b.style.display==='none') return;
+    if(LOCKED&&id==='bFind') return;
+    out.push(it);
+  });
+  while(out.length&&out[out.length-1]==='-') out.pop();
+  return out;
+}
+const mbOn=id=>{ const b=$(id); if(id==='bDense') return document.body.classList.contains('dense');
+  if(id==='bPanel') return document.body.classList.contains('sidehidden');
+  return !!(b&&b.classList.contains('on')); };
+function mbRows(items){
+  return items.map(it=>{
+    if(it==='-') return '<hr>';
+    const [id,lab,fn,opt]=it, b=fn?null:$(id), on=!fn&&mbOn(id), label=typeof lab==='function'?lab():lab;
+    return '<button class="mi'+(opt==='danger'?' danger':'')+'" role="menuitem" data-m="'+id+'"'
+      +(b&&b.disabled?' disabled':'')+'><span class="ck">'+(on?'✓':'')+'</span>'+he(label)+'</button>';
+  }).join('');
+}
+let MB_OPEN=null;
+function mbClose(){ MB_OPEN=null; $('mbpop').classList.remove('show');
+  document.querySelectorAll('#menubar button.open').forEach(x=>x.classList.remove('open')); }
+function mbRun(items,id){
+  const it=items.find(x=>x!=='-'&&x[0]===id); if(!it) return;
+  if(it[2]) it[2](); else { const b=$(id); if(b&&!b.disabled) b.click(); }
+}
+function mbOpen(key,btn){
+  const g=MENUS.find(m=>m[0]===key); if(!g) return;
+  const items=mbItems(g[2]); if(!items.length) return;
+  if(MB_OPEN===key){ mbClose(); return; }
+  mbClose();
+  if(g[3]==='direct'){ mbRun(items,items[0][0]); return; }
+  if(MOBILE()||innerWidth<600){
+    openModal('<h2>'+he(g[1])+'</h2><div class="body"><div class="morelist ioslist">'
+      +mbRows(items).replace(/<hr>/g,'')+'</div></div>',null,null,{cancel:'Close'});
+    $('modalDlg').classList.add('moresheet');
+    setTimeout(()=>document.querySelectorAll('#modalDlg .mi').forEach(el=>el.onclick=()=>{
+      const id=el.dataset.m; closeModal(); setTimeout(()=>mbRun(items,id),0); }),0);
+    return;
+  }
+  MB_OPEN=key; btn.classList.add('open');
+  const pop=$('mbpop');
+  pop.innerHTML=mbRows(items); pop.classList.add('show');
+  const r=btn.getBoundingClientRect(), w=pop.offsetWidth, h=pop.offsetHeight;
+  pop.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';
+  pop.style.top=Math.max(8,Math.min(innerHeight-h-8,r.bottom+6))+'px';
+  pop.querySelectorAll('.mi').forEach(el=>el.onclick=()=>{ const id=el.dataset.m; mbClose(); mbRun(items,id); });
+  const f=pop.querySelector('.mi:not(:disabled)'); if(f) f.focus({preventScroll:true});
+}
+function buildMenubar(){
+  const nav=$('menubar'); if(!nav) return;
+  nav.innerHTML=MENUS.filter(g=>mbItems(g[2]).length).map(([k,l])=>
+    '<button data-g="'+k+'" aria-haspopup="menu"><svg viewBox="0 0 24 24" aria-hidden="true">'+MB_ICON[k]+'</svg>'+he(l)+'</button>').join('');
+  nav.querySelectorAll('button').forEach(b=>b.onclick=e=>{ e.stopPropagation(); mbOpen(b.dataset.g,b); });
+}
+document.addEventListener('pointerdown',e=>{ if(MB_OPEN&&!e.target.closest('#mbpop,#menubar')) mbClose(); },true);
+document.addEventListener('keydown',e=>{
+  if(!MB_OPEN) return;
+  if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); const b=document.querySelector('#menubar button.open'); mbClose(); if(b) b.focus(); return; }
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); e.stopPropagation();
+    const xs=[...document.querySelectorAll('#mbpop .mi:not(:disabled)')], i=xs.indexOf(document.activeElement);
+    const n=xs[(i+(e.key==='ArrowDown'?1:-1)+xs.length)%xs.length]; if(n) n.focus(); }
+},true);
+window.addEventListener('resize',mbClose);
+function markPick(){
+  const cur=curFile?PTS.find(x=>x.file===curFile):null;
+  if(cur&&shotOf(cur)){ mkOpen(cur.file,cur.shot||0); return; }
+  const ps=PTS.filter(p=>shotOf(p));
+  if(!ps.length){ banner('No photos to mark up yet — take or add one first.',4000); return; }
+  if(ps.length===1){ mkOpen(ps[0].file,ps[0].shot||0); return; }
+  openModal('<h2>Mark up which photo?</h2><div class="body"><div class="morelist ioslist">'
+    +ps.map(p=>'<button class="mi" data-f="'+he(p.file)+'"><span class="ck"></span>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</button>').join('')
+    +'</div></div>',null,null,{cancel:'Close'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg .mi').forEach(el=>el.onclick=()=>{
+    const p=PTS.find(x=>x.file===el.dataset.f); closeModal(); if(p) setTimeout(()=>mkOpen(p.file,p.shot||0),0); }),0);
+}
+buildMenubar();
+
 
 (function(){
   const grip=$('sidegrip'), side=$('side');
@@ -9083,6 +9510,35 @@ L.Draggable.prototype._updatePosition=function(){
 // The zoom buttons and the layer switcher live inside the container by default,
 // which would put them at the corners of the oversized stage, on their side.
 MAPWIN.appendChild(map._controlContainer);
+
+// r12 — Aaron: "pan, scroll and free move the map". Dragging always panned; the scroll wheel only
+// zoomed, three whole levels at a flick, so a trackpad could not move the map at all and a mouse
+// lurched. Now: a two-finger trackpad scroll MOVES the map in any direction, a pinch (or Ctrl +
+// wheel) zooms smoothly around the pointer, and a mouse wheel zooms in half steps around the
+// pointer. Zoom is no longer snapped to whole levels.
+map.options.zoomSnap=0; map.options.zoomDelta=0.5;
+map.scrollWheelZoom.disable();
+(function(){
+  let acc=0, t=null;
+  MAPWIN.addEventListener('wheel',e=>{
+    if(e.target.closest&&e.target.closest('.leaflet-popup,.leaflet-control,#compass')) return;
+    e.preventDefault();
+    const pt=map.mouseEventToContainerPoint(e);
+    const px=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;
+    const dx=e.deltaX*px, dy=e.deltaY*px;
+    // A mouse wheel arrives in whole notches (100/120 px, or lines) with no sideways part; a
+    // trackpad arrives in small, uneven pixel steps and usually some sideways movement.
+    const notch=e.deltaMode!==0||(dx===0&&Math.abs(dy)>=50&&Number.isInteger(dy));
+    if(e.ctrlKey){                                     // pinch on a trackpad, or Ctrl + wheel
+      map.setZoomAround(pt,Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),map.getZoom()-dy*0.01)),{animate:false});
+      return;
+    }
+    if(!notch){ map.panBy(turnPt(dx,dy,-BEARING),{animate:false}); return; }
+    acc+=dy; clearTimeout(t);
+    t=setTimeout(()=>{ const steps=Math.max(-3,Math.min(3,-acc/100)); acc=0;
+      map.setZoomAround(pt,Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),map.getZoom()+steps*0.5))); },40);
+  },{passive:false});
+})();
 
 // Under the zoom buttons, the column the app already owns. Bottom-left, surveys being
 // linear, it hid pins outright — and in select mode those could not be tapped at all.
@@ -10210,10 +10666,11 @@ function locMenu(file){
             ['dup','Duplicate this location'],['add','Add photo']);
     if(sh) it.push(['mk','Mark up the photo']);
   }
-  if(sh){ it.push(['dl','Download photo']); if(mk) it.push(['dlm','Download photo with markup']); }
+  if(sh){ it.push(['dl',PHOTO_SAVE()]); if(mk) it.push(['dlm',PHOTO_SAVE()+' with markup']);
+          if(p.shots.length>1) it.push(['dla',PHOTO_ALL(p.shots.length)]); }
   if(!LOCKED) it.push(['rm','Remove this location','danger']);
   if(!it.length){ banner('This location has no photo yet.',3000); return; }
-  openModal('<h2>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</h2><div class="body"><div class="morelist">'
+  openModal('<h2>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</h2><div class="body"><div class="morelist ioslist">'
     +it.map(([k,l,c])=>'<button class="moreitem'+(c?' '+c:'')+'" data-a="'+k+'">'+he(l)+'</button>').join('')
     +'</div></div>',null,null,{cancel:'Close'});
   $('modalDlg').classList.add('moresheet');
@@ -10227,6 +10684,7 @@ function locMenu(file){
     else if(a==='mk') mkOpen(p.file,p.shot||0);
     else if(a==='dl') dlShot(p.file);
     else if(a==='dlm') dlShot(p.file,true);
+    else if(a==='dla') saveAll(p.file);
     else if(a==='rm'){ closeSheet(); removePhoto(p.file); }
   }),0);
 }
@@ -10276,15 +10734,15 @@ function dupLoc(file,photos){
 }
 // Aaron: "ability to download image". The photo as the survey holds it — 900 px on the long side,
 // the working copy, not the camera original. With markup: the measurements and notes drawn in.
-function dlShot(file,withMarks){
-  const p=PTS.find(x=>x.file===file), sh=shotOf(p); if(!sh||!sh.src){ banner('This location has no photo yet.',3000); return; }
-  const nm=(title(p)+(p.shots.length>1?' - photo '+((p.shot||0)+1):'')+(withMarks?' - markup':''))
-    .replace(/[\\/:*?"<>|]+/g,'-').trim()+'.jpg';
-  const give=b=>{ const f=new File([b],nm,{type:'image/jpeg'});
-    return (TOUCH()?shareFile(f,nm):Promise.resolve('unsupported')).then(r=>{
-      if(r==='unsupported'){ download(nm,b); banner('Downloaded '+nm,3500); } }); };
+// r12 QC: "Save" is the survey's word. A photo goes to Photos on a phone and to Downloads on a computer.
+const PHOTO_SAVE=()=>TOUCH()?'Save to Photos':'Download photo';
+const PHOTO_ALL=n=>TOUCH()?'Save all '+n+' to Photos':'Download all '+n+' photos';
+const fname=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+// One photo as a JPEG blob: the stored copy, or with its markup drawn in when it has any.
+function shotBlob(sh,withMarks){
   const plain=()=>fetch(sh.src).then(r=>r.blob());
-  const make=!withMarks?plain():new Promise((res,rej)=>{
+  if(!withMarks||!(sh.marks&&sh.marks.length)) return plain();
+  return new Promise((res,rej)=>{
     const im=new Image(); im.onload=()=>{
       const W=im.naturalWidth, H=im.naturalHeight, ar=W/H, c=document.createElement('canvas');
       c.width=W; c.height=H; const g=c.getContext('2d'); g.drawImage(im,0,0);
@@ -10293,7 +10751,74 @@ function dlShot(file,withMarks){
       const o=new Image(); o.onload=()=>{ g.drawImage(o,0,0,W,H); c.toBlob(b=>b?res(b):rej(),'image/jpeg',0.9); };
       o.onerror=rej; o.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
     }; im.onerror=rej; im.src=sh.src; }).catch(plain);
-  return make.then(give).catch(()=>banner('Could not make the download.',4000));
+}
+// A zip with nothing compressed — JPEGs do not shrink — so it needs only a CRC, no library.
+const CRCT=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n;
+  for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRCT[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+async function makeZip(files){
+  const enc=new TextEncoder(), parts=[], cen=[]; let off=0;
+  const d=new Date(), dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1)),
+        dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate());
+  for(const f of files){
+    const data=new Uint8Array(await f.blob.arrayBuffer()), nm=enc.encode(f.name), crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+    h.setUint16(10,dt,true); h.setUint16(12,dd,true); h.setUint32(14,crc,true);
+    h.setUint32(18,data.length,true); h.setUint32(22,data.length,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+    parts.push(h.buffer,nm,data);
+    const c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true);
+    c.setUint16(10,0,true); c.setUint16(12,dt,true); c.setUint16(14,dd,true); c.setUint32(16,crc,true);
+    c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,nm.length,true);
+    c.setUint32(42,off,true);
+    cen.push(c.buffer,nm); off+=30+nm.length+data.length;
+  }
+  const csz=cen.reduce((a,b)=>a+(b.byteLength),0), e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true);
+  e.setUint32(12,csz,true); e.setUint32(16,off,true);
+  return new Blob(parts.concat(cen,[e.buffer]),{type:'application/zip'});
+}
+// r12 — Aaron: "add a save photo option from the location pop up" and "add a download all
+// button for the photos". On a phone the share sheet takes them all at once ("Save N Images"
+// puts them in Photos); on a computer one zip.
+async function saveAll(file){
+  const list=[]; const ps=file?[PTS.find(x=>x.file===file)].filter(Boolean):PTS.slice();
+  ps.forEach(p=>(p.shots||[]).forEach((sh,k)=>{ if(sh&&sh.src) list.push({p,sh,k}); }));
+  if(!list.length){ banner(file?'This location has no photos yet.':'This survey has no photos yet.',3500); return; }
+  const job=fname(BRAND.job||'Site Survey');
+  busyOpen('Getting '+list.length+' photo'+(list.length===1?'':'s')+' ready…');
+  const files=[], used={};
+  try{
+    for(let j=0;j<list.length;j++){
+      busyStep((j+1)+' of '+list.length);
+      const {p,sh,k}=list[j];
+      let nm=fname((p.unplaced?'':p.i+' ')+title(p)+(p.shots.length>1?' - photo '+(k+1):''))||'photo';
+      while(used[nm]) nm+='_'; used[nm]=1;
+      files.push({name:nm+'.jpg',blob:await shotBlob(sh,true)});
+    }
+  }catch(e){ busyClose(); banner('Could not get the photos ready.',4000); return; }
+  busyClose();
+  if(TOUCH()){
+    const fl=files.map(f=>new File([f.blob],f.name,{type:'image/jpeg'}));
+    try{
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:fl})){
+        await navigator.share({files:fl,title:job}); return;
+      }
+    }catch(err){ if(err&&(err.name==='AbortError'||err.name==='NotAllowedError')) return; }
+  }
+  if(files.length===1){ download(files[0].name,files[0].blob); banner('Downloaded '+files[0].name,3500); return; }
+  const zn=fname(job+(file?' - '+title(ps[0]):'')+' - photos')+'.zip';
+  download(zn,await makeZip(files));
+  banner('Downloaded '+zn+' — '+files.length+' photos',4500);
+}
+function dlShot(file,withMarks){
+  const p=PTS.find(x=>x.file===file), sh=shotOf(p); if(!sh||!sh.src){ banner('This location has no photo yet.',3000); return; }
+  const nm=fname(title(p)+(p.shots.length>1?' - photo '+((p.shot||0)+1):'')+(withMarks&&sh.marks&&sh.marks.length?' - markup':''))+'.jpg';
+  const give=b=>{ const f=new File([b],nm,{type:'image/jpeg'});
+    return (TOUCH()?shareFile(f,nm):Promise.resolve('unsupported')).then(r=>{
+      if(r==='unsupported'){ download(nm,b); banner('Downloaded '+nm,3500); } }); };
+  return shotBlob(sh,!!withMarks).then(give).catch(()=>banner('Could not make the download.',4000));
 }
 function pop(p){
   const f=n=>n==null?'&ndash;':n, hand=p.man||p.moved;
@@ -10319,7 +10844,8 @@ function pop(p){
    +(p.unplaced&&!VIEWONLY?'<div style="color:#ff5d5d;font-size:10.5px;margin-top:7px;line-height:1.45"><b>Not placed yet.</b><br>'+he(p.note||'')+'</div>':'')
    +(VIEWONLY?'':instBlock(p,true))
    +(INSTALL?'<div class="btnrow">'+instActs(p)+'</div>':'')
-   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlShot(\''+js(p.file)+'\')">Download photo</button></div>':'')
+   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlShot(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>'
+     +(p.shots.length>1?'<button onclick="saveAll(\''+js(p.file)+'\')">'+PHOTO_ALL(p.shots.length)+'</button>':'')+'</div>':'')
    +(LOCKED?'':'<input class="lblinp" placeholder="Label this location…" value="'+he(p.label)+'" '
      +'oninput="setLabel(\''+js(p.file)+'\',this.value)">'
      +memoBox(p)
@@ -10337,9 +10863,11 @@ function pop(p){
      // Take Photo and Photo Library anyway, so this was a second button for one of them. That is
      // what pays for the lines block above — the row goes from five to four.
      +(shotOf(p)?'<button onclick="mkOpen(\''+js(p.file)+'\','+(p.shot||0)+')">Mark up</button>':'')
+     +(shotOf(p)?'<button onclick="'+(p.shots.length>1?'saveAll':'dlShot')+'(\''+js(p.file)+'\')">'
+       +(p.shots.length>1?PHOTO_ALL(p.shots.length):PHOTO_SAVE())+'</button>':'')
      +(waiting().length?'<button onclick="attachFromTray(\''+js(p.file)+'\')">Attach from tray</button>':'')
      +((p.egps&&!byGPS(p))?'<button class="gps" onclick="revertGPS(\''+js(p.file)+'\')">Revert to GPS</button>':'')
-     +'<button class="danger" onclick="removePhoto(\''+js(p.file)+'\')">Remove</button>'
+     +'<button class="danger" onclick="removePhoto(\''+js(p.file)+'\')">Remove pin</button>'
      +'</div>')
    +'</div></div>';
 }
@@ -10492,7 +11020,7 @@ function openSheet(i,keep){
         :'none yet')+'</td></tr>'
     +'</table></details>';
   $('shMeta').innerHTML=(VIEWONLY?notesBlock(p)+linesBlock(p)+details
-      +(sh?'<div class="acts"><button id="shDl">Download photo</button></div>':'')
+      +(sh?'<div class="acts"><button id="shDl">'+PHOTO_SAVE()+'</button>'+(multi?'<button id="shDlA">'+PHOTO_ALL(p.shots.length)+'</button>':'')+'</div>':'')
     // The installer copy: their report first, then what is being made, then the reference.
     :INSTALL?instBlock(p)+notesBlock(p)+linesBlock(p)+details+'<div class="acts">'+instActs(p,true)+'</div>'
     :'<div class="lblq">What is this sign?</div>'
@@ -10527,9 +11055,12 @@ function openSheet(i,keep){
       // would make the button do nothing at all and say nothing — so it does not appear until
       // there is a picture, the same way Remove this photo waits for a second one.
       +(sh?'<button id="shMark">Mark up</button>':'')
+      +(sh?'<button id="shDl">'+PHOTO_SAVE()+'</button>':'')
+      +(multi?'<button id="shDlA">'+PHOTO_ALL(p.shots.length)+'</button>':'')
       +'<button class="danger" id="shDel">Remove pin</button>'
       +'</div>');
-  if(VIEWONLY&&$('shDl')) $('shDl').onclick=()=>dlShot(p.file);
+  if($('shDl')) $('shDl').onclick=()=>dlShot(p.file,true);
+  if($('shDlA')) $('shDlA').onclick=()=>saveAll(p.file);
   if(!VIEWONLY){
     $('shAdd').onclick=()=>addToPin(p.file);
     const ds=$('shDelShot'); if(ds) ds.onclick=()=>removeShot(p.file,p.shot);
@@ -11416,9 +11947,14 @@ async function pdfLines(buf){
 
 // Not signs. The old importer's OMIT rule, which exists because without it
 // the estimator gets a pin called "Design and Layout".
-const NOTSIGN=/^(installation|install\b|design|layout|permit|freight|shipping|delivery|labor|labour|travel|mobilization|service call|removal only|rush)/i;
+const NOTSIGN0=/^(installation|install\b|design|layout|permit|freight|shipping|delivery|labor|labour|travel|mobilization|service call|removal only|remove\b|rush)/i;
+// "City of Millbrea Permits - Final Cost is TBD" and "Sign Program Design" are not signs either; the
+// word that says so is not always first.
+const NOTSIGN={test:s=>NOTSIGN0.test(s)||/\b(permits?|permitting|sign program design|design fee|site survey)\b/i.test(s)};
 
-function money(s){ return /^\$[\d,]+\.\d\d$/.test(s); }
+// CoreBridge prints a unit price to as many places as the division needs: "$77.585",
+// "$521.2875". Two places only dropped every such line and tripped the numbering guard.
+function money(s){ return /^-?\(?\$-?[\d,]+(\.\d{1,6})?\)?$/.test(s); }
 
 function parseDoc(lines){
   const doc={no:'',kind:'',created:'',job:'',site:'',items:[],warnings:[]};
@@ -11446,6 +11982,11 @@ function parseDoc(lines){
   }
   doc.site=addr.filter(s=>s&&!/^US$/i.test(s)).join(', ');
 
+  // A CoreBridge WORK ORDER is not a table: it is one product per page (or more), headed
+  // "Product: 3 / 17", with "Product Name:" and "Product Qty:" and the parts numbered "1." "2.".
+  // It went through the table reader and came out "No line items found".
+  if(lines.some(l=>/^WORK ORDER:/.test(l.text.trim()))) return parseWOPages(lines,doc);
+
   // line items
   let item=null, part=null, notes=null, started=false;
   const push=()=>{ if(item){ item.omit=NOTSIGN.test(item.name)||
@@ -11466,14 +12007,14 @@ function parseDoc(lines){
     }
     if(!item) continue;
     // a sub-part: 1.1, 2.2 …
-    if(first&&first.x<60&&/^\d+\.\d+$/.test(first.s)){
+    if(first&&first.x<60&&/^\d+(\.\d+)+$/.test(first.s)){
       notes=null;
       part={ref:first.s,name:c.slice(1).map(o=>o.s).join(' ').replace(/\s*-\s*$/,'').trim(),
              qty:null,w:null,h:null,sides:null};
       item.parts.push(part); continue;
     }
     if(notes){                                  // inside a Notes: block
-      if(first&&first.x<60&&/^\d+\.\d+$/.test(first.s)) notes=null;
+      if(first&&first.x<60&&/^\d+(\.\d+)+$/.test(first.s)) notes=null;
       else if(c.length===1||c.every(o=>o.x<200)){ item.notes.push(c.map(o=>o.s).join(' ')); continue; }
       else notes=null;
     }
@@ -11503,6 +12044,59 @@ function parseDoc(lines){
   if(lines.unreadable) doc.warnings.push('pages-unreadable');
   if(!lines.length) doc.warnings.push('no-text');           // a scan
   else if(!doc.items.length) doc.warnings.push('no-items');  // text, but not a CoreBridge table
+  return doc;
+}
+
+function parseWOPages(lines,doc){
+  doc.kind='WORK ORDER';
+  let item=null, part=null, total=0, inName=false, ix=-1;
+  const push=()=>{ if(item){ item.omit=NOTSIGN.test(item.name)||
+        (item.parts.length>0&&item.parts.every(p=>NOTSIGN.test(p.name)));
+        doc.items.push(item); } item=null; part=null; };
+  for(let k=0;k<lines.length;k++){
+    const l=lines[k], t=l.text.trim(), c=l.cells, first=c[0];
+    if(/^WORK ORDER:/.test(t)){
+      const m=t.match(/Product:\s*(\d+)\s*\/\s*(\d+)/);
+      if(m){ const n=+m[1]; total=Math.max(total,+m[2]);
+        if(!item||item.no!==n){ push(); item={no:n,name:'',qty:1,unit:'',amount:'',parts:[],notes:[],page:l.page}; } }
+      if(!doc.job&&lines[k+1]&&lines[k+1].page===l.page&&lines[k+1].cells.length===1&&
+         !/:/.test(lines[k+1].cells[0].s)) doc.job=lines[k+1].cells[0].s;
+      inName=false; continue;
+    }
+    if(!item) continue;
+    if(/^INV-\d+\s+Page \d+ of \d+$/.test(t)||/^Page \d+ of \d+$/.test(t)) continue;
+    let m;
+    if(first&&/^Product Name:/.test(first.s)){
+      const rest=[first.s.replace(/^Product Name:\s*/,'')].concat(c.slice(1).map(o=>o.s)).join(' ').trim();
+      if(!item.name){ item.name=rest; inName=true; ix=c[1]?c[1].x:-1; } continue;
+    }
+    if(first&&(m=first.s.match(/^Product Qty:\s*([\d.]+)/))){ item.qty=parseFloat(m[1])||1; inName=false; continue; }
+    if(inName){
+      if(c.length===1&&ix>0&&Math.abs(first.x-ix)<6){ item.name=(item.name+' '+first.s).trim(); continue; }
+      inName=false;
+    }
+    // "1." a part; "1. 1" "1. 2" the pieces of a kit part
+    if(first&&/^\d+\.(\s*\d+)*$/.test(first.s)&&first.x<40&&c[1]){
+      part={ref:item.no+'.'+first.s.replace(/\.\s*/g,'.').replace(/\.$/,''),name:c.slice(1).map(o=>o.s).join(' ').trim(),
+            qty:null,w:null,h:null,sides:null};
+      item.parts.push(part); continue;
+    }
+    if(!part) continue;
+    for(const o of c){
+      const s=o.s;
+      if((m=s.match(/^Part Qty:\s*([\d.]+)/i)))       part.qty=parseFloat(m[1]);
+      else if((m=s.match(/^Width:\s*([\d.]+)/i)))     part.w=parseFloat(m[1]);
+      else if((m=s.match(/^Height:\s*([\d.]+)/i)))    part.h=parseFloat(m[1]);
+      else if((m=s.match(/^Sides:\s*(\d+)/i)))        part.sides=+m[1];
+      else if((m=s.match(/#\s*of Hours:\s*([\d.]+)/i))) item.hours=parseFloat(m[1]);
+    }
+  }
+  push();
+  doc.textLines=lines.length;
+  const nos=doc.items.map(i=>i.no);
+  if(nos.length&&(nos.some((n,k)=>n!==k+1)||(total&&nos.length!==total))) doc.warnings.push('numbering-gap');
+  if(lines.unreadable) doc.warnings.push('pages-unreadable');
+  if(!doc.items.length) doc.warnings.push('no-items');
   return doc;
 }
 
@@ -12938,7 +13532,7 @@ function sendToDevice(){
   if(!cfg&&HOSTED){ closeModal();
     openModal('<h2>This copy cannot send</h2><div class="body"><div class="svnote">It was opened without its key, so it '
      +'cannot save or send. On the device where this survey was last saved: <b>Share → Send to device</b>, then '
-     +'type that code here: <b>More… → Enter a code</b>.</div></div>',()=>{ setTimeout(askCode,0); return true; },'Enter a code',{cancel:'Close'});
+     +'press <b>Enter a code</b> below and type it.</div></div>',()=>{ setTimeout(askCode,0); return true; },'Enter a code',{cancel:'Close'});
     return; }
   if(!cfg){ closeModal(); openPubSetup('',true); return; }
   closeModal();
@@ -13598,6 +14192,68 @@ function pullNow(a,at){
     });
   }).catch(()=>false).then(v=>{ PULLING=false; return v; });
 }
+// ---- version history (r12) ---------------------------------------------------
+// Aaron: "add 20 version history for backup", "versions fall off after 30 days". The publisher
+// keeps the copies (see worker.js keepVersion): every Save copies what was on the link first, one
+// copy per 10 minutes at most, the newest 20, none older than 30 days. Going back is itself a
+// Save, so the version being left becomes a backup too — nothing here can lose work.
+function verAddr(){
+  const cfg=pubCfg(), w=pubWURL(), slug=urlLast(w);
+  if(!cfg||!w||!SLUG_RE.test(slug)) return null;
+  let o=''; try{ o=new URL(w).origin; }catch(_){ return null; }
+  return {base:o+'/~versions/'+slug, key:KEYS[slug]||cfg.key||''};
+}
+const whenTxt=ms=>{ const d=new Date(ms), now=new Date(), t=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  const day=Math.round((new Date(now.toDateString())-new Date(d.toDateString()))/864e5);
+  return (day===0?'Today':day===1?'Yesterday':d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'}))+', '+t; };
+function openVersions(){
+  if(LOCKED) return;
+  const v=verAddr();
+  if(!v){ banner('Version history starts once this survey is saved to its link — press Save first.',6000); return; }
+  busyOpen('Getting the versions…');
+  fetch(v.base,{cache:'no-store',headers:{'X-Publish-Key':v.key}}).then(r=>r.status===200?r.json():Promise.reject(r.status))
+  .then(j=>{ busyClose();
+    const vs=(j&&j.versions)||[];
+    openModal('<h2>Version history</h2><div class="body">'
+     +'<div class="svnote">Each Save keeps a backup of the copy before it — up to 20, for 30 days. '
+     +'Tap one to go back to it. The copy you have now is kept as a backup too.</div>'
+     +'<div class="morelist">'
+     +(vs.length?vs.map((x,k)=>'<button class="saveopt" data-v="'+k+'"><b>'+he(whenTxt(+x.id))+'</b><span>'
+        +(x.count!=null?x.count+' location'+(x.count===1?'':'s')+' · ':'')+(Math.round(x.size/104857.6)/10)+' MB'
+        +(x.job&&x.job!==BRAND.job?' · '+he(x.job):'')+'</span></button>').join('')
+       :'<div class="hint">No backups yet. The first one is made the next time this survey is saved.</div>')
+     +'</div></div>',null,null,{cancel:'Close'});
+    $('modalDlg').classList.add('moresheet');
+    setTimeout(()=>document.querySelectorAll('#modalDlg [data-v]').forEach(el=>el.onclick=()=>{
+      const x=vs[+el.dataset.v]; closeModal(); setTimeout(()=>askRestore(v,x),0); }),0);
+  },e=>{ busyClose(); banner(e===401?'This copy has no key for the versions. Open it from My surveys or the staff link.'
+      :'Could not reach the versions'+(navigator.onLine===false?' — no signal.':' — the publisher may need its update.'),7000); });
+}
+function askRestore(v,x){
+  openModal('<h2>Go back to '+he(whenTxt(+x.id))+'?</h2><div class="body"><div class="svnote">'
+   +'The survey changes to how it was then and is saved. What you have now becomes a backup, '
+   +'and Undo brings it straight back.</div></div>',
+   ()=>{ restoreVersion(v,x); return true; },'Go back to this version');
+}
+function restoreVersion(v,x){
+  busyOpen('Opening the version…');
+  fetch(v.base+'/'+x.id,{cache:'no-store',headers:{'X-Publish-Key':v.key}}).then(r=>r.status===200?r.text():Promise.reject(r.status))
+  .then(h=>{ busyClose();
+    const doc=docFromMapHTML(h), brand=brandFromMapHTML(h);
+    if(!doc||!Array.isArray(doc.pts)) throw new Error('not a survey');
+    pushWorld('go back to '+whenTxt(+x.id));
+    PTS.length=0; doc.pts.forEach(q=>PTS.push(migratePoint(q)));
+    REORDERED=!!doc.reordered;
+    // the addresses and keys are today's, whatever the old copy carried
+    if(brand){ BRAND=Object.assign({},brand,{pub:BRAND.pub}); applyBrand(); }
+    if(sheetFile&&!PTS.some(q=>q.file===sheetFile)) closeSheet();
+    if(curFile&&!PTS.some(q=>q.file===curFile)) curFile=null;
+    render(true); setDirty(true);
+    doSave();
+    banner('Back to the version from '+whenTxt(+x.id)+' — saved. Undo brings the other one back.',7000);
+  }).catch(()=>{ busyClose(); banner('Could not open that version.',5000); });
+}
+
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pullCheck('front'); });
 window.addEventListener('focus',()=>{ pullCheck('front'); });
 setInterval(()=>{ if(!document.hidden) pullCheck('tick'); },60000);
@@ -13978,20 +14634,20 @@ function openStaffLink(){
 const HELP={
  admin:['The office',
   ['Open SurveyWalk on the shop computer, or <b>…/admin</b> on any computer or phone. The first <b>Share</b> asks for the publish password — once per device.',
-   'Staff: <b>More… → Staff start link → Copy link</b>, and text it to them. One link for everyone; it always opens the latest SurveyWalk.',
-   'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>More… → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
+   'Staff: <b>Setup → Staff start link → Copy link</b>, and text it to them. One link for everyone; it always opens the latest SurveyWalk.',
+   'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>Location → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
    '<b>Save</b> keeps it in <b>My surveys</b> on this device and at its own link, so any device opens the newest version.',
    'The client: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the same link shows the change.',
-   'Any device: <b>My surveys</b> lists every company survey. Tap one and work; <b>Save</b> and every other device has it. <b>More… → Save as a new survey</b> makes a separate copy under a new name.',
+   'Any device: <b>My surveys</b> lists every company survey. Tap one and work; <b>Save</b> and every other device has it. <b>File → Save as…</b> makes a separate copy under a new name.',
    'The crew: <b>Share → Send to the installer</b>. When they are done, <b>Share → Bring install photos in</b>.',
    'Changing PUBLISH_KEY in Cloudflare turns off every staff and working link. Make a new staff link afterwards.']],
  staff:['Staff',
   ['Open the staff link once and keep it: in your browser’s <b>Share</b> or <b>⋮</b> menu, tap <b>Add to Home Screen</b> (Safari or Chrome, iPhone or Android). Always open SurveyWalk from that icon — your surveys live on this phone, in that one place.',
    'At each sign location, stand where the sign goes, face it and press <b>Take photo</b>. Photos you already took: <b>Add photos</b>.',
    'Tap a location to name it and add sizes and notes.',
-   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
+   '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>File → My surveys</b>). Tap one and keep going.',
    'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
-   'Phone and computer: open the staff link on both. <b>My surveys</b> shows every company survey on either one — Save on one and the other has it. <b>More… → Save as a new survey</b> makes a separate copy.',
+   'Phone and computer: open the staff link on both. <b>My surveys</b> shows every company survey on either one — Save on one and the other has it. <b>File → Save as…</b> makes a separate copy.',
    'The crew: <b>Share → Send to the installer</b>.',
    '“The publisher refused this device’s staff link”: ask the shop for the new staff link.']],
  inst:['Installer',
@@ -14023,7 +14679,11 @@ function openHelp(role){
 function helpNudge(){
   const k='surveywalk.help.'+HELP_ROLE();
   try{ if(localStorage.getItem(k)) return; localStorage.setItem(k,'1'); }catch(_){ return; }
-  banner('New to SurveyWalk? More… → How to use SurveyWalk.',7000);
+  // r12 QC: never on top of an open photo sheet, dialog or popup — it hid their Close and Undo
+  let n=0; (function go(){
+    const busy=$('sheet').classList.contains('show')||$('modal').classList.contains('show')||!!document.querySelector('.leaflet-popup');
+    if(busy){ if(++n<6) setTimeout(go,5000); return; }
+    banner('New here? Tap Help at the end of the menu bar to see how it works.',6000); })();
 }
 
 // The email a client actually receives. This, and the banners a dozen lines up, are the only
@@ -15201,6 +15861,125 @@ function openMore(){
   },0);
 }
 $('bMore').onclick=openMore;
+
+// ---- r12: the menu bar ------------------------------------------------------------------
+// Aaron: "group the menu buttons File, Location, Mark Up, View, Share, Setup, Help … based on
+// Main Header and sub items". Each line either presses a real button (so nothing is done twice)
+// or runs an action. Lines that do not apply to this copy — the client's, the installer's — are
+// left out, and a header with nothing under it is not shown.
+const MB_ICON={
+ file:'<path d="M6.5 3h7.5l4.5 4.5V20a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M13.5 3v5h5"/><path d="M8.5 13h7M8.5 16.5h5"/>',
+ loc:'<path d="M12 21.5s-6.5-5.9-6.5-11.6a6.5 6.5 0 0 1 13 0c0 5.7-6.5 11.6-6.5 11.6z"/><circle cx="12" cy="9.8" r="2.4"/>',
+ mark:'<path d="M4 20l1.2-4.6L15.8 4.8a2 2 0 0 1 2.9 0l.5.5a2 2 0 0 1 0 2.9L8.6 18.8z"/><path d="M14 6.6l3.4 3.4"/>',
+ view:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+ share:'<path d="M12 3.5v11"/><path d="M8 7.3l4-3.8 4 3.8"/><path d="M8.5 10.5H6.5a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-8.5a1 1 0 0 0-1-1h-2"/>',
+ setup:'<circle cx="12" cy="12" r="3"/><path d="M10.3 3.3h3.4l.5 2.4 1.7.7 2-1.4 2.4 2.4-1.4 2 .7 1.7 2.4.5v3.4l-2.4.5-.7 1.7 1.4 2-2.4 2.4-2-1.4-1.7.7-.5 2.4h-3.4l-.5-2.4-1.7-.7-2 1.4-2.4-2.4 1.4-2-.7-1.7-2.4-.5v-3.4l2.4-.5.7-1.7-1.4-2 2.4-2.4 2 1.4 1.7-.7z"/>',
+ help:'<circle cx="12" cy="12" r="9.3"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.7c0 1.8-2.5 2.1-2.5 3.9"/><path d="M12 17.3v.1"/>'};
+const MENUS=[
+ ['file','File',[['bSave','Save'],['aSaveAs','Save as…',()=>saveAs()],['aVer','Version history…',()=>openVersions()],'-',
+   ['bLib','My surveys'],['bOpen','Open a survey file…'],['bMerge','Merge in a survey file…'],'-',
+   ['bWO','Import estimate, order or invoice…'],['aAll',()=>(TOUCH()?'Save all photos to Photos':'Download all photos (.zip)'),()=>saveAll()],
+   ['bPrint','Print schedule or save as PDF']]],
+ ['loc','Location',[['bCam','Take photo'],['bAdd','Add photos'],['aHand','Add a location by hand',()=>addLocByHand()],'-',
+   ['bSelect','Select several locations'],['bEdit','Edit pin positions'],'-',['bReset','Move every pin back to GPS',null,'danger']]],
+ ['mark','Mark Up',[['aMk','Mark up a photo…',()=>markPick()],['bMeasure','Measure on the map']]],
+ ['view','View',[['bFit','Fit all locations'],['bLoc','My location'],['aNorth','Face north',()=>faceNorth()],'-',
+   ['bCone','Show shot direction'],['bFind','Address search'],['bDense','Compact list',null,'desk'],['bPanel','Hide tools',null,'desk']]],
+ // Share and Help are one press each: Share opens the share sheet Help's steps describe
+ // ("Share → Get a link to send"), and Help had a single line under it.
+ ['share','Share',[['bShare','Share…']],'direct'],
+ ['setup','Setup',[['bSetup','Project setup'],['bGeoStat','Location status'],['aPub','Publishing setup',()=>openPubSetup()],
+   ['aStaff','Staff start link',()=>openStaffLink()]]],
+ ['help','Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]],'direct']];
+// Any copy may look, save its pictures, print and read the help; nothing else that is not a button
+const MB_FREE={aHelp:1,aAll:1,aNorth:1};
+function mbItems(items){
+  const out=[];
+  items.forEach(it=>{
+    if(it==='-'){ if(out.length&&out[out.length-1]!=='-') out.push('-'); return; }
+    const [id,label,fn,opt]=it;
+    if(opt==='desk'&&MOBILE()) return;
+    if(fn){ if(!MB_FREE[id]&&LOCKED) return;
+      if((id==='aPub'||id==='aStaff')&&(HOSTED||STAFF())) return;
+      out.push(it); return; }
+    const b=$(id); if(!b||b.style.display==='none') return;
+    if(LOCKED&&id==='bFind') return;
+    out.push(it);
+  });
+  while(out.length&&out[out.length-1]==='-') out.pop();
+  return out;
+}
+const mbOn=id=>{ const b=$(id); if(id==='bDense') return document.body.classList.contains('dense');
+  if(id==='bPanel') return document.body.classList.contains('sidehidden');
+  return !!(b&&b.classList.contains('on')); };
+function mbRows(items){
+  return items.map(it=>{
+    if(it==='-') return '<hr>';
+    const [id,lab,fn,opt]=it, b=fn?null:$(id), on=!fn&&mbOn(id), label=typeof lab==='function'?lab():lab;
+    return '<button class="mi'+(opt==='danger'?' danger':'')+'" role="menuitem" data-m="'+id+'"'
+      +(b&&b.disabled?' disabled':'')+'><span class="ck">'+(on?'✓':'')+'</span>'+he(label)+'</button>';
+  }).join('');
+}
+let MB_OPEN=null;
+function mbClose(){ MB_OPEN=null; $('mbpop').classList.remove('show');
+  document.querySelectorAll('#menubar button.open').forEach(x=>x.classList.remove('open')); }
+function mbRun(items,id){
+  const it=items.find(x=>x!=='-'&&x[0]===id); if(!it) return;
+  if(it[2]) it[2](); else { const b=$(id); if(b&&!b.disabled) b.click(); }
+}
+function mbOpen(key,btn){
+  const g=MENUS.find(m=>m[0]===key); if(!g) return;
+  const items=mbItems(g[2]); if(!items.length) return;
+  if(MB_OPEN===key){ mbClose(); return; }
+  mbClose();
+  if(g[3]==='direct'){ mbRun(items,items[0][0]); return; }
+  if(MOBILE()||innerWidth<600){
+    openModal('<h2>'+he(g[1])+'</h2><div class="body"><div class="morelist ioslist">'
+      +mbRows(items).replace(/<hr>/g,'')+'</div></div>',null,null,{cancel:'Close'});
+    $('modalDlg').classList.add('moresheet');
+    setTimeout(()=>document.querySelectorAll('#modalDlg .mi').forEach(el=>el.onclick=()=>{
+      const id=el.dataset.m; closeModal(); setTimeout(()=>mbRun(items,id),0); }),0);
+    return;
+  }
+  MB_OPEN=key; btn.classList.add('open');
+  const pop=$('mbpop');
+  pop.innerHTML=mbRows(items); pop.classList.add('show');
+  const r=btn.getBoundingClientRect(), w=pop.offsetWidth, h=pop.offsetHeight;
+  pop.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';
+  pop.style.top=Math.max(8,Math.min(innerHeight-h-8,r.bottom+6))+'px';
+  pop.querySelectorAll('.mi').forEach(el=>el.onclick=()=>{ const id=el.dataset.m; mbClose(); mbRun(items,id); });
+  const f=pop.querySelector('.mi:not(:disabled)'); if(f) f.focus({preventScroll:true});
+}
+function buildMenubar(){
+  const nav=$('menubar'); if(!nav) return;
+  nav.innerHTML=MENUS.filter(g=>mbItems(g[2]).length).map(([k,l])=>
+    '<button data-g="'+k+'" aria-haspopup="menu"><svg viewBox="0 0 24 24" aria-hidden="true">'+MB_ICON[k]+'</svg>'+he(l)+'</button>').join('');
+  nav.querySelectorAll('button').forEach(b=>b.onclick=e=>{ e.stopPropagation(); mbOpen(b.dataset.g,b); });
+}
+document.addEventListener('pointerdown',e=>{ if(MB_OPEN&&!e.target.closest('#mbpop,#menubar')) mbClose(); },true);
+document.addEventListener('keydown',e=>{
+  if(!MB_OPEN) return;
+  if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); const b=document.querySelector('#menubar button.open'); mbClose(); if(b) b.focus(); return; }
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); e.stopPropagation();
+    const xs=[...document.querySelectorAll('#mbpop .mi:not(:disabled)')], i=xs.indexOf(document.activeElement);
+    const n=xs[(i+(e.key==='ArrowDown'?1:-1)+xs.length)%xs.length]; if(n) n.focus(); }
+},true);
+window.addEventListener('resize',mbClose);
+// Mark Up → Mark up a photo: the location in hand if it has one, otherwise pick one.
+function markPick(){
+  const cur=curFile?PTS.find(x=>x.file===curFile):null;
+  if(cur&&shotOf(cur)){ mkOpen(cur.file,cur.shot||0); return; }
+  const ps=PTS.filter(p=>shotOf(p));
+  if(!ps.length){ banner('No photos to mark up yet — take or add one first.',4000); return; }
+  if(ps.length===1){ mkOpen(ps[0].file,ps[0].shot||0); return; }
+  openModal('<h2>Mark up which photo?</h2><div class="body"><div class="morelist ioslist">'
+    +ps.map(p=>'<button class="mi" data-f="'+he(p.file)+'"><span class="ck"></span>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</button>').join('')
+    +'</div></div>',null,null,{cancel:'Close'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg .mi').forEach(el=>el.onclick=()=>{
+    const p=PTS.find(x=>x.file===el.dataset.f); closeModal(); if(p) setTimeout(()=>mkOpen(p.file,p.shot||0),0); }),0);
+}
+buildMenubar();
 
 
 // ---- tool panel: drag the grip to resize, double-click or the button to hide ----
