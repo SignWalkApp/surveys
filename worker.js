@@ -4,7 +4,7 @@ export default {
     const slug = url.pathname.replace(/^\/+|\/+$/g, '');
     const cors = { 'Access-Control-Allow-Origin': '*',
                    'Access-Control-Allow-Methods': 'GET, HEAD, PUT, OPTIONS',
-                   'Access-Control-Allow-Headers': 'Content-Type, X-Publish-Key' };
+                   'Access-Control-Allow-Headers': 'Content-Type, X-Publish-Key, X-Survey-Job, X-Survey-Count' };
     const say = (text, status, extra) => new Response(text, { status, headers: { ...cors, ...(extra || {}) } });
     if (req.method === 'OPTIONS') return say(null, 204);
     // the master opens every slug; HMAC-SHA256(master, slug), 16 bytes, base64url, opens that slug only
@@ -54,6 +54,24 @@ export default {
       }
       return say('Method not allowed.', 405);
     }
+    // r11 — the company survey list: every working survey, newest first. Office or staff key only.
+    if (slug === '~list' && req.method === 'GET') {
+      if (!env.SURVEYS) return say('The publisher has no storage attached.', 500);
+      if (!env.PUBLISH_KEY || !(given === env.PUBLISH_KEY || (given !== '' && given === await derive('~staff')))) return say('Wrong publish key.', 401);
+      const rows = []; let cursor;
+      for (let n = 0; n < 20; n++) {
+        const r = await env.SURVEYS.list({ cursor: cursor, limit: 1000, include: ['customMetadata'] });
+        r.objects.forEach(o => {
+          const m = /^(.*?)(?:-\d{4}-\d{2})?-w-[a-z0-9]{10}$/.exec(o.key); if (!m) return;
+          const cm = o.customMetadata || {};
+          const guess = m[1].replace(/-+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          rows.push({ slug: o.key, job: cm.job || guess, count: cm.count ? +cm.count : null, at: o.uploaded.toISOString() });
+        });
+        if (!r.truncated) break; cursor = r.cursor;
+      }
+      rows.sort((a, b) => b.at < a.at ? -1 : 1);
+      return say(JSON.stringify({ surveys: rows }), 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    }
     if (slug === '') {                                   // the app's Check talks to the root
       if (req.method === 'PUT') return (await keyOK()) ? say(null, 204) : say('Wrong publish key.', 401);
       return say(JSON.stringify({ publisher: 'SurveyWalk', storage: !!env.SURVEYS, password: !!env.PUBLISH_KEY }),
@@ -70,18 +88,20 @@ export default {
     }
     if (APP && req.method === 'PUT' && env.ASSETS) return say('That address is the app, not a survey.', 409);
     if (req.method === 'PUT') {
-      // the staff key, HMAC(master, '~staff'), makes a NEW address only, and is answered with that
-      // address's own key; it never overwrites a survey that is already there
+      // r11 — Aaron, 2026-10-16: "Yes to all staff opening". The staff key, HMAC(master, '~staff'),
+      // makes new addresses AND saves over any company survey; a new address is answered with that
+      // address's own key, as before.
       let staff = false;
       if (!(await keyOK())) {
         if (!(env.PUBLISH_KEY && given !== '' && given === await derive('~staff'))) return say('Wrong publish key.', 401);
-        if (!env.SURVEYS) return say('The publisher has no storage attached — open the setup screen for what to check.', 500);
-        if (await env.SURVEYS.head(slug)) return say('This survey was published from another device, so this one cannot change it. Ask the shop.', 409);
         staff = true;
       }
       if (!env.SURVEYS) return say('The publisher has no storage attached — open the setup screen for what to check.', 500);
       if (Number(req.headers.get('Content-Length') || 0) > 64 * 1024 * 1024) return say('Too big for one survey.', 413);
-      try { await env.SURVEYS.put(slug, req.body, { httpMetadata: { contentType: 'text/html; charset=utf-8' } }); }
+      // the job name and count ride beside the survey so the company list needs no survey opened
+      let job = ''; try { job = decodeURIComponent(req.headers.get('X-Survey-Job') || '').slice(0, 120); } catch (_) {}
+      const meta = { job: job, count: String(parseInt(req.headers.get('X-Survey-Count') || '0', 10) || 0) };
+      try { await env.SURVEYS.put(slug, req.body, { httpMetadata: { contentType: 'text/html; charset=utf-8' }, customMetadata: meta }); }
       catch (e) { return say('Storage refused the survey: ' + e.message + ' — check R2 in Cloudflare.', 507); }
       const out = { url: url.origin + '/' + slug };
       if (staff) out.key = await derive(slug);
