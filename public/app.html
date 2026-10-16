@@ -6696,7 +6696,12 @@ function sendToDevice(){
   if(LOCKED) return;
   if(!PTS.length){ banner('Add a photo or a location first.',3500); return; }
   const cfg=pubCfg();
-  if(!cfg){ closeModal(); if(HOSTED) banner(NOKEY_MSG,9000); else openPubSetup('',true); return; }
+  if(!cfg&&HOSTED){ closeModal();
+    openModal('<h2>This copy cannot send</h2><div class="body"><div class="svnote">It was opened without its key, so it '
+     +'cannot save or send. On the device where this survey was last saved: <b>Share → Send to device</b>, then '
+     +'type that code here: <b>More… → Enter a code</b>.</div></div>',()=>{ setTimeout(askCode,0); return true; },'Enter a code',{cancel:'Close'});
+    return; }
+  if(!cfg){ closeModal(); openPubSetup('',true); return; }
   closeModal();
   openModal('<h2>Send to device</h2><div class="body"><div id="pdBox"><div class="svnote">Saving the survey…</div></div></div>',null,null,{cancel:'Close'});
   const box=h=>{ const e=$('pdBox'); if(e) e.innerHTML=h; };
@@ -6739,7 +6744,16 @@ function codeOpen(v){
   say('Opening…');
   return fetch(o+'/~pair/'+code,{cache:'no-store'}).then(r=>r.text().then(t=>{
       if(r.status!==200) throw new Error(t||('The publisher answered '+r.status+'.')); return JSON.parse(t); }))
-    .then(j=>linkOpen(j.link)).catch(e=>{ say(String(e&&e.message||e).slice(0,200)); return false; });
+    .then(j=>HOSTED?openHere(j.link):linkOpen(j.link)).catch(e=>{ say(String(e&&e.message||e).slice(0,200)); return false; });
+}
+function openHere(link){
+  let u; try{ u=new URL(link); }catch(_){ return false; }
+  const m=/^#k=([\w-]{22})(?:\.([\w-]{22}))?$/.exec(u.hash||''), slug=u.pathname.replace(/^\/+|\/+$/g,'');
+  if(m){ skPut(slug,m[1]); if(m[2]){ const p=BRAND.pub||{}; if(p.slug&&slug===p.wslug) skPut(p.slug,m[2]); } }
+  closeModal(); banner('Opening…',4000);
+  if(u.origin===location.origin&&u.pathname===location.pathname){ setDirty(false); location.replace(u.href); location.reload(); }
+  else { setDirty(false); location.href=u.href; }
+  return true;
 }
 function linkOpen(raw){
   const say=t=>{ const s=$('lnkSay'); if(s) s.textContent=t; else banner(t,6000); };
@@ -7000,9 +7014,10 @@ const pubCfg=()=>{
   if(WEB&&!FROMFILE&&!ADMIN_PAGE){ let k=STAFF_HASH;
     if(!k) try{ const o=JSON.parse(localStorage.getItem(STAFFK)||'null'); if(o&&o.url===location.origin) k=String(o.key||''); }catch(_){ }
     if(k) return {url:location.origin,key:k,staff:true}; }
+  if(WEB&&!FROMFILE){ const p=BRAND.pub||{}, a=skAll(); if(p.wslug&&a[p.wslug]) return {url:location.origin,key:'',staff:true,slugOnly:true}; }
   return null;
 };
-const STAFF=()=>!!(pubCfg()||{}).staff;
+const STAFF=()=>{ const c=pubCfg()||{}; return !!c.staff&&!c.slugOnly; };
 function setPubCfg(url,key,gh){
   url=String(url||'').trim().replace(/\/+$/,'');
   if(url && !/^https?:\/\//i.test(url)) url='https://'+url;
@@ -7222,6 +7237,8 @@ function publish(kind){
       if(HOSTED) setDirty(false);                   // the work is in the slot; setPubURL had lit the dot
       if(code==='key'&&HOSTED){ banner('The publisher refused this link’s key — the password was changed. '
                                        +'Ask for a fresh '+(INSTALL?'installer':'working')+' link from the shop computer.',12000); return; }
+      if(code==='key'&&(pubCfg()||{}).slugOnly){ banner('This device can update the surveys it was sent, but cannot make a new link. '
+                                       +'Open SurveyWalk from your staff link to start new surveys.',12000); return; }
       if(code==='key'&&STAFF()){ banner('The publisher refused this device’s staff link — the password was changed. '
                                        +'Ask the shop for the new staff start link.',12000); return; }
       if(code==='key'){ closeModal(); openPubSetup(KEY_MSG,true); return; }
@@ -7299,7 +7316,7 @@ function openShare(minted){
    +'<button class="saveopt" data-sh="file"><b>Send the working file</b>'
      +'<span>For the office. Whoever opens it can add photos and move pins.</span></button>'
    +'</div>'
-   +(wl?'<div class="pubnow" style="margin-top:9px"><div class="lbl">Your private working link</div>'
+   +((wl&&/#k=/.test(wl))?'<div class="pubnow" style="margin-top:9px"><div class="lbl">Your private working link</div>'
         +'<a href="'+he(wl)+'" target="_blank" rel="noopener">'+he(wl)+'</a>'
         +'<div class="row"><button class="mini" id="swCopy">Copy link</button>'
         +(link?'':re)+'</div>'
@@ -8408,6 +8425,7 @@ const MORE_GROUPS=[
             ['bMerge','Merge in another survey file'],
             ['bWO','Import work order or estimate']]],
   ['Locations',[['aHand','Add a location by hand',()=>addLocByHand()]]],
+  ['Devices',[['aCode','Enter a code from another device',()=>askCode()]]],
   ['Setup',[['bSetup','Project setup'],['bGeoStat','Location status'],
             ['bFind','Address search'],['aPub','Publishing setup',()=>openPubSetup()],
             ['aStaff','Staff start link',()=>openStaffLink()]]],
@@ -12774,7 +12792,12 @@ function sendToDevice(){
   if(LOCKED) return;
   if(!PTS.length){ banner('Add a photo or a location first.',3500); return; }
   const cfg=pubCfg();
-  if(!cfg){ closeModal(); if(HOSTED) banner(NOKEY_MSG,9000); else openPubSetup('',true); return; }
+  if(!cfg&&HOSTED){ closeModal();
+    openModal('<h2>This copy cannot send</h2><div class="body"><div class="svnote">It was opened without its key, so it '
+     +'cannot save or send. On the device where this survey was last saved: <b>Share → Send to device</b>, then '
+     +'type that code here: <b>More… → Enter a code</b>.</div></div>',()=>{ setTimeout(askCode,0); return true; },'Enter a code',{cancel:'Close'});
+    return; }
+  if(!cfg){ closeModal(); openPubSetup('',true); return; }
   closeModal();
   openModal('<h2>Send to device</h2><div class="body"><div id="pdBox"><div class="svnote">Saving the survey…</div></div></div>',null,null,{cancel:'Close'});
   const box=h=>{ const e=$('pdBox'); if(e) e.innerHTML=h; };
@@ -12818,7 +12841,17 @@ function codeOpen(v){
   say('Opening…');
   return fetch(o+'/~pair/'+code,{cache:'no-store'}).then(r=>r.text().then(t=>{
       if(r.status!==200) throw new Error(t||('The publisher answered '+r.status+'.')); return JSON.parse(t); }))
-    .then(j=>linkOpen(j.link)).catch(e=>{ say(String(e&&e.message||e).slice(0,200)); return false; });
+    .then(j=>HOSTED?openHere(j.link):linkOpen(j.link)).catch(e=>{ say(String(e&&e.message||e).slice(0,200)); return false; });
+}
+// A survey page that is already open (a working link) becomes the survey the code is for, keys and all.
+function openHere(link){
+  let u; try{ u=new URL(link); }catch(_){ return false; }
+  const m=/^#k=([\w-]{22})(?:\.([\w-]{22}))?$/.exec(u.hash||''), slug=u.pathname.replace(/^\/+|\/+$/g,'');
+  if(m){ skPut(slug,m[1]); if(m[2]){ const p=BRAND.pub||{}; if(p.slug&&slug===p.wslug) skPut(p.slug,m[2]); } }
+  closeModal(); banner('Opening…',4000);
+  if(u.origin===location.origin&&u.pathname===location.pathname){ setDirty(false); location.replace(u.href); location.reload(); }
+  else { setDirty(false); location.href=u.href; }
+  return true;
 }
 function linkOpen(raw){
   const say=t=>{ const s=$('lnkSay'); if(s) s.textContent=t; else banner(t,6000); };
@@ -13189,9 +13222,12 @@ const pubCfg=()=>{
   if(WEB&&!FROMFILE&&!ADMIN_PAGE){ let k=STAFF_HASH;
     if(!k) try{ const o=JSON.parse(localStorage.getItem(STAFFK)||'null'); if(o&&o.url===location.origin) k=String(o.key||''); }catch(_){ }
     if(k) return {url:location.origin,key:k,staff:true}; }
+  // r10e: a survey this device was SENT (Enter a code) carries its own key here — Save and Send to
+  // device work with it, with no password and no staff link. It cannot make a new address.
+  if(WEB&&!FROMFILE){ const p=BRAND.pub||{}, a=skAll(); if(p.wslug&&a[p.wslug]) return {url:location.origin,key:'',staff:true,slugOnly:true}; }
   return null;
 };
-const STAFF=()=>!!(pubCfg()||{}).staff;
+const STAFF=()=>{ const c=pubCfg()||{}; return !!c.staff&&!c.slugOnly; };
 function setPubCfg(url,key,gh){
   url=String(url||'').trim().replace(/\/+$/,'');
   if(url && !/^https?:\/\//i.test(url)) url='https://'+url;
@@ -13486,6 +13522,8 @@ function publish(kind){
       // a hosted 401: the master was changed and this link's key is stale — one sentence, no form
       if(code==='key'&&HOSTED){ banner('The publisher refused this link’s key — the password was changed. '
                                        +'Ask for a fresh '+(INSTALL?'installer':'working')+' link from the shop computer.',12000); return; }
+      if(code==='key'&&(pubCfg()||{}).slugOnly){ banner('This device can update the surveys it was sent, but cannot make a new link. '
+                                       +'Open SurveyWalk from your staff link to start new surveys.',12000); return; }
       if(code==='key'&&STAFF()){ banner('The publisher refused this device’s staff link — the password was changed. '
                                        +'Ask the shop for the new staff start link.',12000); return; }
       if(code==='key'){ closeModal(); openPubSetup(KEY_MSG,true); return; }
@@ -13577,7 +13615,8 @@ function openShare(minted){
    +'<button class="saveopt" data-sh="file"><b>Send the working file</b>'
      +'<span>For the office. Whoever opens it can add photos and move pins.</span></button>'
    +'</div>'
-   +(wl?'<div class="pubnow" style="margin-top:9px"><div class="lbl">Your private working link</div>'
+   // r10e: a working link without its key cannot save, so it is never offered for copying
+   +((wl&&/#k=/.test(wl))?'<div class="pubnow" style="margin-top:9px"><div class="lbl">Your private working link</div>'
         +'<a href="'+he(wl)+'" target="_blank" rel="noopener">'+he(wl)+'</a>'
         +'<div class="row"><button class="mini" id="swCopy">Copy link</button>'
         +(link?'':re)+'</div>'
@@ -14964,6 +15003,7 @@ const MORE_GROUPS=[
             ['bMerge','Merge in another survey file'],
             ['bWO','Import work order or estimate']]],
   ['Locations',[['aHand','Add a location by hand',()=>addLocByHand()]]],
+  ['Devices',[['aCode','Enter a code from another device',()=>askCode()]]],
   // Publishing setup is an ACTION like Add a location by hand: a once-ever screen, no button
   // behind it, so it costs no id and is never on a screen at rest. The filter below drops every
   // action from the customer's copy, so a client never sees it.
