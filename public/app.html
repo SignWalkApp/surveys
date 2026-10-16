@@ -1734,6 +1734,10 @@ body.viewonly .pin.sel{background:#fff;color:#111;border-color:var(--edit);
 .ioslist>button.danger{color:#ff6b6b!important}
 .ioslist .ck{order:2;margin-left:auto}
 .ioslist .ck:empty{display:none}
+.ioslist>button:disabled{opacity:.38;cursor:default}
+.ioslist>button:disabled:hover{background:none!important}
+.mi:disabled:hover{background:none}
+.mi .mnote{margin-left:auto;padding-left:8px;font-size:11px;color:var(--dim);font-weight:400;white-space:nowrap}
 /* the popup's buttons stay in view while its details scroll */
 .pop .b>.btnrow:last-child{position:sticky;bottom:-1px;background:var(--panel);padding-top:8px;padding-bottom:4px;
  box-shadow:0 -10px 12px var(--panel);z-index:1}
@@ -3522,6 +3526,10 @@ body.viewonly .pin.sel{background:#fff;color:#111;border-color:var(--edit);
 .ioslist>button.danger{color:#ff6b6b!important}
 .ioslist .ck{order:2;margin-left:auto}
 .ioslist .ck:empty{display:none}
+.ioslist>button:disabled{opacity:.38;cursor:default}
+.ioslist>button:disabled:hover{background:none!important}
+.mi:disabled:hover{background:none}
+.mi .mnote{margin-left:auto;padding-left:8px;font-size:11px;color:var(--dim);font-weight:400;white-space:nowrap}
 .pop .b>.btnrow:last-child{position:sticky;bottom:-1px;background:var(--panel);padding-top:8px;padding-bottom:4px;
  box-shadow:0 -10px 12px var(--panel);z-index:1}
 .pop .shotbar{padding-right:34px}
@@ -4600,7 +4608,7 @@ function updateStats(){
   if(w) w.textContent=(BRAND.job||'Site Survey')+' \u00b7 '+placed().length
     +(placed().length===1?' location':' locations');
   const empty=!PTS.length;
-  ['bPrint','bShare','bFit','bSelect','bEdit'].forEach(id=>{
+  ['bPrint','bFit','bSelect','bEdit'].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
     el.disabled=empty;
     if(empty) el.title='Add a photo first'; else if(el.title==='Add a photo first') el.title='';
@@ -4896,8 +4904,7 @@ function locMenu(file){
             ['dup','Duplicate this location'],['add','Add photo']);
     if(sh) it.push(['mk','Mark up the photo']);
   }
-  if(sh){ it.push(['dl',PHOTO_SAVE()]); if(mk) it.push(['dlm',PHOTO_SAVE()+' with markup']);
-          if(p.shots.length>1) it.push(['dla',PHOTO_ALL(p.shots.length)]); }
+  if(sh) it.push(['dl',TOUCH()?'Save photos to Photos…':'Download photos…']);
   if(!LOCKED) it.push(['rm','Remove this location','danger']);
   if(!it.length){ banner('This location has no photo yet.',3000); return; }
   openModal('<h2>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</h2><div class="body"><div class="morelist ioslist">'
@@ -4912,9 +4919,7 @@ function locMenu(file){
     else if(a==='dup') dupAsk(p.file);
     else if(a==='add') addToPin(p.file);
     else if(a==='mk') mkOpen(p.file,p.shot||0);
-    else if(a==='dl') dlShot(p.file);
-    else if(a==='dlm') dlShot(p.file,true);
-    else if(a==='dla') saveAll(p.file);
+    else if(a==='dl') dlPick(p.file);
     else if(a==='rm'){ closeSheet(); removePhoto(p.file); }
   }),0);
 }
@@ -4959,8 +4964,28 @@ function dupLoc(file,photos){
   banner('Copy made: “'+q.label+'”. Tap the map where it goes — or leave it in the tray for later.',6000);
   return q;
 }
-const PHOTO_SAVE=()=>TOUCH()?'Save to Photos':'Download photo';
-const PHOTO_ALL=n=>TOUCH()?'Save all '+n+' to Photos':'Download all '+n+' photos';
+const PHOTO_SAVE=()=>TOUCH()?'Save to Photos…':'Download…';
+const hasMk=sh=>!!(sh&&sh.marks&&sh.marks.length);
+function dlPick(file){
+  const p=file?PTS.find(x=>x.file===file):null, sh=p?shotOf(p):null;
+  const all=p?p.shots.filter(x=>x&&x.src):PTS.flatMap(q=>(q.shots||[]).filter(x=>x&&x.src));
+  const n=all.length, anyMk=all.some(hasMk), V=TOUCH()?'Save':'Download';
+  const rows=[];
+  if(p&&sh){ rows.push(['o',V+' original',true],['m',V+' with markup',hasMk(sh)]); }
+  if(n>1||!p){ rows.push(['ao',V+' all '+n+' originals',n>0],['am',V+' all '+n+' with markup',anyMk]); }
+  openModal('<h2>'+he(p?((p.unplaced?'':p.i+' · ')+title(p)):'All photos in this survey')+'</h2><div class="body">'
+   +'<div class="morelist ioslist">'+rows.map(([k,l,on])=>'<button class="mi" data-d="'+k+'"'+(on?'':' disabled')+'>'
+     +'<span class="ck"></span>'+he(l)+'</button>').join('')+'</div>'
+   +(anyMk?'':'<div class="hint" style="margin-top:8px">No markup drawn on '+(p?'this location':'any photo')+' yet.</div>')
+   +'</div>',null,null,{cancel:'Cancel'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-d]').forEach(el=>el.onclick=()=>{
+    const k=el.dataset.d; closeModal();
+    if(k==='o') dlShot(p.file,false); else if(k==='m') dlShot(p.file,true);
+    else saveAll(p?p.file:undefined,k==='am');
+  }),0);
+}
+
 const fname=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
 function shotBlob(sh,withMarks){
   const plain=()=>fetch(sh.src).then(r=>r.blob());
@@ -5001,7 +5026,7 @@ async function makeZip(files){
   e.setUint32(12,csz,true); e.setUint32(16,off,true);
   return new Blob(parts.concat(cen,[e.buffer]),{type:'application/zip'});
 }
-async function saveAll(file){
+async function saveAll(file,withMarks){
   const list=[]; const ps=file?[PTS.find(x=>x.file===file)].filter(Boolean):PTS.slice();
   ps.forEach(p=>(p.shots||[]).forEach((sh,k)=>{ if(sh&&sh.src) list.push({p,sh,k}); }));
   if(!list.length){ banner(file?'This location has no photos yet.':'This survey has no photos yet.',3500); return; }
@@ -5012,9 +5037,10 @@ async function saveAll(file){
     for(let j=0;j<list.length;j++){
       busyStep((j+1)+' of '+list.length);
       const {p,sh,k}=list[j];
-      let nm=fname((p.unplaced?'':p.i+' ')+title(p)+(p.shots.length>1?' - photo '+(k+1):''))||'photo';
+      const mk=!!(withMarks&&sh.marks&&sh.marks.length);
+      let nm=fname((p.unplaced?'':p.i+' ')+title(p)+(p.shots.length>1?' - photo '+(k+1):'')+(mk?' - markup':''))||'photo';
       while(used[nm]) nm+='_'; used[nm]=1;
-      files.push({name:nm+'.jpg',blob:await shotBlob(sh,true)});
+      files.push({name:nm+'.jpg',blob:await shotBlob(sh,mk)});
     }
   }catch(e){ busyClose(); banner('Could not get the photos ready.',4000); return; }
   busyClose();
@@ -5027,7 +5053,7 @@ async function saveAll(file){
     }catch(err){ if(err&&(err.name==='AbortError'||err.name==='NotAllowedError')) return; }
   }
   if(files.length===1){ download(files[0].name,files[0].blob); banner('Downloaded '+files[0].name,3500); return; }
-  const zn=fname(job+(file?' - '+title(ps[0]):'')+' - photos')+'.zip';
+  const zn=fname(job+(file?' - '+title(ps[0]):'')+(withMarks?' - photos with markup':' - photos'))+'.zip';
   download(zn,await makeZip(files));
   banner('Downloaded '+zn+' — '+files.length+' photos',4500);
 }
@@ -5061,8 +5087,7 @@ function pop(p){
    +(p.unplaced&&!VIEWONLY?'<div style="color:#ff5d5d;font-size:10.5px;margin-top:7px;line-height:1.45"><b>Not placed yet.</b><br>'+he(p.note||'')+'</div>':'')
    +(VIEWONLY?'':instBlock(p,true))
    +(INSTALL?'<div class="btnrow">'+instActs(p)+'</div>':'')
-   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlShot(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>'
-     +(p.shots.length>1?'<button onclick="saveAll(\''+js(p.file)+'\')">'+PHOTO_ALL(p.shots.length)+'</button>':'')+'</div>':'')
+   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlPick(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button></div>':'')
    +(LOCKED?'':'<input class="lblinp" placeholder="Label this location…" value="'+he(p.label)+'" '
      +'oninput="setLabel(\''+js(p.file)+'\',this.value)">'
      +memoBox(p)
@@ -5076,8 +5101,7 @@ function pop(p){
      +'<button onclick="locMenu(\''+js(p.file)+'\')">Edit…</button>'
      +'<button onclick="addToPin(\''+js(p.file)+'\')">Add photo</button>'
      +(shotOf(p)?'<button onclick="mkOpen(\''+js(p.file)+'\','+(p.shot||0)+')">Mark up</button>':'')
-     +(shotOf(p)?'<button onclick="'+(p.shots.length>1?'saveAll':'dlShot')+'(\''+js(p.file)+'\')">'
-       +(p.shots.length>1?PHOTO_ALL(p.shots.length):PHOTO_SAVE())+'</button>':'')
+     +(shotOf(p)?'<button onclick="dlPick(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>':'')
      +(waiting().length?'<button onclick="attachFromTray(\''+js(p.file)+'\')">Attach from tray</button>':'')
      +((p.egps&&!byGPS(p))?'<button class="gps" onclick="revertGPS(\''+js(p.file)+'\')">Revert to GPS</button>':'')
      +'<button class="danger" onclick="removePhoto(\''+js(p.file)+'\')">Remove pin</button>'
@@ -5206,7 +5230,7 @@ function openSheet(i,keep){
         :'none yet')+'</td></tr>'
     +'</table></details>';
   $('shMeta').innerHTML=(VIEWONLY?notesBlock(p)+linesBlock(p)+details
-      +(sh?'<div class="acts"><button id="shDl">'+PHOTO_SAVE()+'</button>'+(multi?'<button id="shDlA">'+PHOTO_ALL(p.shots.length)+'</button>':'')+'</div>':'')
+      +(sh?'<div class="acts"><button id="shDl">'+PHOTO_SAVE()+'</button></div>':'')
     :INSTALL?instBlock(p)+notesBlock(p)+linesBlock(p)+details+'<div class="acts">'+instActs(p,true)+'</div>'
     :'<div class="lblq">What is this sign?</div>'
       +'<input class="lblinp" id="shLbl" placeholder="Monument sign at the entry, wall sign, directional…" value="'+he(p.label)+'">'
@@ -5228,11 +5252,9 @@ function openSheet(i,keep){
         +(fixUsable(lastFix)?'':' (\u00b1'+accTxt(lastFix.acc)+')')+'</button>':'')
       +(sh?'<button id="shMark">Mark up</button>':'')
       +(sh?'<button id="shDl">'+PHOTO_SAVE()+'</button>':'')
-      +(multi?'<button id="shDlA">'+PHOTO_ALL(p.shots.length)+'</button>':'')
       +'<button class="danger" id="shDel">Remove pin</button>'
       +'</div>');
-  if($('shDl')) $('shDl').onclick=()=>dlShot(p.file,true);
-  if($('shDlA')) $('shDlA').onclick=()=>saveAll(p.file);
+  if($('shDl')) $('shDl').onclick=()=>dlPick(p.file);
   if(!VIEWONLY){
     $('shAdd').onclick=()=>addToPin(p.file);
     const ds=$('shDelShot'); if(ds) ds.onclick=()=>removeShot(p.file,p.shot);
@@ -7680,11 +7702,12 @@ function instBringIn(){
 }
 function openShare(minted){
   if(LOCKED) return;
-  if(!PTS.length){ banner('Add a photo first — there is nothing to share yet.',3500); return; }
-  if(!minted&&!HOSTED&&(pubWURL()||pubIURL())) return mintKeys().then(()=>openShare(true));   // keys first, once
+  const empty=!PTS.length;
+  if(!empty&&!minted&&!HOSTED&&(pubWURL()||pubIURL())) return mintKeys().then(()=>openShare(true));   // keys first, once
   const link=pubURL(), wl=wLink(), il=HOSTED?'':iLink();
   const re=HOSTED?'':'<button class="mini" id="shRe">Publish an update</button>';
   openModal('<h2>Share this survey</h2><div class="body">'
+   +(empty?'<div class="hint" style="margin:0 0 9px">Nothing to share yet — add a photo or a location and these will work.</div>':'')
    +(link?'<div class="pubnow"><div class="lbl">This survey is published at</div>'
           +'<a href="'+he(link)+'" target="_blank" rel="noopener">'+he(link)+'</a>'
           +'<div class="row"><button class="mini" id="shCopy">Copy link</button>'
@@ -7714,7 +7737,9 @@ function openShare(minted){
    +'Dropbox</b> — neither will open it; send the link.</div>'
    +'<div class="svnote">Sharing does not remove the survey from '+THIS_DEV()+'.</div>'
    +'</div>',null,null,{cancel:'Cancel'});
+  if(empty) document.querySelectorAll('#modalDlg .body button').forEach(b=>{ b.disabled=true; });
   setTimeout(()=>{
+    if(empty) return;
     document.querySelectorAll('[data-sh]').forEach(el=>el.onclick=()=>{
       const how=el.dataset.sh;
       if(how==='file'){ closeModal(); sendFile(); return; }
@@ -8851,7 +8876,7 @@ const MB_ICON={
 const MENUS=[
  ['file','File',[['bSave','Save'],['aSaveAs','Save as…',()=>saveAs()],['aVer','Version history…',()=>openVersions()],'-',
    ['bLib','My surveys'],['bOpen','Open a survey file…'],['bMerge','Merge in a survey file…'],'-',
-   ['bWO','Import estimate, order or invoice…'],['aAll',()=>(TOUCH()?'Save all photos to Photos':'Download all photos (.zip)'),()=>saveAll()],
+   ['bWO','Import estimate, order or invoice…'],['aAll',()=>(TOUCH()?'Save all photos to Photos…':'Download all photos…'),()=>dlPick()],
    ['bPrint','Print schedule or save as PDF']]],
  ['loc','Location',[['bCam','Take photo'],['bAdd','Add photos'],['aHand','Add a location by hand',()=>addLocByHand()],'-',
    ['bSelect','Select several locations'],['bEdit','Edit pin positions'],'-',['bReset','Move every pin back to GPS',null,'danger']]],
@@ -8863,6 +8888,11 @@ const MENUS=[
    ['aStaff','Staff start link',()=>openStaffLink()]]],
  ['help','Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]],'direct']];
 const MB_FREE={aHelp:1,aAll:1,aNorth:1};
+const hasPhoto=()=>PTS.some(p=>shotOf(p));
+const MB_NEED={aSaveAs:()=>PTS.length>0, aVer:()=>!!verAddr(), aAll:hasPhoto, aMk:hasPhoto,
+  bPrint:()=>PTS.length>0, bSelect:()=>PTS.length>0, bEdit:()=>placed().length>0,
+  bReset:()=>placed().length>0, bFit:()=>PTS.length>0, bDense:()=>PTS.length>0};
+const MB_DESK={bOpen:1,bMerge:1,bWO:1};
 function mbItems(items){
   const out=[];
   items.forEach(it=>{
@@ -8872,8 +8902,9 @@ function mbItems(items){
     if(fn){ if(!MB_FREE[id]&&LOCKED) return;
       if((id==='aPub'||id==='aStaff')&&(HOSTED||STAFF())) return;
       out.push(it); return; }
-    const b=$(id); if(!b||b.style.display==='none') return;
-    if(LOCKED&&id==='bFind') return;
+    const b=$(id); if(!b) return;
+    if(LOCKED&&(b.style.display==='none'||id==='bFind')) return;
+    if(b.style.display==='none'&&!(MB_DESK[id]&&TOUCH())) return;
     out.push(it);
   });
   while(out.length&&out[out.length-1]==='-') out.pop();
@@ -8886,8 +8917,11 @@ function mbRows(items){
   return items.map(it=>{
     if(it==='-') return '<hr>';
     const [id,lab,fn,opt]=it, b=fn?null:$(id), on=!fn&&mbOn(id), label=typeof lab==='function'?lab():lab;
+    const desk=!!(b&&b.style.display==='none'&&MB_DESK[id]);
+    const off=desk||(b&&b.disabled)||(MB_NEED[id]&&!MB_NEED[id]());
     return '<button class="mi'+(opt==='danger'?' danger':'')+'" role="menuitem" data-m="'+id+'"'
-      +(b&&b.disabled?' disabled':'')+'><span class="ck">'+(on?'✓':'')+'</span>'+he(label)+'</button>';
+      +(off?' disabled':'')+'><span class="ck">'+(on?'✓':'')+'</span>'+he(label)
+      +(desk?'<small class="mnote">on a computer</small>':'')+'</button>';
   }).join('');
 }
 let MB_OPEN=null;
@@ -8895,6 +8929,8 @@ function mbClose(){ MB_OPEN=null; $('mbpop').classList.remove('show');
   document.querySelectorAll('#menubar button.open').forEach(x=>x.classList.remove('open')); }
 function mbRun(items,id){
   const it=items.find(x=>x!=='-'&&x[0]===id); if(!it) return;
+  if(!it[2]&&MB_DESK[id]&&$(id).style.display==='none') return;
+  if(MB_NEED[id]&&!MB_NEED[id]()) return;
   if(it[2]) it[2](); else { const b=$(id); if(b&&!b.disabled) b.click(); }
 }
 function mbOpen(key,btn){
@@ -10301,7 +10337,8 @@ function updateStats(){
   // handed over an empty file. Say so on the button, the way Undo already does. Measure is
   // deliberately absent: measuring the frontage off the aerial needs no locations at all.
   const empty=!PTS.length;
-  ['bPrint','bShare','bFit','bSelect','bEdit'].forEach(id=>{
+  // r12: Share is NOT in this list any more — it opens on an empty survey with its choices greyed.
+  ['bPrint','bFit','bSelect','bEdit'].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
     el.disabled=empty;
     if(empty) el.title='Add a photo first'; else if(el.title==='Add a photo first') el.title='';
@@ -10666,8 +10703,7 @@ function locMenu(file){
             ['dup','Duplicate this location'],['add','Add photo']);
     if(sh) it.push(['mk','Mark up the photo']);
   }
-  if(sh){ it.push(['dl',PHOTO_SAVE()]); if(mk) it.push(['dlm',PHOTO_SAVE()+' with markup']);
-          if(p.shots.length>1) it.push(['dla',PHOTO_ALL(p.shots.length)]); }
+  if(sh) it.push(['dl',TOUCH()?'Save photos to Photos…':'Download photos…']);
   if(!LOCKED) it.push(['rm','Remove this location','danger']);
   if(!it.length){ banner('This location has no photo yet.',3000); return; }
   openModal('<h2>'+he((p.unplaced?'':p.i+' · ')+title(p))+'</h2><div class="body"><div class="morelist ioslist">'
@@ -10682,9 +10718,7 @@ function locMenu(file){
     else if(a==='dup') dupAsk(p.file);
     else if(a==='add') addToPin(p.file);
     else if(a==='mk') mkOpen(p.file,p.shot||0);
-    else if(a==='dl') dlShot(p.file);
-    else if(a==='dlm') dlShot(p.file,true);
-    else if(a==='dla') saveAll(p.file);
+    else if(a==='dl') dlPick(p.file);
     else if(a==='rm'){ closeSheet(); removePhoto(p.file); }
   }),0);
 }
@@ -10735,8 +10769,30 @@ function dupLoc(file,photos){
 // Aaron: "ability to download image". The photo as the survey holds it — 900 px on the long side,
 // the working copy, not the camera original. With markup: the measurements and notes drawn in.
 // r12 QC: "Save" is the survey's word. A photo goes to Photos on a phone and to Downloads on a computer.
-const PHOTO_SAVE=()=>TOUCH()?'Save to Photos':'Download photo';
-const PHOTO_ALL=n=>TOUCH()?'Save all '+n+' to Photos':'Download all '+n+' photos';
+const PHOTO_SAVE=()=>TOUCH()?'Save to Photos…':'Download…';
+// r12b — Aaron: "add to photo download: download original and download markup". One button opens
+// the choices; a choice with nothing to act on is shown greyed, the house rule for every menu.
+const hasMk=sh=>!!(sh&&sh.marks&&sh.marks.length);
+function dlPick(file){
+  const p=file?PTS.find(x=>x.file===file):null, sh=p?shotOf(p):null;
+  const all=p?p.shots.filter(x=>x&&x.src):PTS.flatMap(q=>(q.shots||[]).filter(x=>x&&x.src));
+  const n=all.length, anyMk=all.some(hasMk), V=TOUCH()?'Save':'Download';
+  const rows=[];
+  if(p&&sh){ rows.push(['o',V+' original',true],['m',V+' with markup',hasMk(sh)]); }
+  if(n>1||!p){ rows.push(['ao',V+' all '+n+' originals',n>0],['am',V+' all '+n+' with markup',anyMk]); }
+  openModal('<h2>'+he(p?((p.unplaced?'':p.i+' · ')+title(p)):'All photos in this survey')+'</h2><div class="body">'
+   +'<div class="morelist ioslist">'+rows.map(([k,l,on])=>'<button class="mi" data-d="'+k+'"'+(on?'':' disabled')+'>'
+     +'<span class="ck"></span>'+he(l)+'</button>').join('')+'</div>'
+   +(anyMk?'':'<div class="hint" style="margin-top:8px">No markup drawn on '+(p?'this location':'any photo')+' yet.</div>')
+   +'</div>',null,null,{cancel:'Cancel'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-d]').forEach(el=>el.onclick=()=>{
+    const k=el.dataset.d; closeModal();
+    if(k==='o') dlShot(p.file,false); else if(k==='m') dlShot(p.file,true);
+    else saveAll(p?p.file:undefined,k==='am');
+  }),0);
+}
+
 const fname=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
 // One photo as a JPEG blob: the stored copy, or with its markup drawn in when it has any.
 function shotBlob(sh,withMarks){
@@ -10782,7 +10838,7 @@ async function makeZip(files){
 // r12 — Aaron: "add a save photo option from the location pop up" and "add a download all
 // button for the photos". On a phone the share sheet takes them all at once ("Save N Images"
 // puts them in Photos); on a computer one zip.
-async function saveAll(file){
+async function saveAll(file,withMarks){
   const list=[]; const ps=file?[PTS.find(x=>x.file===file)].filter(Boolean):PTS.slice();
   ps.forEach(p=>(p.shots||[]).forEach((sh,k)=>{ if(sh&&sh.src) list.push({p,sh,k}); }));
   if(!list.length){ banner(file?'This location has no photos yet.':'This survey has no photos yet.',3500); return; }
@@ -10793,9 +10849,10 @@ async function saveAll(file){
     for(let j=0;j<list.length;j++){
       busyStep((j+1)+' of '+list.length);
       const {p,sh,k}=list[j];
-      let nm=fname((p.unplaced?'':p.i+' ')+title(p)+(p.shots.length>1?' - photo '+(k+1):''))||'photo';
+      const mk=!!(withMarks&&sh.marks&&sh.marks.length);
+      let nm=fname((p.unplaced?'':p.i+' ')+title(p)+(p.shots.length>1?' - photo '+(k+1):'')+(mk?' - markup':''))||'photo';
       while(used[nm]) nm+='_'; used[nm]=1;
-      files.push({name:nm+'.jpg',blob:await shotBlob(sh,true)});
+      files.push({name:nm+'.jpg',blob:await shotBlob(sh,mk)});
     }
   }catch(e){ busyClose(); banner('Could not get the photos ready.',4000); return; }
   busyClose();
@@ -10808,7 +10865,7 @@ async function saveAll(file){
     }catch(err){ if(err&&(err.name==='AbortError'||err.name==='NotAllowedError')) return; }
   }
   if(files.length===1){ download(files[0].name,files[0].blob); banner('Downloaded '+files[0].name,3500); return; }
-  const zn=fname(job+(file?' - '+title(ps[0]):'')+' - photos')+'.zip';
+  const zn=fname(job+(file?' - '+title(ps[0]):'')+(withMarks?' - photos with markup':' - photos'))+'.zip';
   download(zn,await makeZip(files));
   banner('Downloaded '+zn+' — '+files.length+' photos',4500);
 }
@@ -10844,8 +10901,7 @@ function pop(p){
    +(p.unplaced&&!VIEWONLY?'<div style="color:#ff5d5d;font-size:10.5px;margin-top:7px;line-height:1.45"><b>Not placed yet.</b><br>'+he(p.note||'')+'</div>':'')
    +(VIEWONLY?'':instBlock(p,true))
    +(INSTALL?'<div class="btnrow">'+instActs(p)+'</div>':'')
-   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlShot(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>'
-     +(p.shots.length>1?'<button onclick="saveAll(\''+js(p.file)+'\')">'+PHOTO_ALL(p.shots.length)+'</button>':'')+'</div>':'')
+   +(VIEWONLY&&shotOf(p)?'<div class="btnrow"><button onclick="dlPick(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button></div>':'')
    +(LOCKED?'':'<input class="lblinp" placeholder="Label this location…" value="'+he(p.label)+'" '
      +'oninput="setLabel(\''+js(p.file)+'\',this.value)">'
      +memoBox(p)
@@ -10863,8 +10919,7 @@ function pop(p){
      // Take Photo and Photo Library anyway, so this was a second button for one of them. That is
      // what pays for the lines block above — the row goes from five to four.
      +(shotOf(p)?'<button onclick="mkOpen(\''+js(p.file)+'\','+(p.shot||0)+')">Mark up</button>':'')
-     +(shotOf(p)?'<button onclick="'+(p.shots.length>1?'saveAll':'dlShot')+'(\''+js(p.file)+'\')">'
-       +(p.shots.length>1?PHOTO_ALL(p.shots.length):PHOTO_SAVE())+'</button>':'')
+     +(shotOf(p)?'<button onclick="dlPick(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>':'')
      +(waiting().length?'<button onclick="attachFromTray(\''+js(p.file)+'\')">Attach from tray</button>':'')
      +((p.egps&&!byGPS(p))?'<button class="gps" onclick="revertGPS(\''+js(p.file)+'\')">Revert to GPS</button>':'')
      +'<button class="danger" onclick="removePhoto(\''+js(p.file)+'\')">Remove pin</button>'
@@ -11020,7 +11075,7 @@ function openSheet(i,keep){
         :'none yet')+'</td></tr>'
     +'</table></details>';
   $('shMeta').innerHTML=(VIEWONLY?notesBlock(p)+linesBlock(p)+details
-      +(sh?'<div class="acts"><button id="shDl">'+PHOTO_SAVE()+'</button>'+(multi?'<button id="shDlA">'+PHOTO_ALL(p.shots.length)+'</button>':'')+'</div>':'')
+      +(sh?'<div class="acts"><button id="shDl">'+PHOTO_SAVE()+'</button></div>':'')
     // The installer copy: their report first, then what is being made, then the reference.
     :INSTALL?instBlock(p)+notesBlock(p)+linesBlock(p)+details+'<div class="acts">'+instActs(p,true)+'</div>'
     :'<div class="lblq">What is this sign?</div>'
@@ -11056,11 +11111,9 @@ function openSheet(i,keep){
       // there is a picture, the same way Remove this photo waits for a second one.
       +(sh?'<button id="shMark">Mark up</button>':'')
       +(sh?'<button id="shDl">'+PHOTO_SAVE()+'</button>':'')
-      +(multi?'<button id="shDlA">'+PHOTO_ALL(p.shots.length)+'</button>':'')
       +'<button class="danger" id="shDel">Remove pin</button>'
       +'</div>');
-  if($('shDl')) $('shDl').onclick=()=>dlShot(p.file,true);
-  if($('shDlA')) $('shDlA').onclick=()=>saveAll(p.file);
+  if($('shDl')) $('shDl').onclick=()=>dlPick(p.file);
   if(!VIEWONLY){
     $('shAdd').onclick=()=>addToPin(p.file);
     const ds=$('shDelShot'); if(ds) ds.onclick=()=>removeShot(p.file,p.shot);
@@ -14399,13 +14452,16 @@ function instBringIn(){
 }
 function openShare(minted){
   if(LOCKED) return;
-  if(!PTS.length){ banner('Add a photo first — there is nothing to share yet.',3500); return; }
-  if(!minted&&!HOSTED&&(pubWURL()||pubIURL())) return mintKeys().then(()=>openShare(true));   // keys first, once
+  // r12 — Aaron: "share does nothing on an empty project … open up what it has, just grey out the
+  // items." The sheet opens with every choice shown and greyed until there is something to send.
+  const empty=!PTS.length;
+  if(!empty&&!minted&&!HOSTED&&(pubWURL()||pubIURL())) return mintKeys().then(()=>openShare(true));   // keys first, once
   const link=pubURL(), wl=wLink(), il=HOSTED?'':iLink();
   // The working link: the editable survey on a second, private address, its keys on the end.
   // Nothing on a HOSTED card publishes — Save does.
   const re=HOSTED?'':'<button class="mini" id="shRe">Publish an update</button>';
   openModal('<h2>Share this survey</h2><div class="body">'
+   +(empty?'<div class="hint" style="margin:0 0 9px">Nothing to share yet — add a photo or a location and these will work.</div>':'')
    +(link?'<div class="pubnow"><div class="lbl">This survey is published at</div>'
           +'<a href="'+he(link)+'" target="_blank" rel="noopener">'+he(link)+'</a>'
           +'<div class="row"><button class="mini" id="shCopy">Copy link</button>'
@@ -14439,7 +14495,9 @@ function openShare(minted){
    +'Dropbox</b> — neither will open it; send the link.</div>'
    +'<div class="svnote">Sharing does not remove the survey from '+THIS_DEV()+'.</div>'
    +'</div>',null,null,{cancel:'Cancel'});
+  if(empty) document.querySelectorAll('#modalDlg .body button').forEach(b=>{ b.disabled=true; });
   setTimeout(()=>{
+    if(empty) return;
     document.querySelectorAll('[data-sh]').forEach(el=>el.onclick=()=>{
       const how=el.dataset.sh;
       if(how==='file'){ closeModal(); sendFile(); return; }
@@ -15878,7 +15936,7 @@ const MB_ICON={
 const MENUS=[
  ['file','File',[['bSave','Save'],['aSaveAs','Save as…',()=>saveAs()],['aVer','Version history…',()=>openVersions()],'-',
    ['bLib','My surveys'],['bOpen','Open a survey file…'],['bMerge','Merge in a survey file…'],'-',
-   ['bWO','Import estimate, order or invoice…'],['aAll',()=>(TOUCH()?'Save all photos to Photos':'Download all photos (.zip)'),()=>saveAll()],
+   ['bWO','Import estimate, order or invoice…'],['aAll',()=>(TOUCH()?'Save all photos to Photos…':'Download all photos…'),()=>dlPick()],
    ['bPrint','Print schedule or save as PDF']]],
  ['loc','Location',[['bCam','Take photo'],['bAdd','Add photos'],['aHand','Add a location by hand',()=>addLocByHand()],'-',
    ['bSelect','Select several locations'],['bEdit','Edit pin positions'],'-',['bReset','Move every pin back to GPS',null,'danger']]],
@@ -15893,6 +15951,15 @@ const MENUS=[
  ['help','Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]],'direct']];
 // Any copy may look, save its pictures, print and read the help; nothing else that is not a button
 const MB_FREE={aHelp:1,aAll:1,aNorth:1};
+// r12 — Aaron: "I want anyone to be able to see what is in the button menu, just can't click if
+// no action is available." So on a working copy every line is always listed, greyed — exactly
+// like Redo after Save — when it has nothing to act on yet, or is a computer-only job on a phone.
+// The client's and the installer's copies still list only what they are allowed to do.
+const hasPhoto=()=>PTS.some(p=>shotOf(p));
+const MB_NEED={aSaveAs:()=>PTS.length>0, aVer:()=>!!verAddr(), aAll:hasPhoto, aMk:hasPhoto,
+  bPrint:()=>PTS.length>0, bSelect:()=>PTS.length>0, bEdit:()=>placed().length>0,
+  bReset:()=>placed().length>0, bFit:()=>PTS.length>0, bDense:()=>PTS.length>0};
+const MB_DESK={bOpen:1,bMerge:1,bWO:1};
 function mbItems(items){
   const out=[];
   items.forEach(it=>{
@@ -15902,8 +15969,9 @@ function mbItems(items){
     if(fn){ if(!MB_FREE[id]&&LOCKED) return;
       if((id==='aPub'||id==='aStaff')&&(HOSTED||STAFF())) return;
       out.push(it); return; }
-    const b=$(id); if(!b||b.style.display==='none') return;
-    if(LOCKED&&id==='bFind') return;
+    const b=$(id); if(!b) return;
+    if(LOCKED&&(b.style.display==='none'||id==='bFind')) return;
+    if(b.style.display==='none'&&!(MB_DESK[id]&&TOUCH())) return;
     out.push(it);
   });
   while(out.length&&out[out.length-1]==='-') out.pop();
@@ -15916,8 +15984,11 @@ function mbRows(items){
   return items.map(it=>{
     if(it==='-') return '<hr>';
     const [id,lab,fn,opt]=it, b=fn?null:$(id), on=!fn&&mbOn(id), label=typeof lab==='function'?lab():lab;
+    const desk=!!(b&&b.style.display==='none'&&MB_DESK[id]);
+    const off=desk||(b&&b.disabled)||(MB_NEED[id]&&!MB_NEED[id]());
     return '<button class="mi'+(opt==='danger'?' danger':'')+'" role="menuitem" data-m="'+id+'"'
-      +(b&&b.disabled?' disabled':'')+'><span class="ck">'+(on?'✓':'')+'</span>'+he(label)+'</button>';
+      +(off?' disabled':'')+'><span class="ck">'+(on?'✓':'')+'</span>'+he(label)
+      +(desk?'<small class="mnote">on a computer</small>':'')+'</button>';
   }).join('');
 }
 let MB_OPEN=null;
@@ -15925,6 +15996,8 @@ function mbClose(){ MB_OPEN=null; $('mbpop').classList.remove('show');
   document.querySelectorAll('#menubar button.open').forEach(x=>x.classList.remove('open')); }
 function mbRun(items,id){
   const it=items.find(x=>x!=='-'&&x[0]===id); if(!it) return;
+  if(!it[2]&&MB_DESK[id]&&$(id).style.display==='none') return;
+  if(MB_NEED[id]&&!MB_NEED[id]()) return;
   if(it[2]) it[2](); else { const b=$(id); if(b&&!b.disabled) b.click(); }
 }
 function mbOpen(key,btn){
