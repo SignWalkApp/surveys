@@ -16,6 +16,44 @@ export default {
     };
     const given = req.headers.get('X-Publish-Key') || '';
     const keyOK = async () => !!env.PUBLISH_KEY && (given === env.PUBLISH_KEY || (slug !== '' && given === await derive(slug)));
+    // r10c — Send to device: a one-time 6-character code that carries one survey's working link
+    // from one device to another. PUT /~pair with {link} and that survey's key → {code}; GET
+    // /~pair/<code> → {link} once, within 10 minutes, then it is gone.
+    if (slug === '~pair' || slug.startsWith('~pair/')) {
+      if (!env.SURVEYS) return say('The publisher has no storage attached.', 500);
+      const TTL = 10 * 60 * 1000, ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+      const json = (o, st) => say(JSON.stringify(o), st || 200, { 'Content-Type': 'application/json' });
+      if (slug === '~pair' && req.method === 'PUT') {
+        let body; try { body = await req.json(); } catch (_) { return say('Bad request.', 400); }
+        let lk; try { lk = new URL(String(body.link || '')); } catch (_) { return say('Bad link.', 400); }
+        const s2 = lk.pathname.replace(/^\/+|\/+$/g, '');
+        if (lk.origin !== url.origin || !/^[a-z0-9][a-z0-9-]{2,63}$/.test(s2) || !/^#k=[\w-]{22}/.test(lk.hash))
+          return say('That is not a working link on this publisher.', 400);
+        if (!env.PUBLISH_KEY || !(given === env.PUBLISH_KEY || given === await derive(s2))) return say('Wrong publish key.', 401);
+        let code = '';
+        for (let t = 0; t < 5 && !code; t++) {
+          const r = crypto.getRandomValues(new Uint8Array(6)); let c = '';
+          r.forEach(b => { c += ABC[b % ABC.length]; });
+          if (!(await env.SURVEYS.head('~pair-' + c))) code = c;
+        }
+        if (!code) return say('Try again.', 503);
+        await env.SURVEYS.put('~pair-' + code, JSON.stringify({ link: lk.href, job: String(body.job || '').slice(0, 120) }),
+          { httpMetadata: { contentType: 'application/json' } });
+        return json({ code: code, minutes: 10 });
+      }
+      if (req.method === 'GET') {
+        const code = slug.slice(6).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const gone = 'That code has expired or was already used. Make a new one: Share → Send to device.';
+        if (code.length !== 6) return say('A code is 6 characters.', 400);
+        const obj = await env.SURVEYS.get('~pair-' + code);
+        if (!obj) return say(gone, 404);
+        const txt = await obj.text();                      // read before the delete
+        await env.SURVEYS.delete('~pair-' + code);
+        if (Date.now() - obj.uploaded.getTime() > TTL) return say(gone, 404);
+        return json(JSON.parse(txt));
+      }
+      return say('Method not allowed.', 405);
+    }
     if (slug === '') {                                   // the app's Check talks to the root
       if (req.method === 'PUT') return (await keyOK()) ? say(null, 204) : say('Wrong publish key.', 401);
       return say(JSON.stringify({ publisher: 'SurveyWalk', storage: !!env.SURVEYS, password: !!env.PUBLISH_KEY }),
