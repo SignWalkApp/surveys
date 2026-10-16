@@ -1599,6 +1599,7 @@ textarea.memo{min-height:54px;resize:vertical}
 #empty button.skip{margin-top:7px;background:transparent;border:1px solid var(--line);
  color:var(--dim);font-weight:500}
 #empty button.skip:hover{color:var(--txt);border-color:var(--dim)}
+#empty .emtwo{display:flex;gap:8px}#empty .emtwo button{flex:1}
 /* Opening the app with saved surveys on the phone is the whole fix: the card leads with the
    work rather than with instructions, so getting back in is zero taps to see and one to do. */
 #empty .card{max-height:calc(var(--vh) - 36px);overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -1988,7 +1989,8 @@ body.sidehidden #showtools{display:block}
     <div class="kept">Your work is kept in this app. Tap <b>Save</b> at any point and it will be
      here next time you open SurveyWalk on this device.</div>
     <button id="emStart">Center on my location</button>
-    <button id="emSkip" class="skip">Dismiss</button>
+    <div class="emtwo"><button id="emLink" class="skip">Open a survey link</button>
+    <button id="emSkip" class="skip">Dismiss</button></div>
    </div>
   </div></div>
   <div id="banner">Edit mode — drag a pin to move it, drag the amber knob to set which way the camera faced</div>
@@ -3358,6 +3360,7 @@ textarea.memo{min-height:54px;resize:vertical}
 #empty button.skip{margin-top:7px;background:transparent;border:1px solid var(--line);
  color:var(--dim);font-weight:500}
 #empty button.skip:hover{color:var(--txt);border-color:var(--dim)}
+#empty .emtwo{display:flex;gap:8px}#empty .emtwo button{flex:1}
 #empty .card{max-height:calc(var(--vh) - 36px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 #emlib{display:none}
 #emlib.show{display:block}
@@ -3671,7 +3674,8 @@ body.sidehidden #showtools{display:block}
     <div class="kept">Your work is kept in this app. Tap <b>Save</b> at any point and it will be
      here next time you open SurveyWalk on this device.</div>
     <button id="emStart">Center on my location</button>
-    <button id="emSkip" class="skip">Dismiss</button>
+    <div class="emtwo"><button id="emLink" class="skip">Open a survey link</button>
+    <button id="emSkip" class="skip">Dismiss</button></div>
    </div>
   </div></div>
   <div id="banner">Edit mode — drag a pin to move it, drag the amber knob to set which way the camera faced</div>
@@ -6651,6 +6655,8 @@ function openLib(){
      +'<div class="svnote">Kept on '+THIS_DEV()+' only. Clearing the browser\u2019s website data, or '
      +'wiping '+THIS_DEV()+', removes them. Share a copy with the office when a survey is finished.</div>'
      +'<div id="svRoom"></div>'
+     +'<div class="morelist"><button class="saveopt" id="svLink"><b>Open a survey link</b>'
+     +'<span>A survey started on another device — paste its working link and it joins this list.</span></button></div>'
      +(LIB.length ? '<div class="svlist" id="svRows">'+LIB.map(r=>svRow(r,false)).join('')+'</div>'
        : '<div class="svempty">'+(LIBON
           ? '<b>Nothing saved yet</b><br>Surveys you save on '+THIS_DEV()+' appear here. Tap Save '
@@ -6665,8 +6671,52 @@ function openLib(){
            +'or a link you can email.')+'</div>')
      +'</div>',null,null,{cancel:'Close'});
     $('modalDlg').classList.add('moresheet');
-    setTimeout(()=>{ bindRows($('svRows'),false); roomLine(); },0);
+    setTimeout(()=>{ bindRows($('svRows'),false); roomLine();
+      const k=$('svLink'); if(k) k.onclick=()=>{ closeModal(); askLink(); }; },0);
   });
+}
+function askLink(){
+  if(LOCKED) return;
+  openModal('<h2>Open a survey link</h2><div class="body"><div class="svnote">Paste the working link '
+   +'(Share → Send to myself on the other device). The survey joins My surveys on '+THIS_DEV()
+   +' and stays in step with the other device.</div>'
+   +'<input class="lblinp" id="lnkIn" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">'
+   +'<div class="hint" id="lnkSay"></div></div>',
+   ()=>{ linkOpen($('lnkIn').value); return false; },'Open');
+}
+function linkOpen(raw){
+  const say=t=>{ const s=$('lnkSay'); if(s) s.textContent=t; else banner(t,6000); };
+  let u; try{ u=new URL(String(raw||'').trim()); }catch(_){ say('That is not a link — paste the whole thing, starting https://'); return Promise.resolve(false); }
+  const slug=u.pathname.replace(/^\/+|\/+$/g,'');
+  if(!SLUG_RE.test(slug)||slug==='start'||slug==='admin'){ say('That is not a survey link.'); return Promise.resolve(false); }
+  const m=/^#k=([\w-]{22})(?:\.([\w-]{22}))?$/.exec(u.hash||'');
+  if(!m){ say('That link has no key, so it can only be looked at. Use the working link from Share → Send to myself.'); return Promise.resolve(false); }
+  say('Opening…');
+  let at=0;
+  return fetch(u.origin+u.pathname,{cache:'no-store'}).then(r=>{
+    if(r.status!==200) throw new Error(r.status===404?'Nothing at that link.':'The link answered '+r.status+'.');
+    at=lastMod(r); return r.text(); }).then(h=>{
+    const doc=docFromMapHTML(h), brand=brandFromMapHTML(h), f=/VIEWONLY=(true|false), INSTALL=(true|false)/.exec(h);
+    if(!doc||!Array.isArray(doc.pts)||!brand) throw new Error('That is not a survey.');
+    if(f&&f[1]==='true') throw new Error('That is the client’s view-only link. Use the working link.');
+    if(f&&f[2]==='true') throw new Error('That is an installer link. Use the working link.');
+    const p=brand.pub||{};
+    if(p.wslug&&p.wslug!==slug) throw new Error('That is not this survey’s working link.');
+    skPut(slug,m[1]); KEYS[slug]=m[1]; if(m[2]&&p.slug){ skPut(p.slug,m[2]); KEYS[p.slug]=m[2]; }
+    return libRefresh().then(()=>Promise.all(LIB.map(r=>libRead(r.id).catch(()=>null)))).then(recs=>{
+      const have=recs.find(r=>r&&r.brand&&r.brand.pub&&r.brand.pub.wslug===slug);
+      closeModal(); hideEmpty();
+      if(have) return libOpen(have.id).then(()=>true);
+      const now=Date.now(), rec={id:libId(), name:brand.job||'Survey', created:now, updated:now,
+        namedByHand:false, thumb:'', reordered:!!doc.reordered, pts:doc.pts, view:null,
+        brand:Object.assign({},brand,{pub:Object.assign({},p,{at:new Date(at||now).toISOString()})})};
+      loadRecord(rec);
+      CURID=rec.id; SEEN_AT=at||0; conflicted=false;
+      return makeThumb().then(()=>{ const r2=libRecord(CURID); r2.ahead=false;
+        return libWrite(r2).then(()=>{ LIBSEEN=r2.updated; savedAt=r2.updated; setDirty(false); AHEAD=false; return libRefresh(); }); })
+        .then(()=>{ banner('Added to My surveys — '+rec.name+'. Save here or on the other device and both stay up to date.',7000); return true; });
+    });
+  }).catch(e=>{ say(String(e&&e.message||e)); if(!$('lnkSay')) banner(String(e&&e.message||e),6000); return false; });
 }
 function roomLine(){
   if(!$('svRoom')) return;
@@ -7387,7 +7437,7 @@ const HELP={
    'Tap a location to name it and add sizes and notes.',
    '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
    'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
-   'Finish on a computer: <b>Share → Work on this from another device</b>, and send it to yourself.',
+   'Finish on a computer: <b>Share → Work on this from another device</b>, and send it to yourself. Started on the computer? On the phone: <b>My surveys → Open a survey link</b> and paste it.',
    'The crew: <b>Share → Send to the installer</b>.',
    '“The publisher refused this device’s staff link”: ask the shop for the new staff link.']],
  inst:['Installer',
@@ -8288,6 +8338,7 @@ function custMasthead(){
 }
 function hideEmpty(){ emptyDismissed=true; $('empty').classList.remove('show'); }
 $('emStart').onclick=locate;
+$('emLink').onclick=()=>askLink();
 $('emSkip').onclick=hideEmpty;
 
 const MORE_GROUPS=[
@@ -12621,6 +12672,8 @@ function openLib(){
      +'<div class="svnote">Kept on '+THIS_DEV()+' only. Clearing the browser\u2019s website data, or '
      +'wiping '+THIS_DEV()+', removes them. Share a copy with the office when a survey is finished.</div>'
      +'<div id="svRoom"></div>'
+     +'<div class="morelist"><button class="saveopt" id="svLink"><b>Open a survey link</b>'
+     +'<span>A survey started on another device — paste its working link and it joins this list.</span></button></div>'
      +(LIB.length ? '<div class="svlist" id="svRows">'+LIB.map(r=>svRow(r,false)).join('')+'</div>'
        : '<div class="svempty">'+(LIBON
           ? '<b>Nothing saved yet</b><br>Surveys you save on '+THIS_DEV()+' appear here. Tap Save '
@@ -12635,8 +12688,58 @@ function openLib(){
            +'or a link you can email.')+'</div>')
      +'</div>',null,null,{cancel:'Close'});
     $('modalDlg').classList.add('moresheet');
-    setTimeout(()=>{ bindRows($('svRows'),false); roomLine(); },0);
+    setTimeout(()=>{ bindRows($('svRows'),false); roomLine();
+      const k=$('svLink'); if(k) k.onclick=()=>{ closeModal(); askLink(); }; },0);
   });
+}
+// ---- a survey started somewhere else joins My surveys (r10b) ---------------
+// Aaron, 2026-10-16: keep using the home-screen icon even when the survey was started on the
+// computer. The icon's list only knows what was saved inside it; this brings a working link in
+// once — keys kept on this device — and from then on the survey opens from My surveys, pulls
+// the other device's saves and publishes its own, exactly like one started here.
+function askLink(){
+  if(LOCKED) return;
+  openModal('<h2>Open a survey link</h2><div class="body"><div class="svnote">Paste the working link '
+   +'(Share → Send to myself on the other device). The survey joins My surveys on '+THIS_DEV()
+   +' and stays in step with the other device.</div>'
+   +'<input class="lblinp" id="lnkIn" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">'
+   +'<div class="hint" id="lnkSay"></div></div>',
+   ()=>{ linkOpen($('lnkIn').value); return false; },'Open');
+}
+function linkOpen(raw){
+  const say=t=>{ const s=$('lnkSay'); if(s) s.textContent=t; else banner(t,6000); };
+  let u; try{ u=new URL(String(raw||'').trim()); }catch(_){ say('That is not a link — paste the whole thing, starting https://'); return Promise.resolve(false); }
+  const slug=u.pathname.replace(/^\/+|\/+$/g,'');
+  if(!SLUG_RE.test(slug)||slug==='start'||slug==='admin'){ say('That is not a survey link.'); return Promise.resolve(false); }
+  const m=/^#k=([\w-]{22})(?:\.([\w-]{22}))?$/.exec(u.hash||'');
+  if(!m){ say('That link has no key, so it can only be looked at. Use the working link from Share → Send to myself.'); return Promise.resolve(false); }
+  say('Opening…');
+  let at=0;
+  return fetch(u.origin+u.pathname,{cache:'no-store'}).then(r=>{
+    if(r.status!==200) throw new Error(r.status===404?'Nothing at that link.':'The link answered '+r.status+'.');
+    at=lastMod(r); return r.text(); }).then(h=>{
+    const doc=docFromMapHTML(h), brand=brandFromMapHTML(h), f=/VIEWONLY=(true|false), INSTALL=(true|false)/.exec(h);
+    if(!doc||!Array.isArray(doc.pts)||!brand) throw new Error('That is not a survey.');
+    if(f&&f[1]==='true') throw new Error('That is the client’s view-only link. Use the working link.');
+    if(f&&f[2]==='true') throw new Error('That is an installer link. Use the working link.');
+    const p=brand.pub||{};
+    if(p.wslug&&p.wslug!==slug) throw new Error('That is not this survey’s working link.');
+    skPut(slug,m[1]); KEYS[slug]=m[1]; if(m[2]&&p.slug){ skPut(p.slug,m[2]); KEYS[p.slug]=m[2]; }
+    // already in the list: open that one (it pulls the newest) rather than making a second copy
+    return libRefresh().then(()=>Promise.all(LIB.map(r=>libRead(r.id).catch(()=>null)))).then(recs=>{
+      const have=recs.find(r=>r&&r.brand&&r.brand.pub&&r.brand.pub.wslug===slug);
+      closeModal(); hideEmpty();
+      if(have) return libOpen(have.id).then(()=>true);
+      const now=Date.now(), rec={id:libId(), name:brand.job||'Survey', created:now, updated:now,
+        namedByHand:false, thumb:'', reordered:!!doc.reordered, pts:doc.pts, view:null,
+        brand:Object.assign({},brand,{pub:Object.assign({},p,{at:new Date(at||now).toISOString()})})};
+      loadRecord(rec);
+      CURID=rec.id; SEEN_AT=at||0; conflicted=false;
+      return makeThumb().then(()=>{ const r2=libRecord(CURID); r2.ahead=false;
+        return libWrite(r2).then(()=>{ LIBSEEN=r2.updated; savedAt=r2.updated; setDirty(false); AHEAD=false; return libRefresh(); }); })
+        .then(()=>{ banner('Added to My surveys — '+rec.name+'. Save here or on the other device and both stay up to date.',7000); return true; });
+    });
+  }).catch(e=>{ say(String(e&&e.message||e)); if(!$('lnkSay')) banner(String(e&&e.message||e),6000); return false; });
 }
 function roomLine(){
   if(!$('svRoom')) return;
@@ -13587,7 +13690,7 @@ const HELP={
    'Tap a location to name it and add sizes and notes.',
    '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
    'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
-   'Finish on a computer: <b>Share → Work on this from another device</b>, and send it to yourself.',
+   'Finish on a computer: <b>Share → Work on this from another device</b>, and send it to yourself. Started on the computer? On the phone: <b>My surveys → Open a survey link</b> and paste it.',
    'The crew: <b>Share → Send to the installer</b>.',
    '“The publisher refused this device’s staff link”: ask the shop for the new staff link.']],
  inst:['Installer',
@@ -14725,6 +14828,7 @@ function custMasthead(){
 }
 function hideEmpty(){ emptyDismissed=true; $('empty').classList.remove('show'); }
 $('emStart').onclick=locate;
+$('emLink').onclick=()=>askLink();
 $('emSkip').onclick=hideEmpty;
 
 // ---- overflow menu (phones) ----------------------------------------
