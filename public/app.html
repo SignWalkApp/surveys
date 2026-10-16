@@ -1992,7 +1992,7 @@ body.sidehidden #showtools{display:block}
     <div class="kept">Your work is kept in this app. Tap <b>Save</b> at any point and it will be
      here next time you open SurveyWalk on this device.</div>
     <button id="emStart">Center on my location</button>
-    <div class="emtwo"><button id="emLink" class="skip">Enter a code</button>
+    <div class="emtwo"><button id="emLink" class="skip">Company surveys</button>
     <button id="emSkip" class="skip">Dismiss</button></div>
    </div>
   </div></div>
@@ -3680,7 +3680,7 @@ body.sidehidden #showtools{display:block}
     <div class="kept">Your work is kept in this app. Tap <b>Save</b> at any point and it will be
      here next time you open SurveyWalk on this device.</div>
     <button id="emStart">Center on my location</button>
-    <div class="emtwo"><button id="emLink" class="skip">Enter a code</button>
+    <div class="emtwo"><button id="emLink" class="skip">Company surveys</button>
     <button id="emSkip" class="skip">Dismiss</button></div>
    </div>
   </div></div>
@@ -6521,7 +6521,7 @@ function makeThumb(){
 function approxBytes(){ let n=0;
   PTS.forEach(p=>{ n+=600; (p.shots||[]).forEach(sh=>{ n+=sh.src?sh.src.length*0.75:0; }); });
   return Math.round(n); }
-const LIBSUM=['id','name','created','updated','count','photos','bytes','thumb','namedByHand'];
+const LIBSUM=['id','name','created','updated','count','photos','bytes','thumb','namedByHand','wslug'];
 const libSummary=r=>{ const o={}; LIBSUM.forEach(k=>o[k]=r[k]); return o; };
 const libId=()=>'sv_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
 function libRecord(id){
@@ -6533,7 +6533,7 @@ function libRecord(id){
     bytes:approxBytes(), thumb:thumbData, namedByHand:!!LIBHAND,
     brand:Object.assign({},BRAND,{ui:Object.assign({},BRAND.ui||{})}),
     view:{lat:c.lat,lon:c.lng,z:z,bearing:BEARING},
-    reordered:REORDERED, pts:slimPts(), seen:SEEN_AT, ahead:!!AHEAD };
+    reordered:REORDERED, pts:slimPts(), seen:SEEN_AT, ahead:!!AHEAD, wslug:(BRAND.pub&&BRAND.pub.wslug)||'' };
 }
 
 let lastQuota=null;
@@ -6652,18 +6652,53 @@ function bindRows(root,compact){
   root.querySelectorAll('.svdel').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); confirmRemove(el.dataset.id); }; });
 }
+let COMPANY=null;
+const localRows=()=>LIB.filter(r=>!(COMPANY&&r.wslug&&COMPANY.some(c=>c.slug===r.wslug)));
 function redrawLibRows(){ const r=$('svRows'); if(!r) return;
-  r.innerHTML=LIB.map(x=>svRow(x,false)).join(''); bindRows(r,false); }
+  r.innerHTML=localRows().map(x=>svRow(x,false)).join(''); bindRows(r,false); }
+const STAFF_KEY=()=>{ if(STAFF_HASH) return STAFF_HASH;
+  try{ const o=JSON.parse(localStorage.getItem(STAFFK)||'null'); if(o&&o.url===location.origin&&o.key) return String(o.key); }catch(_){ }
+  return ''; };
+const companyCfg=()=>{
+  try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null'); if(c&&c.url&&c.key) return {url:String(c.url).replace(/\/+$/,''),key:String(c.key)}; }catch(_){ }
+  const k=STAFF_KEY(); return (k&&WEB)?{url:location.origin,key:k}:null; };
+function companyList(){
+  const c=companyCfg(); if(!c) return Promise.reject(new Error('nokey'));
+  return fetch(c.url+'/~list',{cache:'no-store',headers:{'X-Publish-Key':c.key}}).then(r=>{
+    if(r.status!==200) throw new Error(r.status===404?'old':'key'); return r.json(); }).then(j=>{ COMPANY=j.surveys||[]; return COMPANY; });
+}
+function coRow(c){
+  return '<div class="svrow corow" data-slug="'+he(c.slug)+'"><div class="svm"><b class="svname">'+he(c.job||c.slug)+'</b>'
+   +'<span class="svwhen">'+(c.count!=null?c.count+(c.count===1?' location':' locations')+' · ':'')+'saved '+he(touchedWords(Date.parse(c.at)))+'</span></div></div>';
+}
+function paintCompany(filter){
+  const box=$('coRows'); if(!box||!COMPANY) return;
+  const f=String(filter||'').trim().toLowerCase();
+  const rows=COMPANY.filter(c=>!f||String(c.job||'').toLowerCase().indexOf(f)>=0);
+  box.innerHTML=rows.length?rows.map(coRow).join(''):'<div class="hint">'+(f?'No company survey matches.':'No company surveys yet. Save one and it appears here on every device.')+'</div>';
+  box.querySelectorAll('.corow').forEach(el=>el.onclick=()=>{ const s=el.dataset.slug; modalClose=null; closeModal(); hideEmpty(); openCompany(s); });
+}
+function openCompany(slug){
+  const c=companyCfg(); if(!c) return Promise.resolve(false);
+  return libRefresh().then(()=>{
+    const hit=LIB.find(r=>r.wslug===slug);
+    if(hit) return libOpen(hit.id);
+    busyOpen('Opening…');
+    return linkOpen(c.url+'/'+slug).then(v=>{ busyClose(); return v; });
+  });
+}
 function openLib(){
   if(LOCKED) return;
   libRefresh().then(()=>{
     openModal('<h2>My surveys</h2><div class="body">'
-     +'<div class="svnote">Kept on '+THIS_DEV()+' only. Clearing the browser\u2019s website data, or '
-     +'wiping '+THIS_DEV()+', removes them. Share a copy with the office when a survey is finished.</div>'
+     +(companyCfg()
+       ?'<div class="moregrp">Company surveys — every device</div>'
+        +'<input class="lblinp" id="coFind" placeholder="Find a survey…" autocomplete="off">'
+        +'<div class="svlist" id="coRows"><div class="hint">Loading…</div></div>'
+       :'<div class="svnote">To see every company survey here, open SurveyWalk once from your staff link on '+THIS_DEV()+'.</div>')
+     +'<div class="moregrp">On '+THIS_DEV()+' only</div>'
      +'<div id="svRoom"></div>'
-     +'<div class="morelist"><button class="saveopt" id="svLink"><b>Enter a code</b>'
-     +'<span>A survey from another device: there, Share → Send to device, then type the code here.</span></button></div>'
-     +(LIB.length ? '<div class="svlist" id="svRows">'+LIB.map(r=>svRow(r,false)).join('')+'</div>'
+     +(LIB.length ? '<div class="svlist" id="svRows">'+localRows().map(r=>svRow(r,false)).join('')+'</div>'
        : '<div class="svempty">'+(LIBON
           ? '<b>Nothing saved yet</b><br>Surveys you save on '+THIS_DEV()+' appear here. Tap Save '
            +(CAN_INSTALL()
@@ -6678,7 +6713,11 @@ function openLib(){
      +'</div>',null,null,{cancel:'Close'});
     $('modalDlg').classList.add('moresheet');
     setTimeout(()=>{ bindRows($('svRows'),false); roomLine();
-      const k=$('svLink'); if(k) k.onclick=()=>{ closeModal(); askCode(); }; },0);
+      if(companyCfg()) companyList().then(()=>{ paintCompany(); redrawLibRows();
+          const f=$('coFind'); if(f) f.oninput=()=>paintCompany(f.value); },
+        e=>{ const b=$('coRows'); if(b) b.innerHTML='<div class="hint">'+(e.message==='key'
+          ?'The publisher refused this device’s key — ask the office for the new staff link.'
+          :'Could not reach the company list — check the signal and open My surveys again.')+'</div>'; }); },0);
   });
 }
 function askLink(){
@@ -6690,6 +6729,31 @@ function askLink(){
    +'<div class="hint" id="lnkSay"></div></div>',
    ()=>{ linkOpen($('lnkIn').value); return false; },'Open');
 }
+function saveAs(){
+  if(LOCKED) return;
+  if(!PTS.length){ banner('Add a photo or a location first.',3500); return; }
+  openModal('<h2>Save as a new survey</h2><div class="body"><div class="svnote">A separate copy with its own links. '
+   +'The survey you have open now stays exactly as it is.</div>'
+   +'<input class="lblinp" id="saName" value="'+he('Copy of '+(BRAND.job||'Site survey'))+'"></div>',
+   ()=>{ const n=($('saName').value||'').trim(); if(!n){ $('saName').focus(); return false; } setTimeout(()=>saveAsGo(n),0); return true; },'Save as new');
+  setTimeout(()=>{ const i=$('saName'); if(i){ i.focus(); i.select(); } },50);
+}
+function saveAsGo(name){
+  BRAND=Object.assign({},BRAND,{job:name,pub:null}); applyBrand();
+  LIBNAME=name; LIBHAND=true; LIBMADE=Date.now(); KEYS={}; SEEN_AT=0; AHEAD=true; conflicted=false;
+  if(HOSTED){
+    const rec=libRecord(libId()); rec.brand.pub=null; rec.wslug='';
+    return libWrite(rec).then(()=>{
+      try{ sessionStorage.setItem('surveywalk.open',rec.id); }catch(_){ }
+      setDirty(false);
+      let home='/start'; try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null'); if(c&&c.key) home='/admin'; }catch(_){ }
+      location.href=location.origin+home;
+    },()=>banner('Could not make the copy on '+THIS_DEV()+'.',6000));
+  }
+  CURID=null; setDirty(true);
+  return Promise.resolve(doSave()).then(()=>{ if(CURID) banner('Saved as “'+name+'” — a separate survey. The original is unchanged.',7000); });
+}
+
 const pairOrigin=()=>{ const c=pubCfg(); return HOSTED?location.origin:(c&&c.url)||(WEB&&!FROMFILE?location.origin:''); };
 const fmtCode=c=>c.slice(0,3)+' '+c.slice(3);
 function sendToDevice(){
@@ -6761,7 +6825,7 @@ function linkOpen(raw){
   const slug=u.pathname.replace(/^\/+|\/+$/g,'');
   if(!SLUG_RE.test(slug)||slug==='start'||slug==='admin'){ say('That is not a survey link.'); return Promise.resolve(false); }
   const m=/^#k=([\w-]{22})(?:\.([\w-]{22}))?$/.exec(u.hash||'');
-  if(!m){ say('That link has no key, so it can only be looked at. On the other device use Share → Send to device instead.'); return Promise.resolve(false); }
+  if(!m&&!companyCfg()){ say('That link has no key, so it can only be looked at. Open SurveyWalk from your staff link first.'); return Promise.resolve(false); }
   say('Opening…');
   let at=0;
   return fetch(u.origin+u.pathname,{cache:'no-store'}).then(r=>{
@@ -6773,7 +6837,7 @@ function linkOpen(raw){
     if(f&&f[2]==='true') throw new Error('That is an installer link. Use the working link.');
     const p=brand.pub||{};
     if(p.wslug&&p.wslug!==slug) throw new Error('That is not this survey’s working link.');
-    skPut(slug,m[1]); KEYS[slug]=m[1]; if(m[2]&&p.slug){ skPut(p.slug,m[2]); KEYS[p.slug]=m[2]; }
+    if(m){ skPut(slug,m[1]); KEYS[slug]=m[1]; if(m[2]&&p.slug){ skPut(p.slug,m[2]); KEYS[p.slug]=m[2]; } }
     return libRefresh().then(()=>Promise.all(LIB.map(r=>libRead(r.id).catch(()=>null)))).then(recs=>{
       const have=recs.find(r=>r&&r.brand&&r.brand.pub&&r.brand.pub.wslug===slug);
       closeModal(); hideEmpty();
@@ -7007,7 +7071,10 @@ if(HOSTED){ const ks=Object.keys(KEYS);
   if(ks.length) ks.forEach(s=>skPut(s,KEYS[s]));
   else { const a=skAll(), p=BRAND.pub||{}; [HKEY().slice(2),p.slug].forEach(s=>{ if(s&&a[s]) KEYS[s]=a[s]; }); } }
 const pubCfg=()=>{
-  if(HOSTED) return KEYS[HKEY().slice(2)]?{url:location.origin,key:''}:null;
+  if(HOSTED){ if(KEYS[HKEY().slice(2)]) return {url:location.origin,key:''};
+    try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
+      if(c&&c.key&&String(c.url).replace(/\/+$/,'')===location.origin) return {url:location.origin,key:String(c.key)}; }catch(_){ }
+    const k=STAFF_KEY(); return k?{url:location.origin,key:k,staff:true}:null; }
   try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
     if(c&&c.url&&c.key) return {url:String(c.url).replace(/\/+$/,''),key:String(c.key)}; }
   catch(_){ }
@@ -7072,7 +7139,8 @@ function publishTo(html,work){
   const done=()=>clearTimeout(timer);
   return fetch(target,{method:'PUT',mode:'cors',cache:'no-store',signal:ac.signal,
       headers:{'Content-Type':'text/html; charset=utf-8',
-        'X-Publish-Key':HOSTED?(KEYS[slug]||''):cfg.staff?(KEYS[slug]||cfg.key):cfg.key},body:html})
+        'X-Publish-Key':KEYS[slug]||cfg.key||'',
+        'X-Survey-Job':encodeURIComponent(String(BRAND.job||'').slice(0,120)),'X-Survey-Count':String(placed().length)},body:html})
     .then(r=>r.text().then(txt=>{
       if(r.status===401) throw pubFail('key',txt);
       if(isLimit(r.status,txt)) throw pubFail('limit',LIMIT_MSG);
@@ -7308,8 +7376,6 @@ function openShare(minted){
           +'<div class="row"><button class="mini" id="shCopy">Copy link</button>'
           +'<button class="mini" id="shMail">Send the link…</button>'+re+'</div></div>':'')
    +'<div class="morelist">'
-   +'<button class="saveopt" id="shDev"><b>Send to device</b>'
-     +'<span>Open this survey on your phone or computer. You get a 6-character code to type in there.</span></button>'
    +(link||HOSTED?'':'<button class="saveopt" data-sh="link"><b>Get a link to send</b>'
        +'<span>One press; the client gets a web address, not a file.</span></button>')
    +'<div id="shStat"></div>'
@@ -7502,7 +7568,7 @@ const HELP={
    'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>More… → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
    '<b>Save</b> keeps it in <b>My surveys</b> on this device and at its own link, so any device opens the newest version.',
    'The client: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the same link shows the change.',
-   'Work on it on another device: <b>Share → Send to device</b> gives a code; on the other device <b>My surveys → Enter a code</b>.',
+   'Any device: <b>My surveys</b> lists every company survey. Tap one and work; <b>Save</b> and every other device has it. <b>More… → Save as a new survey</b> makes a separate copy under a new name.',
    'The crew: <b>Share → Send to the installer</b>. When they are done, <b>Share → Bring install photos in</b>.',
    'Changing PUBLISH_KEY in Cloudflare turns off every staff and working link. Make a new staff link afterwards.']],
  staff:['Staff',
@@ -7511,7 +7577,7 @@ const HELP={
    'Tap a location to name it and add sizes and notes.',
    '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
    'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
-   'Phone and computer: <b>Share → Send to device</b> shows a code; on the other one <b>My surveys → Enter a code</b>. Then Save on either and both stay up to date.',
+   'Phone and computer: open the staff link on both. <b>My surveys</b> shows every company survey on either one — Save on one and the other has it. <b>More… → Save as a new survey</b> makes a separate copy.',
    'The crew: <b>Share → Send to the installer</b>.',
    '“The publisher refused this device’s staff link”: ask the shop for the new staff link.']],
  inst:['Installer',
@@ -8412,12 +8478,12 @@ function custMasthead(){
 }
 function hideEmpty(){ emptyDismissed=true; $('empty').classList.remove('show'); }
 $('emStart').onclick=locate;
-$('emLink').onclick=()=>askCode();
+$('emLink').onclick=()=>{ hideEmpty(); openLib(); };
 $('emSkip').onclick=hideEmpty;
 
 const MORE_GROUPS=[
   ['Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]]],
-  ['Surveys',[['bLib','My surveys']]],
+  ['Surveys',[['bLib','My surveys'],['aSaveAs','Save as a new survey…',()=>saveAs()]]],
   ['Map',[['bFit','Fit all'],['bCone','Shot direction'],['bMeasure','Measure'],
           ['bEdit','Edit pin positions'],['bSelect','Select locations']]],
   ['Documents',[['bPrint','Print schedule']]],
@@ -8425,7 +8491,6 @@ const MORE_GROUPS=[
             ['bMerge','Merge in another survey file'],
             ['bWO','Import work order or estimate']]],
   ['Locations',[['aHand','Add a location by hand',()=>addLocByHand()]]],
-  ['Devices',[['aCode','Enter a code from another device',()=>askCode()]]],
   ['Setup',[['bSetup','Project setup'],['bGeoStat','Location status'],
             ['bFind','Address search'],['aPub','Publishing setup',()=>openPubSetup()],
             ['aStaff','Staff start link',()=>openStaffLink()]]],
@@ -8772,7 +8837,10 @@ setTimeout(helpNudge,2500);
 if(TOUCH()) ['bOpen','bMerge','bWO'].forEach(id=>{
   const e=$(id); if(e) e.style.display='none'; });
 
-libRefresh().then(()=>{ renderEmpty(); return offerDraft(); }).catch(()=>{});
+libRefresh().then(()=>{ renderEmpty();
+  let pend=''; try{ pend=sessionStorage.getItem('surveywalk.open')||''; sessionStorage.removeItem('surveywalk.open'); }catch(_){ }
+  if(pend&&!FROMFILE&&!VIEWONLY){ hideEmpty(); return libOpen(pend).then(()=>{ setDirty(true); return doSave(); }); }
+  return offerDraft(); }).catch(()=>{});
 <\/script></body></html></script>
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -12589,7 +12657,7 @@ function makeThumb(){
 function approxBytes(){ let n=0;
   PTS.forEach(p=>{ n+=600; (p.shots||[]).forEach(sh=>{ n+=sh.src?sh.src.length*0.75:0; }); });
   return Math.round(n); }
-const LIBSUM=['id','name','created','updated','count','photos','bytes','thumb','namedByHand'];
+const LIBSUM=['id','name','created','updated','count','photos','bytes','thumb','namedByHand','wslug'];
 const libSummary=r=>{ const o={}; LIBSUM.forEach(k=>o[k]=r[k]); return o; };
 const libId=()=>'sv_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
 function libRecord(id){
@@ -12602,7 +12670,7 @@ function libRecord(id){
     brand:Object.assign({},BRAND,{ui:Object.assign({},BRAND.ui||{})}),
     // Landing on the county default instead of the site is how a crew stops trusting a tool.
     view:{lat:c.lat,lon:c.lng,z:z,bearing:BEARING},
-    reordered:REORDERED, pts:slimPts(), seen:SEEN_AT, ahead:!!AHEAD };
+    reordered:REORDERED, pts:slimPts(), seen:SEEN_AT, ahead:!!AHEAD, wslug:(BRAND.pub&&BRAND.pub.wslug)||'' };
 }
 
 // ---- how full is this device ------------------------------------------
@@ -12737,19 +12805,60 @@ function bindRows(root,compact){
   root.querySelectorAll('.svdel').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); confirmRemove(el.dataset.id); }; });
 }
+// r11: the local rows hide what the company list already shows (same working address)
+let COMPANY=null;
+const localRows=()=>LIB.filter(r=>!(COMPANY&&r.wslug&&COMPANY.some(c=>c.slug===r.wslug)));
 function redrawLibRows(){ const r=$('svRows'); if(!r) return;
-  r.innerHTML=LIB.map(x=>svRow(x,false)).join(''); bindRows(r,false); }
+  r.innerHTML=localRows().map(x=>svRow(x,false)).join(''); bindRows(r,false); }
+// ---- company surveys (r11) ----------------------------------------------------
+// Aaron, 2026-10-16: "Yes to all staff opening." The publisher lists every working survey; any
+// device with the staff link or the office password sees them all and can save to any of them.
+const STAFF_KEY=()=>{ if(STAFF_HASH) return STAFF_HASH;
+  try{ const o=JSON.parse(localStorage.getItem(STAFFK)||'null'); if(o&&o.url===location.origin&&o.key) return String(o.key); }catch(_){ }
+  return ''; };
+const companyCfg=()=>{
+  try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null'); if(c&&c.url&&c.key) return {url:String(c.url).replace(/\/+$/,''),key:String(c.key)}; }catch(_){ }
+  const k=STAFF_KEY(); return (k&&WEB)?{url:location.origin,key:k}:null; };
+function companyList(){
+  const c=companyCfg(); if(!c) return Promise.reject(new Error('nokey'));
+  return fetch(c.url+'/~list',{cache:'no-store',headers:{'X-Publish-Key':c.key}}).then(r=>{
+    if(r.status!==200) throw new Error(r.status===404?'old':'key'); return r.json(); }).then(j=>{ COMPANY=j.surveys||[]; return COMPANY; });
+}
+function coRow(c){
+  return '<div class="svrow corow" data-slug="'+he(c.slug)+'"><div class="svm"><b class="svname">'+he(c.job||c.slug)+'</b>'
+   +'<span class="svwhen">'+(c.count!=null?c.count+(c.count===1?' location':' locations')+' · ':'')+'saved '+he(touchedWords(Date.parse(c.at)))+'</span></div></div>';
+}
+function paintCompany(filter){
+  const box=$('coRows'); if(!box||!COMPANY) return;
+  const f=String(filter||'').trim().toLowerCase();
+  const rows=COMPANY.filter(c=>!f||String(c.job||'').toLowerCase().indexOf(f)>=0);
+  box.innerHTML=rows.length?rows.map(coRow).join(''):'<div class="hint">'+(f?'No company survey matches.':'No company surveys yet. Save one and it appears here on every device.')+'</div>';
+  box.querySelectorAll('.corow').forEach(el=>el.onclick=()=>{ const s=el.dataset.slug; modalClose=null; closeModal(); hideEmpty(); openCompany(s); });
+}
+// Open a company survey: the copy already in this device's list (it pulls the newest), else
+// bring it in from its address, exactly as a pasted link does — no key needed with the staff link.
+function openCompany(slug){
+  const c=companyCfg(); if(!c) return Promise.resolve(false);
+  return libRefresh().then(()=>{
+    const hit=LIB.find(r=>r.wslug===slug);
+    if(hit) return libOpen(hit.id);
+    busyOpen('Opening…');
+    return linkOpen(c.url+'/'+slug).then(v=>{ busyClose(); return v; });
+  });
+}
 function openLib(){
   if(LOCKED) return;
   libRefresh().then(()=>{
     openModal('<h2>My surveys</h2><div class="body">'
      // Not behind an information icon: someone trusting the app with a day's work reads it here.
-     +'<div class="svnote">Kept on '+THIS_DEV()+' only. Clearing the browser\u2019s website data, or '
-     +'wiping '+THIS_DEV()+', removes them. Share a copy with the office when a survey is finished.</div>'
+     +(companyCfg()
+       ?'<div class="moregrp">Company surveys — every device</div>'
+        +'<input class="lblinp" id="coFind" placeholder="Find a survey…" autocomplete="off">'
+        +'<div class="svlist" id="coRows"><div class="hint">Loading…</div></div>'
+       :'<div class="svnote">To see every company survey here, open SurveyWalk once from your staff link on '+THIS_DEV()+'.</div>')
+     +'<div class="moregrp">On '+THIS_DEV()+' only</div>'
      +'<div id="svRoom"></div>'
-     +'<div class="morelist"><button class="saveopt" id="svLink"><b>Enter a code</b>'
-     +'<span>A survey from another device: there, Share → Send to device, then type the code here.</span></button></div>'
-     +(LIB.length ? '<div class="svlist" id="svRows">'+LIB.map(r=>svRow(r,false)).join('')+'</div>'
+     +(LIB.length ? '<div class="svlist" id="svRows">'+localRows().map(r=>svRow(r,false)).join('')+'</div>'
        : '<div class="svempty">'+(LIBON
           ? '<b>Nothing saved yet</b><br>Surveys you save on '+THIS_DEV()+' appear here. Tap Save '
            +(CAN_INSTALL()
@@ -12764,7 +12873,11 @@ function openLib(){
      +'</div>',null,null,{cancel:'Close'});
     $('modalDlg').classList.add('moresheet');
     setTimeout(()=>{ bindRows($('svRows'),false); roomLine();
-      const k=$('svLink'); if(k) k.onclick=()=>{ closeModal(); askCode(); }; },0);
+      if(companyCfg()) companyList().then(()=>{ paintCompany(); redrawLibRows();
+          const f=$('coFind'); if(f) f.oninput=()=>paintCompany(f.value); },
+        e=>{ const b=$('coRows'); if(b) b.innerHTML='<div class="hint">'+(e.message==='key'
+          ?'The publisher refused this device’s key — ask the office for the new staff link.'
+          :'Could not reach the company list — check the signal and open My surveys again.')+'</div>'; }); },0);
   });
 }
 // ---- a survey started somewhere else joins My surveys (r10b) ---------------
@@ -12781,6 +12894,36 @@ function askLink(){
    +'<div class="hint" id="lnkSay"></div></div>',
    ()=>{ linkOpen($('lnkIn').value); return false; },'Open');
 }
+// ---- Save as (r11) ------------------------------------------------------------
+// Aaron, 2026-10-16: "add a save as feature for the projects." A separate survey under a new name:
+// its own entry in My surveys and its own links. The one it came from is left exactly as it was.
+function saveAs(){
+  if(LOCKED) return;
+  if(!PTS.length){ banner('Add a photo or a location first.',3500); return; }
+  openModal('<h2>Save as a new survey</h2><div class="body"><div class="svnote">A separate copy with its own links. '
+   +'The survey you have open now stays exactly as it is.</div>'
+   +'<input class="lblinp" id="saName" value="'+he('Copy of '+(BRAND.job||'Site survey'))+'"></div>',
+   ()=>{ const n=($('saName').value||'').trim(); if(!n){ $('saName').focus(); return false; } setTimeout(()=>saveAsGo(n),0); return true; },'Save as new');
+  setTimeout(()=>{ const i=$('saName'); if(i){ i.focus(); i.select(); } },50);
+}
+function saveAsGo(name){
+  BRAND=Object.assign({},BRAND,{job:name,pub:null}); applyBrand();
+  LIBNAME=name; LIBHAND=true; LIBMADE=Date.now(); KEYS={}; SEEN_AT=0; AHEAD=true; conflicted=false;
+  if(HOSTED){
+    // this page IS the old survey's address; the copy is written into this device's list and opened
+    // in the app proper, which saves it to its own new address
+    const rec=libRecord(libId()); rec.brand.pub=null; rec.wslug='';
+    return libWrite(rec).then(()=>{
+      try{ sessionStorage.setItem('surveywalk.open',rec.id); }catch(_){ }
+      setDirty(false);
+      let home='/start'; try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null'); if(c&&c.key) home='/admin'; }catch(_){ }
+      location.href=location.origin+home;
+    },()=>banner('Could not make the copy on '+THIS_DEV()+'.',6000));
+  }
+  CURID=null; setDirty(true);
+  return Promise.resolve(doSave()).then(()=>{ if(CURID) banner('Saved as “'+name+'” — a separate survey. The original is unchanged.',7000); });
+}
+
 // ---- Send to device (r10c) ------------------------------------------------------
 // Aaron, 2026-10-16: "let's do the code process … device to device … call it send to device …
 // specific to each project." Share → Send to device saves the survey to its link, then asks the
@@ -12859,7 +13002,7 @@ function linkOpen(raw){
   const slug=u.pathname.replace(/^\/+|\/+$/g,'');
   if(!SLUG_RE.test(slug)||slug==='start'||slug==='admin'){ say('That is not a survey link.'); return Promise.resolve(false); }
   const m=/^#k=([\w-]{22})(?:\.([\w-]{22}))?$/.exec(u.hash||'');
-  if(!m){ say('That link has no key, so it can only be looked at. On the other device use Share → Send to device instead.'); return Promise.resolve(false); }
+  if(!m&&!companyCfg()){ say('That link has no key, so it can only be looked at. Open SurveyWalk from your staff link first.'); return Promise.resolve(false); }
   say('Opening…');
   let at=0;
   return fetch(u.origin+u.pathname,{cache:'no-store'}).then(r=>{
@@ -12871,7 +13014,7 @@ function linkOpen(raw){
     if(f&&f[2]==='true') throw new Error('That is an installer link. Use the working link.');
     const p=brand.pub||{};
     if(p.wslug&&p.wslug!==slug) throw new Error('That is not this survey’s working link.');
-    skPut(slug,m[1]); KEYS[slug]=m[1]; if(m[2]&&p.slug){ skPut(p.slug,m[2]); KEYS[p.slug]=m[2]; }
+    if(m){ skPut(slug,m[1]); KEYS[slug]=m[1]; if(m[2]&&p.slug){ skPut(p.slug,m[2]); KEYS[p.slug]=m[2]; } }
     // already in the list: open that one (it pulls the newest) rather than making a second copy
     return libRefresh().then(()=>Promise.all(LIB.map(r=>libRead(r.id).catch(()=>null)))).then(recs=>{
       const have=recs.find(r=>r&&r.brand&&r.brand.pub&&r.brand.pub.wslug===slug);
@@ -13214,7 +13357,11 @@ if(HOSTED){ const ks=Object.keys(KEYS);
   else { const a=skAll(), p=BRAND.pub||{}; [HKEY().slice(2),p.slug].forEach(s=>{ if(s&&a[s]) KEYS[s]=a[s]; }); } }
 const pubCfg=()=>{
   // A hosted copy: the publisher is where the page came from; the key is the one in its link.
-  if(HOSTED) return KEYS[HKEY().slice(2)]?{url:location.origin,key:''}:null;
+  // r11: no key in the link → the office password or the staff link on this device opens it anyway
+  if(HOSTED){ if(KEYS[HKEY().slice(2)]) return {url:location.origin,key:''};
+    try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
+      if(c&&c.key&&String(c.url).replace(/\/+$/,'')===location.origin) return {url:location.origin,key:String(c.key)}; }catch(_){ }
+    const k=STAFF_KEY(); return k?{url:location.origin,key:k,staff:true}:null; }
   try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
     if(c&&c.url&&c.key) return {url:String(c.url).replace(/\/+$/,''),key:String(c.key)}; }
   catch(_){ }
@@ -13315,7 +13462,9 @@ function publishTo(html,work){
   const done=()=>clearTimeout(timer);
   return fetch(target,{method:'PUT',mode:'cors',cache:'no-store',signal:ac.signal,
       headers:{'Content-Type':'text/html; charset=utf-8',
-        'X-Publish-Key':HOSTED?(KEYS[slug]||''):cfg.staff?(KEYS[slug]||cfg.key):cfg.key},body:html})
+        'X-Publish-Key':KEYS[slug]||cfg.key||'',
+        // r11: the name and count ride beside the survey for the company list
+        'X-Survey-Job':encodeURIComponent(String(BRAND.job||'').slice(0,120)),'X-Survey-Count':String(placed().length)},body:html})
     .then(r=>r.text().then(txt=>{
       if(r.status===401) throw pubFail('key',txt);
       if(isLimit(r.status,txt)) throw pubFail('limit',LIMIT_MSG);
@@ -13606,9 +13755,7 @@ function openShare(minted){
           +'<div class="row"><button class="mini" id="shCopy">Copy link</button>'
           +'<button class="mini" id="shMail">Send the link…</button>'+re+'</div></div>':'')
    +'<div class="morelist">'
-   // r10c: the one way onto another device — a code, not an email to yourself
-   +'<button class="saveopt" id="shDev"><b>Send to device</b>'
-     +'<span>Open this survey on your phone or computer. You get a 6-character code to type in there.</span></button>'
+   // r11: Send to device is retired from the card — every staff device sees every company survey
    +(link||HOSTED?'':'<button class="saveopt" data-sh="link"><b>Get a link to send</b>'
        +'<span>One press; the client gets a web address, not a file.</span></button>')
    +'<div id="shStat"></div>'
@@ -13835,7 +13982,7 @@ const HELP={
    'A survey: <b>Take photo</b> or <b>Add photos</b> at each sign location, or <b>More… → Add a location by hand</b>. Tap a location to name it and add sizes and notes.',
    '<b>Save</b> keeps it in <b>My surveys</b> on this device and at its own link, so any device opens the newest version.',
    'The client: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the same link shows the change.',
-   'Work on it on another device: <b>Share → Send to device</b> gives a code; on the other device <b>My surveys → Enter a code</b>.',
+   'Any device: <b>My surveys</b> lists every company survey. Tap one and work; <b>Save</b> and every other device has it. <b>More… → Save as a new survey</b> makes a separate copy under a new name.',
    'The crew: <b>Share → Send to the installer</b>. When they are done, <b>Share → Bring install photos in</b>.',
    'Changing PUBLISH_KEY in Cloudflare turns off every staff and working link. Make a new staff link afterwards.']],
  staff:['Staff',
@@ -13844,7 +13991,7 @@ const HELP={
    'Tap a location to name it and add sizes and notes.',
    '<b>Save</b> often. It keeps the survey in <b>My surveys</b> on this phone, signal or not, and updates its link when there is signal. To carry on later, open the icon: your saved surveys are on the first screen (or <b>More… → My surveys</b>). Tap one and keep going.',
    'Send it: <b>Share → Get a link to send</b>. Changed something? <b>Share → Publish an update</b> — the client’s link shows the change.',
-   'Phone and computer: <b>Share → Send to device</b> shows a code; on the other one <b>My surveys → Enter a code</b>. Then Save on either and both stay up to date.',
+   'Phone and computer: open the staff link on both. <b>My surveys</b> shows every company survey on either one — Save on one and the other has it. <b>More… → Save as a new survey</b> makes a separate copy.',
    'The crew: <b>Share → Send to the installer</b>.',
    '“The publisher refused this device’s staff link”: ask the shop for the new staff link.']],
  inst:['Installer',
@@ -14982,7 +15129,7 @@ function custMasthead(){
 }
 function hideEmpty(){ emptyDismissed=true; $('empty').classList.remove('show'); }
 $('emStart').onclick=locate;
-$('emLink').onclick=()=>askCode();
+$('emLink').onclick=()=>{ hideEmpty(); openLib(); };
 $('emSkip').onclick=hideEmpty;
 
 // ---- overflow menu (phones) ----------------------------------------
@@ -14995,7 +15142,7 @@ const MORE_GROUPS=[
   // most and it used to be the thing they could not do at all.
   // r9c: the how-to, for every copy — the client's and the installer's too (openMore lets aHelp through LOCKED)
   ['Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]]],
-  ['Surveys',[['bLib','My surveys']]],
+  ['Surveys',[['bLib','My surveys'],['aSaveAs','Save as a new survey…',()=>saveAs()]]],
   ['Map',[['bFit','Fit all'],['bCone','Shot direction'],['bMeasure','Measure'],
           ['bEdit','Edit pin positions'],['bSelect','Select locations']]],
   ['Documents',[['bPrint','Print schedule']]],
@@ -15003,7 +15150,6 @@ const MORE_GROUPS=[
             ['bMerge','Merge in another survey file'],
             ['bWO','Import work order or estimate']]],
   ['Locations',[['aHand','Add a location by hand',()=>addLocByHand()]]],
-  ['Devices',[['aCode','Enter a code from another device',()=>askCode()]]],
   // Publishing setup is an ACTION like Add a location by hand: a once-ever screen, no button
   // behind it, so it costs no id and is never on a screen at rest. The filter below drops every
   // action from the customer's copy, so a client never sees it.
@@ -15439,5 +15585,9 @@ if(TOUCH()) ['bOpen','bMerge','bWO'].forEach(id=>{
 // The library, last, and asynchronously: if the browser refuses storage the promise rejects,
 // LIBON stays false and the app carries on exactly as it does today, minus the library. There
 // is no path here that can stop the app loading.
-libRefresh().then(()=>{ renderEmpty(); return offerDraft(); }).catch(()=>{});
+libRefresh().then(()=>{ renderEmpty();
+  // r11: a Save as made on a survey's own page lands here to be opened and saved to its new address
+  let pend=''; try{ pend=sessionStorage.getItem('surveywalk.open')||''; sessionStorage.removeItem('surveywalk.open'); }catch(_){ }
+  if(pend&&!FROMFILE&&!VIEWONLY){ hideEmpty(); return libOpen(pend).then(()=>{ setDirty(true); return doSave(); }); }
+  return offerDraft(); }).catch(()=>{});
 </script></body></html>
