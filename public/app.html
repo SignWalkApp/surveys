@@ -4752,15 +4752,20 @@ window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{
     if(typeof custMasthead==='function') custMasthead(); }
 },220); });
 
+const linkBehind=()=>{ try{ return !!(AHEAD&&!VIEWONLY&&!INSTALL&&(HOSTED||CURID)&&pubCfg()&&pubWURL()); }catch(_){ return false; } };
+function paintSave(){ setDirty(dirty); }
 function setDirty(v){
   dirty=v; if(v) AHEAD=true;
   const bar=document.getElementById('savebar'), b=document.getElementById('bSave');
   if(bar) bar.classList.toggle('show',v);
-  if(b) b.textContent = v ? 'Save \u25cf'
+  const behind=!v&&linkBehind();
+  if(b) b.textContent = (v||behind) ? 'Save \u25cf'
       : (savedAt ? ('Saved '+clockOf(savedAt)) : 'Save');
+  if(bar&&behind) bar.classList.add('show');
   const m=document.getElementById('savemsg');
   if(m){
     const t = v ? 'Unsaved changes'
+        : behind ? ('Saved on '+THIS_DEV()+' '+clockOf(savedAt||Date.now())+' \u2014 not on the link yet')
         : (savedAt ? ('Saved '+clockOf(savedAt)+' \u2014 kept in this browser') : '');
     m.textContent=t; m.style.display=t?'':'none';
   }
@@ -6839,7 +6844,7 @@ function doSave(){
   if(!PTS.length){ banner('Add a photo first — there is nothing to save yet.',3500); return Promise.resolve(); }
   if(INSTALL&&!HOSTED){ banner('Open the installer link to save — this file cannot send anything.',6000); return Promise.resolve(); }
   if(saving) return Promise.resolve();
-  saving=true;
+  saving=true; SYNC_HOLD=false;
   return (LIBON?Promise.resolve():libRefresh()).then(()=>{
     if(!LIBON){ saving=false; noStoreModal(); return; }
     conflicted=false;
@@ -7128,7 +7133,7 @@ function linkOpen(raw){
       loadRecord(rec);
       CURID=rec.id; SEEN_AT=at||0; conflicted=false;
       return makeThumb().then(()=>{ const r2=libRecord(CURID); r2.ahead=false;
-        return libWrite(r2).then(()=>{ LIBSEEN=r2.updated; savedAt=r2.updated; setDirty(false); AHEAD=false; return libRefresh(); }); })
+        return libWrite(r2).then(()=>{ LIBSEEN=r2.updated; savedAt=r2.updated; setDirty(false); AHEAD=false; paintSave(); return libRefresh(); }); })
         .then(()=>{ banner('Added to My surveys — '+rec.name+'. Save here or on the other device and both stay up to date.',7000); return true; });
     });
   }).catch(e=>{ say(String(e&&e.message||e)); if(!$('lnkSay')) banner(String(e&&e.message||e),6000); return false; });
@@ -7213,10 +7218,10 @@ function libOpen(id){
     setDirty(false);
     const pa=rec.brand&&rec.brand.pub&&rec.brand.pub.at;
     SEEN_AT=rec.seen||(pa&&pa.length>10&&Date.parse(pa))||0;
-    AHEAD=rec.ahead!=null?!!rec.ahead:null; OPENED_AT=rec.updated||0;
+    AHEAD=rec.ahead!=null?!!rec.ahead:null; OPENED_AT=rec.updated||0; paintSave();
     banner((rec.count||0)+' location'+(rec.count===1?'':'s')+' — '+rec.name
           +'. Carry on where you left off.',5000);
-    return pullCheck('open');
+    return pullCheck('open').then(v=>{ if(!v&&linkBehind()) syncLater(3000); return v; });
   }).catch(()=>{ busyClose(); banner('Could not open that survey.',5000); });
 }
 
@@ -7263,14 +7268,37 @@ function autoNow(){
         return;
       }
       const rec=libRecord(CURID);
-      return libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false);
+      return libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); syncLater();
         return libRefresh().then(()=>{ if(!PTS.length) renderEmpty(); }); });
     });
     const rec=hRec();
-    if(HOSTED) return draftWrite(rec,HKEY()).then(()=>{ savedAt=rec.updated; setDirty(false); });
+    if(HOSTED) return draftWrite(rec,HKEY()).then(()=>{ savedAt=rec.updated; setDirty(false); syncLater(); });
     return draftWrite(rec);
   }).catch(()=>{}).then(()=>{ autoBusy=false; });
 }
+let syncT=null, SYNCING=false, SYNC_HOLD=false;   // HOLD: "Keep mine" was chosen — only a real Save sends it
+function syncLater(ms){ clearTimeout(syncT); if(!linkBehind()) return;
+  syncT=setTimeout(syncNow, ms==null?12000:ms); }
+function syncNow(){
+  clearTimeout(syncT); syncT=null;
+  if(!linkBehind()||dirty||SYNCING||SYNC_HOLD||PUBLISHING||saving||PULLING||navigator.onLine===false||document.hidden) return Promise.resolve(false);
+  const a=pubWURL(), slug=urlLast(a), cfg=pubCfg();
+  if(!cfg||!SLUG_RE.test(slug)) return Promise.resolve(false);
+  SYNCING=true;
+  return head(a).then(h=>{
+    const at=h.status===200?lastMod(h):0;
+    if(at&&at>SEEN_AT){ SYNCING=false; return pullCheck('sync'); }    // the link moved on — ask, never overwrite
+    return publishTo(buildHTML(false,false),'w').then(r=>{
+      SEEN_AT=Math.max(SEEN_AT,r.at||0); AHEAD=false;
+      if(HOSTED){ draftDrop(HKEY()).catch(()=>{}); setDirty(false); AHEAD=false; paintSave(); return true; }
+      AHEAD=false; const rec=libRecord(CURID);
+      return libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; AHEAD=false; setDirty(false); return true; });
+    });
+  }).catch(()=>{ syncLater(60000); return false; }).then(v=>{ SYNCING=false; return v; });
+}
+window.addEventListener('online',()=>syncLater(3000));
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&linkBehind()) syncLater(5000); });
+
 window.addEventListener('pagehide',()=>{ autoNow(); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) autoNow(); });
 
@@ -7481,7 +7509,7 @@ const liveAddr=()=>VIEWONLY?(WEB?location.origin+location.pathname:'')
 const localAhead=at=>dirty||AHEAD===true||(AHEAD==null&&OPENED_AT>at);
 function pullCheck(why){
   const a=liveAddr();
-  if(!a||PULLING||PUBLISHING||saving||navigator.onLine===false) return Promise.resolve(false);
+  if(!a||PULLING||PUBLISHING||saving||SYNCING||navigator.onLine===false) return Promise.resolve(false);
   PULLING=true;
   return head(a).then(h=>{
     const at=h.status===200?lastMod(h):0;
@@ -7499,7 +7527,7 @@ function askPull(a,at){
    +'<div class="svnote">'+THIS_DEV().replace('this','This')+' has changes that are not on the link. '
    +'Open the newer version (Undo brings yours back), or keep yours — the next Save replaces the link’s.</div></div>',
    ()=>{ pullNow(a,at); return true; },'Open the newer version',{cancel:'Keep mine'});
-  $('mCancel').onclick=()=>{ SEEN_AT=Math.max(SEEN_AT,at); closeModal(); };
+  $('mCancel').onclick=()=>{ SEEN_AT=Math.max(SEEN_AT,at); SYNC_HOLD=true; closeModal(); };
 }
 function pullNow(a,at){
   PULLING=true;
@@ -7518,10 +7546,10 @@ function pullNow(a,at){
       SEEN_AT=Math.max(SEEN_AT,got);
       if(sheetFile&&!PTS.some(x=>x.file===sheetFile)) closeSheet();
       if(curFile&&!PTS.some(x=>x.file===curFile)) curFile=null;
-      render(true); setDirty(false); AHEAD=false;
+      render(true); AHEAD=false; setDirty(false);
       if(HOSTED) draftDrop(HKEY()).catch(()=>{});
       if(CURID&&!HOSTED){ const rec=libRecord(CURID);
-        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); AHEAD=false; },()=>{}); }
+        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; AHEAD=false; setDirty(false); },()=>{}); }
       banner('Updated to the newest version — saved on another device '+touchedWords(got)+'.',6000);
       return true;
     });
@@ -7585,7 +7613,7 @@ function restoreVersion(v,x){
 
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pullCheck('front'); });
 window.addEventListener('focus',()=>{ pullCheck('front'); });
-setInterval(()=>{ if(!document.hidden) pullCheck('tick'); },60000);
+setInterval(()=>{ if(!document.hidden){ if(linkBehind()&&!dirty&&!syncT) syncNow(); else pullCheck('tick'); } },60000);
 setTimeout(()=>{ pullCheck('load'); },4000);
 
 let PUBLISHING=false;
@@ -7621,7 +7649,7 @@ function publish(kind){
       if(HOSTED){ draftDrop(HKEY()).catch(()=>{}); setDirty(false); }
       AHEAD=false;
       if(!HOSTED&&CURID){ const rec=libRecord(CURID);
-        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); AHEAD=false; },()=>{}); }
+        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; AHEAD=false; setDirty(false); },()=>{}); }
       const moved=oldLink && pubURL()!==oldLink;
       if($('shStat')){ closeModal(); openShare(); }
       banner(kind==='save'&&!HOSTED&&!INSTALL?'Saved on '+THIS_DEV()+' and at its link — open it on any device and it is this version.'
@@ -10504,15 +10532,23 @@ window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{
 // phone clock reading 2:51 tells a crew member instantly that something has gone wrong, and
 // that is something they can act on. The button stays live when saved \u2014 pressing it saves
 // again, which is harmless and is what a worried person will do anyway.
+const linkBehind=()=>{ try{ return !!(AHEAD&&!VIEWONLY&&!INSTALL&&(HOSTED||CURID)&&pubCfg()&&pubWURL()); }catch(_){ return false; } };
+function paintSave(){ setDirty(dirty); }
 function setDirty(v){
   dirty=v; if(v) AHEAD=true;
   const bar=document.getElementById('savebar'), b=document.getElementById('bSave');
   if(bar) bar.classList.toggle('show',v);
-  if(b) b.textContent = v ? 'Save \u25cf'
+  // r13: "Saved 2:18" used to appear after an AUTOSAVE, which only writes to this device — the
+  // link (and so every other phone and computer) still had the old copy. The dot now stays until
+  // the link has it too; the background sync below clears it.
+  const behind=!v&&linkBehind();
+  if(b) b.textContent = (v||behind) ? 'Save \u25cf'
       : (savedAt ? ('Saved '+clockOf(savedAt)) : 'Save');
+  if(bar&&behind) bar.classList.add('show');
   const m=document.getElementById('savemsg');
   if(m){
     const t = v ? 'Unsaved changes'
+        : behind ? ('Saved on '+THIS_DEV()+' '+clockOf(savedAt||Date.now())+' \u2014 not on the link yet')
         : (savedAt ? ('Saved '+clockOf(savedAt)+' \u2014 kept in this browser') : '');
     m.textContent=t; m.style.display=t?'':'none';
   }
@@ -13348,7 +13384,7 @@ function doSave(){
   // An installer copy off a disk has no address to send to and no library it belongs in.
   if(INSTALL&&!HOSTED){ banner('Open the installer link to save — this file cannot send anything.',6000); return Promise.resolve(); }
   if(saving) return Promise.resolve();
-  saving=true;
+  saving=true; SYNC_HOLD=false;
   return (LIBON?Promise.resolve():libRefresh()).then(()=>{
     if(!LIBON){ saving=false; noStoreModal(); return; }
     conflicted=false;
@@ -13673,7 +13709,7 @@ function linkOpen(raw){
       loadRecord(rec);
       CURID=rec.id; SEEN_AT=at||0; conflicted=false;
       return makeThumb().then(()=>{ const r2=libRecord(CURID); r2.ahead=false;
-        return libWrite(r2).then(()=>{ LIBSEEN=r2.updated; savedAt=r2.updated; setDirty(false); AHEAD=false; return libRefresh(); }); })
+        return libWrite(r2).then(()=>{ LIBSEEN=r2.updated; savedAt=r2.updated; setDirty(false); AHEAD=false; paintSave(); return libRefresh(); }); })
         .then(()=>{ banner('Added to My surveys — '+rec.name+'. Save here or on the other device and both stay up to date.',7000); return true; });
     });
   }).catch(e=>{ say(String(e&&e.message||e)); if(!$('lnkSay')) banner(String(e&&e.message||e),6000); return false; });
@@ -13769,10 +13805,11 @@ function libOpen(id){
     // unknown for pullCheck to judge by the save time.
     const pa=rec.brand&&rec.brand.pub&&rec.brand.pub.at;
     SEEN_AT=rec.seen||(pa&&pa.length>10&&Date.parse(pa))||0;
-    AHEAD=rec.ahead!=null?!!rec.ahead:null; OPENED_AT=rec.updated||0;
+    AHEAD=rec.ahead!=null?!!rec.ahead:null; OPENED_AT=rec.updated||0; paintSave();
     banner((rec.count||0)+' location'+(rec.count===1?'':'s')+' — '+rec.name
           +'. Carry on where you left off.',5000);
-    return pullCheck('open');
+    // r13: a copy saved here but never sent (an autosave) goes up now, unless the link moved on
+    return pullCheck('open').then(v=>{ if(!v&&linkBehind()) syncLater(3000); return v; });
   }).catch(()=>{ busyClose(); banner('Could not open that survey.',5000); });
 }
 
@@ -13829,7 +13866,7 @@ function autoNow(){
         return;
       }
       const rec=libRecord(CURID);
-      return libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false);
+      return libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); syncLater();
         // The opening card can only be on screen with nothing loaded, so mid-walk there is
         // nothing to repaint — and repainting it would decode three thumbnails every 3 seconds.
         return libRefresh().then(()=>{ if(!PTS.length) renderEmpty(); }); });
@@ -13839,10 +13876,42 @@ function autoNow(){
     // so nothing they walked away from can turn up in My surveys on its own.
     const rec=hRec();
     // Rule B on a hosted copy: its own slot, and the dot goes OFF — the link offers it back.
-    if(HOSTED) return draftWrite(rec,HKEY()).then(()=>{ savedAt=rec.updated; setDirty(false); });
+    if(HOSTED) return draftWrite(rec,HKEY()).then(()=>{ savedAt=rec.updated; setDirty(false); syncLater(); });
     return draftWrite(rec);
   }).catch(()=>{}).then(()=>{ autoBusy=false; });
 }
+// ---- r13: background sync -------------------------------------------------------------------
+// Aaron, 2026-10-22: "phone or computer are not updating when saved, even though it says the
+// correct last saved time." Measured on his computer: Bouchaine Wayfinders' record there was
+// AUTOSAVED at 2:18 pm (ahead of its link) while the link had the phone's 3:17 pm Save. Autosave
+// wrote this device only and still said "Saved 2:18", so nobody pressed Save and the other device
+// never saw the work. Now an autosave is followed, once things go quiet, by the same upload Save
+// does — to the WORKING link only (the client's link still changes only on a real Save) — and
+// never over a newer copy: if the link moved on, pullCheck asks first, as it always has.
+let syncT=null, SYNCING=false, SYNC_HOLD=false;   // HOLD: "Keep mine" was chosen — only a real Save sends it
+function syncLater(ms){ clearTimeout(syncT); if(!linkBehind()) return;
+  syncT=setTimeout(syncNow, ms==null?12000:ms); }
+function syncNow(){
+  clearTimeout(syncT); syncT=null;
+  if(!linkBehind()||dirty||SYNCING||SYNC_HOLD||PUBLISHING||saving||PULLING||navigator.onLine===false||document.hidden) return Promise.resolve(false);
+  const a=pubWURL(), slug=urlLast(a), cfg=pubCfg();
+  if(!cfg||!SLUG_RE.test(slug)) return Promise.resolve(false);
+  SYNCING=true;
+  return head(a).then(h=>{
+    const at=h.status===200?lastMod(h):0;
+    if(at&&at>SEEN_AT){ SYNCING=false; return pullCheck('sync'); }    // the link moved on — ask, never overwrite
+    return publishTo(buildHTML(false,false),'w').then(r=>{
+      // publishTo stamps BRAND.pub.at, which marks the survey changed; that stamp IS this upload
+      SEEN_AT=Math.max(SEEN_AT,r.at||0); AHEAD=false;
+      if(HOSTED){ draftDrop(HKEY()).catch(()=>{}); setDirty(false); AHEAD=false; paintSave(); return true; }
+      AHEAD=false; const rec=libRecord(CURID);
+      return libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; AHEAD=false; setDirty(false); return true; });
+    });
+  }).catch(()=>{ syncLater(60000); return false; }).then(v=>{ SYNCING=false; return v; });
+}
+window.addEventListener('online',()=>syncLater(3000));
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&linkBehind()) syncLater(5000); });
+
 // iOS Safari fires beforeunload inconsistently and ignores it from the home screen, so it is
 // not the mechanism. These two are. The beforeunload guard stays, for desktop.
 window.addEventListener('pagehide',()=>{ autoNow(); });
@@ -14198,7 +14267,7 @@ const liveAddr=()=>VIEWONLY?(WEB?location.origin+location.pathname:'')
 const localAhead=at=>dirty||AHEAD===true||(AHEAD==null&&OPENED_AT>at);
 function pullCheck(why){
   const a=liveAddr();
-  if(!a||PULLING||PUBLISHING||saving||navigator.onLine===false) return Promise.resolve(false);
+  if(!a||PULLING||PUBLISHING||saving||SYNCING||navigator.onLine===false) return Promise.resolve(false);
   PULLING=true;
   return head(a).then(h=>{
     const at=h.status===200?lastMod(h):0;
@@ -14217,7 +14286,7 @@ function askPull(a,at){
    +'<div class="svnote">'+THIS_DEV().replace('this','This')+' has changes that are not on the link. '
    +'Open the newer version (Undo brings yours back), or keep yours — the next Save replaces the link’s.</div></div>',
    ()=>{ pullNow(a,at); return true; },'Open the newer version',{cancel:'Keep mine'});
-  $('mCancel').onclick=()=>{ SEEN_AT=Math.max(SEEN_AT,at); closeModal(); };
+  $('mCancel').onclick=()=>{ SEEN_AT=Math.max(SEEN_AT,at); SYNC_HOLD=true; closeModal(); };
 }
 function pullNow(a,at){
   PULLING=true;
@@ -14236,10 +14305,10 @@ function pullNow(a,at){
       SEEN_AT=Math.max(SEEN_AT,got);
       if(sheetFile&&!PTS.some(x=>x.file===sheetFile)) closeSheet();
       if(curFile&&!PTS.some(x=>x.file===curFile)) curFile=null;
-      render(true); setDirty(false); AHEAD=false;
+      render(true); AHEAD=false; setDirty(false);
       if(HOSTED) draftDrop(HKEY()).catch(()=>{});
       if(CURID&&!HOSTED){ const rec=libRecord(CURID);
-        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); AHEAD=false; },()=>{}); }
+        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; AHEAD=false; setDirty(false); },()=>{}); }
       banner('Updated to the newest version — saved on another device '+touchedWords(got)+'.',6000);
       return true;
     });
@@ -14309,7 +14378,7 @@ function restoreVersion(v,x){
 
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pullCheck('front'); });
 window.addEventListener('focus',()=>{ pullCheck('front'); });
-setInterval(()=>{ if(!document.hidden) pullCheck('tick'); },60000);
+setInterval(()=>{ if(!document.hidden){ if(linkBehind()&&!dirty&&!syncT) syncNow(); else pullCheck('tick'); } },60000);
 setTimeout(()=>{ pullCheck('load'); },4000);
 
 // THE one press. Every Share button comes here, and Save on a hosted copy: kind is 'link', 'work',
@@ -14356,7 +14425,7 @@ function publish(kind){
       // time it opens it knows whether the link moved on without it.
       AHEAD=false;
       if(!HOSTED&&CURID){ const rec=libRecord(CURID);
-        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; setDirty(false); AHEAD=false; },()=>{}); }
+        libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; AHEAD=false; setDirty(false); },()=>{}); }
       // moved: an old Netlify link, or the same slug now on Aaron's own domain. Either way the
       // old link still opens (the old copy, or — same store, same object — this one).
       const moved=oldLink && pubURL()!==oldLink;
