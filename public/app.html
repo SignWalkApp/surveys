@@ -983,7 +983,7 @@ body.turned .leaflet-popup-tip-container{display:none}
 .leaflet-popup-content-wrapper{background:var(--panel);color:var(--txt);border-radius:10px}
 .leaflet-popup-tip{background:var(--panel)}
 .leaflet-popup-content{margin:0;width:296px!important}
-.pop img{width:100%;display:block;border-radius:10px 10px 0 0;cursor:zoom-in}
+.pop img{width:100%;display:block;border-radius:10px 10px 0 0;cursor:zoom-in;aspect-ratio:4/3;object-fit:cover;background:#000}
 .pop .b{padding:11px 13px 12px}
 .pop h3{font-size:13.5px;font-weight:650;margin-bottom:7px}
 .pop table{width:100%;font-size:11.5px;border-collapse:collapse}
@@ -1071,20 +1071,23 @@ body.measuring #measbar{display:block}
    Close the loop, Copy and the disclaimer appear at two points. */
 @media(max-width:760px){
  #measbar{top:auto;bottom:8px;left:8px;right:8px;width:auto;padding:7px 9px;
-  grid-template-columns:1fr auto auto;gap:0 8px;align-items:center}
+  grid-template-columns:1fr 1fr auto auto;gap:0 6px;align-items:center}
  body.measuring #measbar{display:grid}
  body.measuring #banner{display:none!important}
- #measbar .mrow{grid-column:1;grid-row:1}
- #measbar #mhint{grid-column:1;grid-row:2;margin-top:2px}
- #measbar #marea{grid-column:1/4;grid-row:3;margin-top:4px}
+ #measbar .mrow{grid-column:1/3;grid-row:1}
+ #measbar #mhint{grid-column:1/3;grid-row:2;margin-top:2px}
+ #measbar #marea{grid-column:1/5;grid-row:3;margin-top:4px}
  #measbar .mbtns{display:contents}
- #measbar #mUndo{grid-column:2;grid-row:1/3}
- #measbar #mDone{grid-column:3;grid-row:1/3}
+ #measbar #mUndo{grid-column:3;grid-row:1/3}
+ #measbar #mDone{grid-column:4;grid-row:1/3}
+ /* r13: Close / Copy / Clear / Export share one row, so the bar stays about 110px tall */
  #measbar #mClose{grid-column:1;grid-row:4;margin-top:7px;display:none}
- #measbar #mCopy{grid-column:2/4;grid-row:4;margin-top:7px;display:none}
- #measbar .mnote{grid-column:1/4;grid-row:5;display:none}
- body.mshape #measbar #mClose,body.mshape #measbar #mCopy{display:block}
- body.mshape #measbar .mnote{display:block}
+ #measbar #mCopy{grid-column:2;grid-row:4;margin-top:7px;display:none}
+ #measbar #mClear{grid-column:3;grid-row:4;margin-top:7px;display:none}
+ #measbar #mExport{grid-column:4;grid-row:4;margin-top:7px;display:none}
+ #measbar .mnote{display:none!important}
+ #measbar .mbtns button{min-height:40px;font-size:12px;padding:0 8px}
+ body.mshape #measbar #mClose,body.mshape #measbar #mCopy,body.mshape #measbar #mClear,body.mshape #measbar #mExport{display:block}
 }
 #aimbar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1300;display:none;
  background:var(--edit);color:#241a00;font-weight:650;font-size:12px;padding:6px 14px;border-radius:20px}
@@ -1754,6 +1757,71 @@ body.viewonly .pin.sel{background:#fff;color:#111;border-color:var(--edit);
 @media(pointer:coarse){ #menubar button{min-height:50px} .mi{min-height:44px;font-size:15px} }
 @media(min-width:761px){ #listbar #bDense{display:none} }
 
+/* ---- r13: location navigation, Back, the Done bar, photo picking ---------------------------- */
+#sheet .stage{touch-action:pan-y}
+#mkStage{touch-action:pan-y}
+#sheet .sbar .back{background:none;border:0;color:var(--edit);font-weight:650;padding:7px 6px 7px 2px;min-height:34px}
+#sheet .sacts{flex:0 0 auto;display:flex;gap:6px;overflow-x:auto;padding:8px 10px;border-top:1px solid var(--line);
+ scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#sheet .sacts:empty{display:none}
+#sheet .sacts::-webkit-scrollbar{display:none}
+#sheet .sacts button{flex:0 0 auto;white-space:nowrap;background:#242835;border:1px solid var(--line);color:var(--txt);
+ border-radius:8px;padding:0 13px;min-height:38px;font-size:12.5px;cursor:pointer}
+#sheet .sacts button.danger{background:#3a1c1c;border-color:#7a3030;color:#ff8a8a}
+#sheet .sacts button.gps{background:#1c2a3a;border-color:#31607a;color:#8ac6ff}
+#sheet .sfoot{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:8px 10px;
+ border-top:1px solid var(--line);background:var(--panel)}
+#sheet .sfoot button{background:#242835;border:1px solid var(--line);color:var(--txt);border-radius:9px;
+ padding:0 12px;min-height:40px;font-size:13px;cursor:pointer;white-space:nowrap}
+#sheet .sfoot button:disabled{opacity:.35;cursor:default}
+#sheet .sfoot button.go{background:var(--edit);border-color:var(--edit);color:#241a00;font-weight:650}
+#sheet .sfoot .where{flex:1;text-align:center;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+body.viewonly #shSave{display:none}
+#sheet .sbar #shUndo{background:none;border:0;color:var(--edit);font-weight:600;min-height:34px}
+#sheet .sbar #shUndo:disabled{opacity:.35}
+body.sheetopen #banner{top:calc(var(--sat) + 64px)}
+.pop .locnav{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+.pop .locnav button{background:#242835;border:1px solid var(--line);color:var(--txt);border-radius:6px;
+ min-height:30px;padding:0 10px;font-size:12px;cursor:pointer}
+.pop .locnav button:disabled{opacity:.35;cursor:default}
+.pop .locnav span{flex:1;text-align:center;font-size:11px;color:var(--dim)}
+#adjbar{position:absolute;left:12px;right:12px;margin:0 auto;bottom:calc(14px + var(--sab));z-index:1400;
+ display:none;align-items:center;gap:8px;max-width:560px;
+ background:rgba(20,22,30,.96);border:1px solid var(--edit);border-radius:14px;padding:8px 8px 8px 14px;
+ box-shadow:0 12px 34px rgba(0,0,0,.6)}
+body.adjon #adjbar{display:flex}
+#adjbar span{flex:1;font-size:12.5px;color:var(--txt);line-height:1.35;min-width:0;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#adjbar button{flex:0 0 auto;background:#242835;border:1px solid var(--line);color:var(--txt);border-radius:9px;
+ min-height:40px;padding:0 14px;font-size:13px;cursor:pointer}
+#adjbar button.go{background:var(--edit);border-color:var(--edit);color:#241a00;font-weight:700}
+body.adjon #drophint,body.adjon #aimbar{display:none!important}
+body.adjon #drag{bottom:calc(76px + var(--sab))}
+/* r13 QC: on a phone the map is a third of the screen; while measuring or moving pins it gets all of it */
+@media(max-width:760px){ body.mapfocus #side,body.mapfocus #sidegrip{display:none!important} }
+.pin.moving{box-shadow:0 0 0 4px rgba(255,183,3,.75),0 1px 5px rgba(0,0,0,.6)!important}
+.mvert.drag{width:22px;height:22px;margin:-5.5px 0 0 -5.5px;border-width:3px;cursor:grab}
+#mkedit .mnav{display:flex;align-items:center;gap:7px;padding:0 12px 8px;flex:0 0 auto}
+#mkedit .mnav button{background:#242835;border:1px solid var(--line);color:var(--txt);border-radius:8px;
+ min-height:38px;padding:0 13px;font-size:13px;cursor:pointer}
+#mkedit .mnav button:disabled{opacity:.35}
+#mkedit #mkWhere{flex:1;min-width:0;display:flex;justify-content:center;white-space:nowrap}
+#mkedit #mkWhere .nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#mkedit #mkWhere .ph{flex:none}
+.dlgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:4px 0 10px}
+.dlpk{position:relative;display:block;border:2px solid var(--line);border-radius:9px;overflow:hidden;cursor:pointer;background:#000}
+.dlpk img{display:block;width:100%;height:70px;object-fit:cover}
+.dlpk span{display:block;font-size:10.5px;color:var(--dim);padding:3px 5px;background:var(--panel);
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlpk input{position:absolute;top:5px;left:5px;width:22px;height:22px;margin:0;accent-color:#ffb703}
+.dlpk.on{border-color:var(--edit)}
+.dlpk .mkb{position:absolute;top:5px;right:5px;font-size:9.5px;background:rgba(20,22,30,.85);color:var(--edit);
+ border-radius:5px;padding:1px 5px}
+.dlhead{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--dim);margin:8px 0 2px}
+.dlhead button{background:none;border:0;color:var(--edit);font-size:12px;cursor:pointer;padding:6px 0}
+@media(pointer:coarse){ #sheet .sacts button{min-height:44px} #sheet .sbar .back,#sheet .sbar #shUndo{min-height:44px} #sheet .sfoot button{min-height:46px} .pop .locnav button{min-height:44px}
+ #mkedit .mnav button{min-height:44px} #adjbar button{min-height:46px} }
+
 /* ---- 30px is the house minimum on a pointer device -------------------------
    All of these were invisible to the audit until round 2, because it measured <button> and
    these are <a>, <input> and <div>. Leaflet's own zoom control shipped at 26x26. */
@@ -2072,18 +2140,21 @@ body.sidehidden #showtools{display:block}
     <button id="mClose">Close the loop</button>
     <button id="mUndo">Undo point</button>
     <button id="mCopy">Copy</button>
+    <button id="mClear">Clear</button>
+    <button id="mExport">Export map</button>
     <button id="mDone" class="prime">Done</button>
    </div>
    <div class="mnote">Planning estimate from the aerial — verify on site before it goes on a permit.</div>
   </div>
+  <div id="adjbar"><span id="adjTxt"></span><button id="adjCancel">Cancel</button><button id="adjDone" class="go">Done</button></div>
   <div id="drag"><span id="dragtxt"></span> <b id="dragco"></b><button id="dragcopy">Copy</button></div>
  </div>
 </div>
 <button id="showtools">Show tools</button>
 <div id="hoverprev"><img id="hoverimg" alt=""><div class="cap" id="hovercap"></div></div>
 <div id="sheet">
- <div class="sbar"><span class="num" id="shNum">1</span><span class="ttl" id="shTtl"></span>
-  <button id="shUndo" title="Undo">Undo</button><button id="shClose">Close</button></div>
+ <div class="sbar"><button id="shClose" class="back" aria-label="Back">&#8249; Back</button><span class="num" id="shNum">1</span><span class="ttl" id="shTtl"></span>
+  <button id="shUndo" title="Undo">Undo</button></div>
  <div class="stage">
   <div class="phw"><img id="shImg" alt=""><svg id="shSvg"
     preserveAspectRatio="xMidYMid meet"></svg></div>
@@ -2094,6 +2165,10 @@ body.sidehidden #showtools{display:block}
  </div>
  <div class="strip" id="shStrip"></div>
  <div class="meta" id="shMeta"></div>
+ <div class="sacts" id="shActs"></div>
+ <div class="sfoot" id="shFoot"><button id="shLprev" aria-label="Previous location">&#8249; Previous</button>
+  <span class="where" id="shWhere"></span><button id="shSave" class="go">Save</button>
+  <button id="shLnext" aria-label="Next location">Next &#8250;</button></div>
 </div>
 <div id="mkedit">
  <div class="mbar">
@@ -2101,6 +2176,8 @@ body.sidehidden #showtools{display:block}
   <button id="mkUndo">Undo</button><button id="mkDel" class="danger">Remove</button>
   <span class="sp"></span><button id="mkDone" class="go">Done</button>
  </div>
+ <div class="mnav"><button id="mkPrev" aria-label="Previous photo">&#8249;</button>
+  <button id="mkWhere"></button><button id="mkNext" aria-label="Next photo">&#8250;</button></div>
  <div id="mkStage"><div id="mkWrap"><img id="mkImg" alt=""><svg id="mkSvg" viewBox="0 0 1000 750"
    preserveAspectRatio="xMidYMid meet"></svg><div id="mkHandles"></div></div></div>
  <div class="mhint" id="mkHint"></div>
@@ -2990,7 +3067,7 @@ body.turned .leaflet-popup-tip-container{display:none}
 .leaflet-popup-content-wrapper{background:var(--panel);color:var(--txt);border-radius:10px}
 .leaflet-popup-tip{background:var(--panel)}
 .leaflet-popup-content{margin:0;width:296px!important}
-.pop img{width:100%;display:block;border-radius:10px 10px 0 0;cursor:zoom-in}
+.pop img{width:100%;display:block;border-radius:10px 10px 0 0;cursor:zoom-in;aspect-ratio:4/3;object-fit:cover;background:#000}
 .pop .b{padding:11px 13px 12px}
 .pop h3{font-size:13.5px;font-weight:650;margin-bottom:7px}
 .pop table{width:100%;font-size:11.5px;border-collapse:collapse}
@@ -3062,20 +3139,22 @@ body.measuring #measbar{display:block}
 @media(pointer:coarse){#measbar button{min-height:44px}.mvert{width:15px;height:15px}}
 @media(max-width:760px){
  #measbar{top:auto;bottom:8px;left:8px;right:8px;width:auto;padding:7px 9px;
-  grid-template-columns:1fr auto auto;gap:0 8px;align-items:center}
+  grid-template-columns:1fr 1fr auto auto;gap:0 6px;align-items:center}
  body.measuring #measbar{display:grid}
  body.measuring #banner{display:none!important}
- #measbar .mrow{grid-column:1;grid-row:1}
- #measbar #mhint{grid-column:1;grid-row:2;margin-top:2px}
- #measbar #marea{grid-column:1/4;grid-row:3;margin-top:4px}
+ #measbar .mrow{grid-column:1/3;grid-row:1}
+ #measbar #mhint{grid-column:1/3;grid-row:2;margin-top:2px}
+ #measbar #marea{grid-column:1/5;grid-row:3;margin-top:4px}
  #measbar .mbtns{display:contents}
- #measbar #mUndo{grid-column:2;grid-row:1/3}
- #measbar #mDone{grid-column:3;grid-row:1/3}
+ #measbar #mUndo{grid-column:3;grid-row:1/3}
+ #measbar #mDone{grid-column:4;grid-row:1/3}
  #measbar #mClose{grid-column:1;grid-row:4;margin-top:7px;display:none}
- #measbar #mCopy{grid-column:2/4;grid-row:4;margin-top:7px;display:none}
- #measbar .mnote{grid-column:1/4;grid-row:5;display:none}
- body.mshape #measbar #mClose,body.mshape #measbar #mCopy{display:block}
- body.mshape #measbar .mnote{display:block}
+ #measbar #mCopy{grid-column:2;grid-row:4;margin-top:7px;display:none}
+ #measbar #mClear{grid-column:3;grid-row:4;margin-top:7px;display:none}
+ #measbar #mExport{grid-column:4;grid-row:4;margin-top:7px;display:none}
+ #measbar .mnote{display:none!important}
+ #measbar .mbtns button{min-height:40px;font-size:12px;padding:0 8px}
+ body.mshape #measbar #mClose,body.mshape #measbar #mCopy,body.mshape #measbar #mClear,body.mshape #measbar #mExport{display:block}
 }
 #aimbar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1300;display:none;
  background:var(--edit);color:#241a00;font-weight:650;font-size:12px;padding:6px 14px;border-radius:20px}
@@ -3545,6 +3624,69 @@ body.viewonly .pin.sel{background:#fff;color:#111;border-color:var(--edit);
 @media(pointer:coarse){ #menubar button{min-height:50px} .mi{min-height:44px;font-size:15px} }
 @media(min-width:761px){ #listbar #bDense{display:none} }
 
+#sheet .stage{touch-action:pan-y}
+#mkStage{touch-action:pan-y}
+#sheet .sbar .back{background:none;border:0;color:var(--edit);font-weight:650;padding:7px 6px 7px 2px;min-height:34px}
+#sheet .sacts{flex:0 0 auto;display:flex;gap:6px;overflow-x:auto;padding:8px 10px;border-top:1px solid var(--line);
+ scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#sheet .sacts:empty{display:none}
+#sheet .sacts::-webkit-scrollbar{display:none}
+#sheet .sacts button{flex:0 0 auto;white-space:nowrap;background:#242835;border:1px solid var(--line);color:var(--txt);
+ border-radius:8px;padding:0 13px;min-height:38px;font-size:12.5px;cursor:pointer}
+#sheet .sacts button.danger{background:#3a1c1c;border-color:#7a3030;color:#ff8a8a}
+#sheet .sacts button.gps{background:#1c2a3a;border-color:#31607a;color:#8ac6ff}
+#sheet .sfoot{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:8px 10px;
+ border-top:1px solid var(--line);background:var(--panel)}
+#sheet .sfoot button{background:#242835;border:1px solid var(--line);color:var(--txt);border-radius:9px;
+ padding:0 12px;min-height:40px;font-size:13px;cursor:pointer;white-space:nowrap}
+#sheet .sfoot button:disabled{opacity:.35;cursor:default}
+#sheet .sfoot button.go{background:var(--edit);border-color:var(--edit);color:#241a00;font-weight:650}
+#sheet .sfoot .where{flex:1;text-align:center;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+body.viewonly #shSave{display:none}
+#sheet .sbar #shUndo{background:none;border:0;color:var(--edit);font-weight:600;min-height:34px}
+#sheet .sbar #shUndo:disabled{opacity:.35}
+body.sheetopen #banner{top:calc(var(--sat) + 64px)}
+.pop .locnav{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+.pop .locnav button{background:#242835;border:1px solid var(--line);color:var(--txt);border-radius:6px;
+ min-height:30px;padding:0 10px;font-size:12px;cursor:pointer}
+.pop .locnav button:disabled{opacity:.35;cursor:default}
+.pop .locnav span{flex:1;text-align:center;font-size:11px;color:var(--dim)}
+#adjbar{position:absolute;left:12px;right:12px;margin:0 auto;bottom:calc(14px + var(--sab));z-index:1400;
+ display:none;align-items:center;gap:8px;max-width:560px;
+ background:rgba(20,22,30,.96);border:1px solid var(--edit);border-radius:14px;padding:8px 8px 8px 14px;
+ box-shadow:0 12px 34px rgba(0,0,0,.6)}
+body.adjon #adjbar{display:flex}
+#adjbar span{flex:1;font-size:12.5px;color:var(--txt);line-height:1.35;min-width:0;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#adjbar button{flex:0 0 auto;background:#242835;border:1px solid var(--line);color:var(--txt);border-radius:9px;
+ min-height:40px;padding:0 14px;font-size:13px;cursor:pointer}
+#adjbar button.go{background:var(--edit);border-color:var(--edit);color:#241a00;font-weight:700}
+body.adjon #drophint,body.adjon #aimbar{display:none!important}
+body.adjon #drag{bottom:calc(76px + var(--sab))}
+@media(max-width:760px){ body.mapfocus #side,body.mapfocus #sidegrip{display:none!important} }
+.pin.moving{box-shadow:0 0 0 4px rgba(255,183,3,.75),0 1px 5px rgba(0,0,0,.6)!important}
+.mvert.drag{width:22px;height:22px;margin:-5.5px 0 0 -5.5px;border-width:3px;cursor:grab}
+#mkedit .mnav{display:flex;align-items:center;gap:7px;padding:0 12px 8px;flex:0 0 auto}
+#mkedit .mnav button{background:#242835;border:1px solid var(--line);color:var(--txt);border-radius:8px;
+ min-height:38px;padding:0 13px;font-size:13px;cursor:pointer}
+#mkedit .mnav button:disabled{opacity:.35}
+#mkedit #mkWhere{flex:1;min-width:0;display:flex;justify-content:center;white-space:nowrap}
+#mkedit #mkWhere .nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#mkedit #mkWhere .ph{flex:none}
+.dlgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:4px 0 10px}
+.dlpk{position:relative;display:block;border:2px solid var(--line);border-radius:9px;overflow:hidden;cursor:pointer;background:#000}
+.dlpk img{display:block;width:100%;height:70px;object-fit:cover}
+.dlpk span{display:block;font-size:10.5px;color:var(--dim);padding:3px 5px;background:var(--panel);
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlpk input{position:absolute;top:5px;left:5px;width:22px;height:22px;margin:0;accent-color:#ffb703}
+.dlpk.on{border-color:var(--edit)}
+.dlpk .mkb{position:absolute;top:5px;right:5px;font-size:9.5px;background:rgba(20,22,30,.85);color:var(--edit);
+ border-radius:5px;padding:1px 5px}
+.dlhead{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--dim);margin:8px 0 2px}
+.dlhead button{background:none;border:0;color:var(--edit);font-size:12px;cursor:pointer;padding:6px 0}
+@media(pointer:coarse){ #sheet .sacts button{min-height:44px} #sheet .sbar .back,#sheet .sbar #shUndo{min-height:44px} #sheet .sfoot button{min-height:46px} .pop .locnav button{min-height:44px}
+ #mkedit .mnav button{min-height:44px} #adjbar button{min-height:46px} }
+
 .leaflet-control-zoom a,.leaflet-container a.leaflet-popup-close-button,
 .leaflet-control-layers-toggle{min-width:30px;min-height:30px;line-height:30px}
 .pop a{min-height:30px;line-height:30px}
@@ -3815,18 +3957,21 @@ body.sidehidden #showtools{display:block}
     <button id="mClose">Close the loop</button>
     <button id="mUndo">Undo point</button>
     <button id="mCopy">Copy</button>
+    <button id="mClear">Clear</button>
+    <button id="mExport">Export map</button>
     <button id="mDone" class="prime">Done</button>
    </div>
    <div class="mnote">Planning estimate from the aerial — verify on site before it goes on a permit.</div>
   </div>
+  <div id="adjbar"><span id="adjTxt"></span><button id="adjCancel">Cancel</button><button id="adjDone" class="go">Done</button></div>
   <div id="drag"><span id="dragtxt"></span> <b id="dragco"></b><button id="dragcopy">Copy</button></div>
  </div>
 </div>
 <button id="showtools">Show tools</button>
 <div id="hoverprev"><img id="hoverimg" alt=""><div class="cap" id="hovercap"></div></div>
 <div id="sheet">
- <div class="sbar"><span class="num" id="shNum">1</span><span class="ttl" id="shTtl"></span>
-  <button id="shUndo" title="Undo">Undo</button><button id="shClose">Close</button></div>
+ <div class="sbar"><button id="shClose" class="back" aria-label="Back">&#8249; Back</button><span class="num" id="shNum">1</span><span class="ttl" id="shTtl"></span>
+  <button id="shUndo" title="Undo">Undo</button></div>
  <div class="stage">
   <div class="phw"><img id="shImg" alt=""><svg id="shSvg"
     preserveAspectRatio="xMidYMid meet"></svg></div>
@@ -3837,6 +3982,10 @@ body.sidehidden #showtools{display:block}
  </div>
  <div class="strip" id="shStrip"></div>
  <div class="meta" id="shMeta"></div>
+ <div class="sacts" id="shActs"></div>
+ <div class="sfoot" id="shFoot"><button id="shLprev" aria-label="Previous location">&#8249; Previous</button>
+  <span class="where" id="shWhere"></span><button id="shSave" class="go">Save</button>
+  <button id="shLnext" aria-label="Next location">Next &#8250;</button></div>
 </div>
 <div id="mkedit">
  <div class="mbar">
@@ -3844,6 +3993,8 @@ body.sidehidden #showtools{display:block}
   <button id="mkUndo">Undo</button><button id="mkDel" class="danger">Remove</button>
   <span class="sp"></span><button id="mkDone" class="go">Done</button>
  </div>
+ <div class="mnav"><button id="mkPrev" aria-label="Previous photo">&#8249;</button>
+  <button id="mkWhere"></button><button id="mkNext" aria-label="Next photo">&#8250;</button></div>
  <div id="mkStage"><div id="mkWrap"><img id="mkImg" alt=""><svg id="mkSvg" viewBox="0 0 1000 750"
    preserveAspectRatio="xMidYMid meet"></svg><div id="mkHandles"></div></div></div>
  <div class="mhint" id="mkHint"></div>
@@ -4285,9 +4436,7 @@ function banner(msg,ms){
   const b=$('banner'); if(!b)return;
   b.textContent=msg; b.style.display='block';
   clearTimeout(bannerT);
-  bannerT=setTimeout(()=>{ b.style.display=editing?'block':'none';
-    if(editing)b.textContent='Edit mode — drag a pin to move it, drag the amber knob to set which way the camera faced';
-  }, ms||2600);
+  bannerT=setTimeout(()=>{ b.style.display='none'; }, ms||2600);
 }
 
 let modalEsc=null, modalClose=null;
@@ -4653,6 +4802,8 @@ function render(keepView){
     marks[idx]=m;
   });
   if(placed().length) bounds=L.latLngBounds(placed().map(p=>[p.dlat,p.dlon]));
+  if(typeof MOVE!=='undefined'&&MOVE){ const k=PTS.findIndex(x=>x.file===MOVE.file);
+    if(marks[k]){ marks[k].dragging.enable(); const el=document.getElementById('pin'+k); if(el) el.classList.add('moving'); } }
   applyCones(); refreshTray(); refreshList(); updateStats();
   if(typeof pinPanel==='function') pinPanel();
   $('empty').classList.toggle('show',!PTS.length&&!VIEWONLY&&!emptyDismissed);
@@ -4714,9 +4865,11 @@ function aimFromPhoto(file){
   document.getElementById('aimbar').style.display=aiming>=0?'block':'none';
   if(aiming>=0)document.getElementById('aimtxt').textContent=
     'Click the spot on the map that '+(PTS[i].label||PTS[i].file)+' is looking at';
+  adjSync();
 }
 let aiming=-1;
 map.on('click',e=>{
+  if(MOVE){ moveTo(e.latlng); return; }
   if(measOn){ measAdd(e.latlng); return; }
   if(placing){ if(placeMove) placeAt(placing,e.latlng); else dropOrAttach(placing,e.containerPoint,e.latlng); return; }
   if(aiming<0){ if(map.hasLayer(parcelGroup)&&parcelNow) lookupParcel(e.latlng); return; }
@@ -4726,6 +4879,7 @@ map.on('click',e=>{
   setHeading(aiming,d);
   aiming=-1; document.getElementById('map').classList.remove('aiming');
   document.getElementById('aimbar').style.display='none';
+  adjSync();
 });
 function applyCones(){
   const on=bC.classList.contains('on');
@@ -4756,6 +4910,7 @@ const linkBehind=()=>{ try{ return !!(AHEAD&&!VIEWONLY&&!INSTALL&&(HOSTED||CURID
 function paintSave(){ setDirty(dirty); }
 function setDirty(v){
   dirty=v; if(v) AHEAD=true;
+  if(v&&typeof SHS!=='undefined'&&SHS&&sheetFile) SHS.touched.add(sheetFile);
   const bar=document.getElementById('savebar'), b=document.getElementById('bSave');
   if(bar) bar.classList.toggle('show',v);
   const behind=!v&&linkBehind();
@@ -4770,6 +4925,8 @@ function setDirty(v){
     m.textContent=t; m.style.display=t?'':'none';
   }
   if(v && typeof autoLater==='function') autoLater();
+  const ss=document.getElementById('shSave');
+  if(ss&&b){ const t=b.textContent; ss.textContent=/●/.test(t)?'Save ●':(/^Saved/.test(t)?'Saved':'Save'); ss.disabled=!/●/.test(t); }
 }
 window.addEventListener('beforeunload',e=>{ if(dirty){e.preventDefault(); e.returnValue='';} });
 
@@ -4919,8 +5076,7 @@ function locMenu(file){
   setTimeout(()=>document.querySelectorAll('#modalDlg [data-a]').forEach(el=>el.onclick=()=>{
     const a=el.dataset.a, i=PTS.indexOf(p); closeModal(); if(i<0) return;
     if(a==='ed'){ map.closePopup(); select(i,false); openSheet(i); }
-    else if(a==='mv'){ closeSheet(); map.closePopup(); armPlace(p.file);
-      banner('Tap the map where '+title(p)+' goes. Esc cancels.',5000); }
+    else if(a==='mv') moveOne(p.file);
     else if(a==='dup') dupAsk(p.file);
     else if(a==='add') addToPin(p.file);
     else if(a==='mk') mkOpen(p.file,p.shot||0);
@@ -4971,25 +5127,6 @@ function dupLoc(file,photos){
 }
 const PHOTO_SAVE=()=>TOUCH()?'Save to Photos…':'Download…';
 const hasMk=sh=>!!(sh&&sh.marks&&sh.marks.length);
-function dlPick(file){
-  const p=file?PTS.find(x=>x.file===file):null, sh=p?shotOf(p):null;
-  const all=p?p.shots.filter(x=>x&&x.src):PTS.flatMap(q=>(q.shots||[]).filter(x=>x&&x.src));
-  const n=all.length, anyMk=all.some(hasMk), V=TOUCH()?'Save':'Download';
-  const rows=[];
-  if(p&&sh){ rows.push(['o',V+' original',true],['m',V+' with markup',hasMk(sh)]); }
-  if(n>1||!p){ rows.push(['ao',V+' all '+n+' originals',n>0],['am',V+' all '+n+' with markup',anyMk]); }
-  openModal('<h2>'+he(p?((p.unplaced?'':p.i+' · ')+title(p)):'All photos in this survey')+'</h2><div class="body">'
-   +'<div class="morelist ioslist">'+rows.map(([k,l,on])=>'<button class="mi" data-d="'+k+'"'+(on?'':' disabled')+'>'
-     +'<span class="ck"></span>'+he(l)+'</button>').join('')+'</div>'
-   +(anyMk?'':'<div class="hint" style="margin-top:8px">No markup drawn on '+(p?'this location':'any photo')+' yet.</div>')
-   +'</div>',null,null,{cancel:'Cancel'});
-  $('modalDlg').classList.add('moresheet');
-  setTimeout(()=>document.querySelectorAll('#modalDlg [data-d]').forEach(el=>el.onclick=()=>{
-    const k=el.dataset.d; closeModal();
-    if(k==='o') dlShot(p.file,false); else if(k==='m') dlShot(p.file,true);
-    else saveAll(p?p.file:undefined,k==='am');
-  }),0);
-}
 
 const fname=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
 function shotBlob(sh,withMarks){
@@ -5074,7 +5211,7 @@ function pop(p){
   const f=n=>n==null?'&ndash;':n, hand=p.man||p.moved;
   return '<div class="pop"><img src="'+imgOf(p)+'" onclick="openSheet('+PTS.indexOf(p)+')">'
    +shotBar(p)
-   +'<div class="b"><h3>'+p.i+'. '+he(title(p))+'</h3>'
+   +'<div class="b">'+locNavHTML(p,'pop')+'<h3>'+p.i+'. '+he(title(p))+'</h3>'
    +(VIEWONLY?'':'<div style="color:#8f96ab;font-size:10.5px;margin:-4px 0 7px">'+he(p.file)+'</div>')
    +'<table>'
    +'<tr><td>Coords</td><td class="co">'+p.lat.toFixed(6)+', '+p.lon.toFixed(6)+'</td></tr>'
@@ -5105,6 +5242,7 @@ function pop(p){
      +'<div class="btnrow">'
      +'<button onclick="locMenu(\''+js(p.file)+'\')">Edit…</button>'
      +'<button onclick="addToPin(\''+js(p.file)+'\')">Add photo</button>'
+     +'<button onclick="moveOne(\''+js(p.file)+'\')">Move pin</button>'
      +(shotOf(p)?'<button onclick="mkOpen(\''+js(p.file)+'\','+(p.shot||0)+')">Mark up</button>':'')
      +(shotOf(p)?'<button onclick="dlPick(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>':'')
      +(waiting().length?'<button onclick="attachFromTray(\''+js(p.file)+'\')">Attach from tray</button>':'')
@@ -5206,7 +5344,10 @@ function sheetPt(){ return sheetFile?PTS.find(x=>x.file===sheetFile):null; }
 function openSheet(i,keep){
   const p=PTS[i]; if(!p)return;
   const wasOpen=$('sheet').classList.contains('show');
+  if(!wasOpen) SHS={snaps:{},touched:new Set(),wasDirty:dirty};
+  if(SHS&&!SHS.snaps[p.file]) SHS.snaps[p.file]=locClone(p);
   sheetIdx=i; sheetFile=p.file; curFile=p.file;
+  document.body.classList.add('sheetopen');
   const sh=shotOf(p), multi=p.shots.length>1;
   $('shNum').textContent=p.unplaced?'·':p.i;
   $('shTtl').textContent=title(p);
@@ -5251,7 +5392,8 @@ function openSheet(i,keep){
       +'<div class="acts">'
       +'<button id="shMenu">Edit…</button>'
       +'<button id="shAdd">Add photo</button>'
-      +(multi?'<button id="shDelShot">Remove this photo</button>':'')
+      +'<button id="shMove">'+(p.unplaced?'Place pin':'Move pin')+'</button>'
+      +(multi?'<button id="shDelShot" class="danger">Remove this photo</button>':'')
       +((p.egps&&!byGPS(p))?'<button class="gps" id="shGps">Revert to GPS</button>':'')
       +(p.unplaced&&lastFix?'<button class="gps" id="shHere">Place at my location'
         +(fixUsable(lastFix)?'':' (\u00b1'+accTxt(lastFix.acc)+')')+'</button>':'')
@@ -5268,6 +5410,7 @@ function openSheet(i,keep){
     $('shLbl').oninput=e=>{ setLabel(p.file,e.target.value); $('shTtl').textContent=title(p); };
     $('shMemo').oninput=e=>setMemo(p.file,e.target.value);
     $('shMenu').onclick=()=>locMenu(p.file);
+    $('shMove').onclick=()=>moveOne(p.file);
     $('shHead').oninput=e=>{ const i2=PTS.indexOf(p); if(e.target.value==='')return;
                              setHeading(i2,+e.target.value,true);
                              $('shCmp').textContent=p.head==null?'not set':cmp(p.head); };
@@ -5288,12 +5431,18 @@ function openSheet(i,keep){
     $('shAim').onclick=()=>{ closeSheet(); aimFromPhoto(p.file); };
     $('shDel').onclick=()=>{ const f=p.file; closeSheet(); removePhoto(f); };
   }
+  { const a=$('shMeta').querySelector('.acts'), box=$('shActs'); box.innerHTML='';
+    if(a){ const order=['shMark','shAdd','shMove','shDl','shMenu','shHere','shGps','shDelShot','shDel'];
+      order.forEach(id=>{ const b=a.querySelector('#'+id); if(b) box.appendChild(b); });
+      [...a.children].forEach(b=>box.appendChild(b)); a.remove(); } }
   $('sheet').classList.add('show');
+  shNavPaint(p);
   if(!LOCKED&&!wasOpen&&!keep){ const l=$('shLbl'); if(l) setTimeout(()=>l.focus(),0); }
   syncUndo();
 }
-function closeSheet(){ sheetIdx=-1; sheetFile=null; $('sheet').classList.remove('show'); $('shImg').src=''; }
-$('shClose').onclick=closeSheet;
+function closeSheet(){ sheetIdx=-1; sheetFile=null; SHS=null; $('sheet').classList.remove('show'); $('shImg').src='';
+  document.body.classList.remove('sheetopen'); }
+$('shClose').onclick=()=>shBack();
 $('shUndo').onclick=doUndo;   // the sheet covers the toolbar on a phone
 $('shPrev').onclick=()=>{ const q=sheetPt(); if(q)stepShot(q.file,-1); };
 $('shNext').onclick=()=>{ const q=sheetPt(); if(q)stepShot(q.file,1); };
@@ -5439,12 +5588,15 @@ function armPlace(file){
   h.textContent=(p.label||shotOf(p))?'Tap the map where '+(p.label||p.file)+' goes'
                                     :'Tap the map where this location goes';
   h.style.display='block';
+  if(typeof adjSync==='function') adjSync();
 }
 function cancelPlace(){
   placing=null; placeMove=false;
+  try{ clearTimeout(bannerT); $('banner').style.display='none'; }catch(_){ }
   document.querySelectorAll('.trayitem').forEach(x=>x.classList.remove('armed'));
   document.getElementById('map').classList.remove('dropready');
   document.getElementById('drophint').style.display='none';
+  if(typeof adjSync==='function') adjSync();
 }
 function placeAt(file,latlng){
   const p=PTS.find(x=>x.file===file); if(!p)return;
@@ -5626,9 +5778,11 @@ document.getElementById('bFit').onclick=()=>{ if(PTS.length&&bounds)map.fitBound
 bE.onclick=()=>{
   if(LOCKED) return;
   if(!editing){ if(measOn) measSet(false); if(selMode) selSetMode(false); }
+  if(!editing&&typeof MOVE!=='undefined'&&MOVE) moveEnd(true);
   editing=!editing; bE.classList.toggle('on',editing);
   document.getElementById('map').classList.toggle('editing',editing);
-  document.getElementById('banner').style.display=editing?'block':'none';
+  if(editing){ EDIT0={}; PTS.forEach(p=>{ EDIT0[p.file]=posOf(p); }); }
+  adjSync();
   marks.forEach(m=>editing?m.dragging.enable():m.dragging.disable());
   const i=curIdx();
   if(editing){ if(i>=0){showHandle(i); showDrag(PTS[i],L.latLng(PTS[i].dlat,PTS[i].dlon));} }
@@ -6273,7 +6427,6 @@ function addLocByHand(){
   const q=makeLoc('',null); PTS.push(q);
   render(true); setDirty(true);
   armPlace(q.file);
-  banner('Tap the map where this location goes',5000);
 }
 const inch=v=>v==null?'':(+(Math.round(v*100)/100))+'"';
 
@@ -8237,6 +8390,7 @@ async function shareFile(file,title){
 }
 
 function applyBrand(){
+  try{ if(!measOn) measLoad(); }catch(_){ /* before the measuring code has loaded — it loads its own */ }
   const job=BRAND.job||'Site Survey';
   document.title=job+' — Site Survey Photo Map';
   $('hJob').textContent=job;
@@ -8551,10 +8705,11 @@ function mkOpen(file,k){
   im.src=sh.src;
   $('mkWrap').style.aspectRatio=MKAR;
   $('mkedit').classList.add('show');
-  mkDraw();
+  mkDraw(); if(typeof mkNavPaint==='function') mkNavPaint();
 }
-function mkClose(){ $('mkedit').classList.remove('show'); $('mkImg').src=''; MKF=null;
-                    if(sheetFile) openSheet(PTS.findIndex(x=>x.file===sheetFile),true); }
+function mkClose(){ const f=MKF, k=MKK; $('mkedit').classList.remove('show'); $('mkImg').src=''; MKF=null;
+                    if(sheetFile){ const i=PTS.findIndex(x=>x.file===f); if(i>=0){ const p=PTS[i]; if(p.shot!==k&&p.shots[k]){ p.shot=k; syncPrimary(p); } }
+                      openSheet(i>=0?i:PTS.findIndex(x=>x.file===sheetFile),true); } }
 function mkTouch(){ if(!MKDIRTY){ pushWorld('photo markup'); MKDIRTY=true; } }
 function mkStep(){ MKU.push(JSON.stringify(MKM)); if(MKU.length>40)MKU.shift(); }
 function mkCommit(){
@@ -8726,8 +8881,19 @@ function measDraw(){
   if(measPoly){ map.removeLayer(measPoly); measPoly=null; }
   if(measClosed&&measPts.length>2)
     measPoly=L.polygon(measPts,{color:'#ffb703',weight:0,fillOpacity:.18}).addTo(map);
-  measPts.forEach(ll=>measMarks.push(L.marker(ll,{interactive:false,keyboard:false,
-    icon:L.divIcon({className:'',html:'<div class="mvert"></div>',iconSize:[11,11],iconAnchor:[5.5,5.5]})}).addTo(map)));
+  measPts.forEach((ll,k)=>{
+    const big=measOn&&!LOCKED;
+    const m=L.marker(ll,{interactive:big,draggable:big,keyboard:false,zIndexOffset:900,
+      icon:L.divIcon({className:'',html:'<div class="mvert'+(big?' drag':'')+'"></div>',iconSize:big?[22,22]:[11,11],iconAnchor:big?[11,11]:[5.5,5.5]})}).addTo(map);
+    if(big){
+      m.on('drag',e=>{ measPts[k]=e.target.getLatLng();
+        const ring=measClosed?measPts.concat([measPts[0]]):measPts;
+        if(measLine) measLine.setLatLngs(ring); if(measPoly) measPoly.setLatLngs(measPts); measSync(); });
+      m.on('dragend',()=>{ measDraw(); measSave(); });
+      m.on('click',()=>{ if(k===0&&!measClosed&&measPts.length>2){ measClosed=true; measDraw(); measSave(); } });
+    }
+    measMarks.push(m);
+  });
   for(let i=1;i<ring.length;i++){
     const a=ring[i-1], b=ring[i];
     const mid=L.latLng((a.lat+b.lat)/2,(a.lng+b.lng)/2);
@@ -8750,13 +8916,15 @@ function measSync(){
   $('mClose').disabled=measClosed||measPts.length<3;
   $('mUndo').disabled=!measPts.length;
   $('mCopy').disabled=measPts.length<2;
-  document.body.classList.toggle('mshape',measPts.length>=2);
+  document.body.classList.toggle('mshape',measOn&&measPts.length>=2);
+  const mc=$('mClear'); if(mc) mc.disabled=!measPts.length;
+  const me=$('mExport'); if(me) me.disabled=!(measPts.length>1||placed().length);
   $('mhint').textContent=!measPts.length
     ? (TOUCH()?'Tap the start of the run — a property corner, or where the frontage begins.'
               :'Click the start of the run — a property corner, or where the frontage begins.')
-    : (measClosed?'Closed. Undo a point to reopen it.'
-       :(TOUCH()?'Keep tapping. Tap Done when you have finished.'
-                :'Keep clicking. Double-click, or Done, to finish.'));
+    : (measClosed?'Closed. Drag any point to adjust it, or Undo a point to reopen.'
+       :(TOUCH()?'Tap to add points · drag one to adjust.'
+                :'Keep clicking to add points. Drag a point to adjust it. Done keeps it on the map.'));
 }
 function measText(){
   const m=measTotal(); let t='Total '+ft(m);
@@ -8775,18 +8943,39 @@ function measSet(on){
   document.body.classList.toggle('measuring',measOn);
   document.getElementById('map').classList.toggle('measuring',measOn);
   $('bMeasure').classList.toggle('on',measOn);
-  if(measOn){ map.doubleClickZoom.disable(); measClear(); measSync(); }
-  else { map.doubleClickZoom.enable(); measClear(); document.body.classList.remove('mshape'); }
+  if(typeof mapFocus==='function') setTimeout(mapFocus,0);
+  if(measOn){ map.doubleClickZoom.disable(); if(!measPts.length) measLoad(true); measDraw(); }
+  else { map.doubleClickZoom.enable(); if(measGhost){ map.removeLayer(measGhost); measGhost=null; }
+         measDraw(); document.body.classList.remove('mshape'); }
 }
 function measAdd(ll){
   if(measClosed) return;
-  measPts.push(ll); measDraw();
+  measPts.push(ll); measDraw(); measSave();
+}
+function measSave(){
+  if(LOCKED) return;
+  const was=JSON.stringify(BRAND.meas||null);
+  const nu=measPts.length?{pts:measPts.map(ll=>[+ll.lat.toFixed(7),+ll.lng.toFixed(7)]),closed:!!measClosed}:null;
+  if(JSON.stringify(nu)===was) return;
+  BRAND=Object.assign({},BRAND); if(nu) BRAND.meas=nu; else delete BRAND.meas;
+  setDirty(true);
+}
+function measLoad(quiet){
+  if(VIEWONLY) return;
+  const m=BRAND&&BRAND.meas;
+  [measLine,measPoly,measGhost].forEach(l=>{ if(l) map.removeLayer(l); }); measLine=measPoly=measGhost=null;
+  measMarks.forEach(x=>map.removeLayer(x)); measMarks=[]; measLabels.forEach(x=>map.removeLayer(x)); measLabels=[];
+  measPts=(m&&Array.isArray(m.pts))?m.pts.map(a=>L.latLng(a[0],a[1])):[]; measClosed=!!(m&&m.closed);
+  if(!quiet) measDraw();
 }
 $('bMeasure').onclick=()=>measSet(!measOn);
 $('mDone').onclick=()=>measSet(false);
-$('mUndo').onclick=()=>{ if(measClosed){ measClosed=false; measDraw(); return; }
-  measPts.pop(); measDraw(); };
-$('mClose').onclick=()=>{ if(measPts.length>2){ measClosed=true; measDraw(); } };
+$('mUndo').onclick=()=>{ if(measClosed){ measClosed=false; measDraw(); measSave(); return; }
+  measPts.pop(); measDraw(); measSave(); };
+$('mClose').onclick=()=>{ if(measPts.length>2){ measClosed=true; measDraw(); measSave(); } };
+$('mClear').onclick=()=>{ measClear(); measDraw(); measSave(); };
+$('mExport').onclick=()=>exportMap();
+measLoad();
 let measSayT=0;
 function measSay(msg,ms){
   const h=$('mhint'); if(!h) return;
@@ -8905,7 +9094,7 @@ const MENUS=[
  ['file','File',[['bSave','Save'],['aSaveAs','Save as…',()=>saveAs()],['aVer','Version history…',()=>openVersions()],'-',
    ['bLib','My surveys'],['bOpen','Open a survey file…'],['bMerge','Merge in a survey file…'],'-',
    ['bWO','Import estimate, order or invoice…'],['aAll',()=>(TOUCH()?'Save all photos to Photos…':'Download all photos…'),()=>dlPick()],
-   ['bPrint','Print schedule or save as PDF']]],
+   ['bPrint','Print schedule or save as PDF'],['aExp',()=>(TOUCH()?'Save map image…':'Export map image…'),()=>exportMap()]]],
  ['loc','Location',[['bCam','Take photo'],['bAdd','Add photos'],['aHand','Add a location by hand',()=>addLocByHand()],'-',
    ['bSelect','Select several locations'],['bEdit','Edit pin positions'],'-',['bReset','Move every pin back to GPS',null,'danger']]],
  ['mark','Mark Up',[['aMk','Mark up a photo…',()=>markPick()],['bMeasure','Measure on the map']]],
@@ -8919,7 +9108,8 @@ const MB_FREE={aHelp:1,aAll:1,aNorth:1};
 const hasPhoto=()=>PTS.some(p=>shotOf(p));
 const MB_NEED={aSaveAs:()=>PTS.length>0, aVer:()=>!!verAddr(), aAll:hasPhoto, aMk:hasPhoto,
   bPrint:()=>PTS.length>0, bSelect:()=>PTS.length>0, bEdit:()=>placed().length>0,
-  bReset:()=>placed().length>0, bFit:()=>PTS.length>0, bDense:()=>PTS.length>0};
+  bReset:()=>placed().length>0, bFit:()=>PTS.length>0, bDense:()=>PTS.length>0,
+  aExp:()=>placed().length>0||((BRAND.meas&&BRAND.meas.pts||[]).length>1)};
 const MB_DESK={bOpen:1,bMerge:1,bWO:1};
 function mbItems(items){
   const out=[];
@@ -9011,6 +9201,315 @@ function markPick(){
   $('modalDlg').classList.add('moresheet');
   setTimeout(()=>document.querySelectorAll('#modalDlg .mi').forEach(el=>el.onclick=()=>{
     const p=PTS.find(x=>x.file===el.dataset.f); closeModal(); if(p) setTimeout(()=>mkOpen(p.file,p.shot||0),0); }),0);
+}
+const navList=()=>placed().slice().sort((a,b)=>a.i-b.i).concat(waiting());
+function locNeighbour(file,d){ const L=navList(), k=L.findIndex(x=>x.file===file);
+  if(k<0) return null; return L[k+d]||null; }
+function locWhere(file){ const L=navList(), k=L.findIndex(x=>x.file===file); return k<0?'':(k+1)+' of '+L.length; }
+function locNavHTML(p,where){
+  const prev=locNeighbour(p.file,-1), next=locNeighbour(p.file,1);
+  return '<div class="locnav"><button '+(prev?'':'disabled ')+'onclick="popStep(\''+js(p.file)+'\',-1)" aria-label="Previous location">&#8249; Prev</button>'
+    +'<span>'+he(locWhere(p.file))+'</span>'
+    +'<button '+(next?'':'disabled ')+'onclick="popStep(\''+js(p.file)+'\',1)" aria-label="Next location">Next &#8250;</button></div>';
+}
+function goLoc(q,sheet){
+  const i=PTS.indexOf(q); if(i<0) return;
+  if(sheet||q.unplaced||TOUCH()){ select(i,false); openSheet(i,true);
+    if(!q.unplaced) map.panTo([q.dlat,q.dlon],{animate:true}); return; }
+  map.closePopup(); select(i,true);
+}
+function popStep(file,d){ const q=locNeighbour(file,d); if(q) goLoc(q,false); }
+function shStep(d){ const q=sheetFile&&locNeighbour(sheetFile,d); if(q) goLoc(q,true); }
+function shNavPaint(p){
+  const pv=$('shLprev'), nx=$('shLnext'), w=$('shWhere'), sv=$('shSave');
+  if(pv) pv.disabled=!locNeighbour(p.file,-1);
+  if(nx) nx.disabled=!locNeighbour(p.file,1);
+  if(w) w.textContent=locWhere(p.file)?'Location '+locWhere(p.file):'';
+  if(sv){ const t=$('bSave')?$('bSave').textContent:'Save'; sv.textContent=/●/.test(t)?'Save ●':(/^Saved/.test(t)?'Saved':'Save');
+    sv.disabled=!/●/.test(t); sv.style.display=VIEWONLY?'none':''; }
+}
+$('shLprev').onclick=()=>shStep(-1);
+$('shLnext').onclick=()=>shStep(1);
+$('shSave').onclick=()=>{ doSave().then(()=>{ const p=sheetPt(); if(p) shNavPaint(p); });
+  if(SHS) SHS.touched.clear(); };
+(function(){
+  const st=document.querySelector('#sheet .stage'); if(!st) return;
+  let x0=null,y0=0,t0=0;
+  st.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; x0=e.clientX; y0=e.clientY; t0=Date.now(); });
+  st.addEventListener('pointerup',e=>{
+    if(x0==null) return; const dx=e.clientX-x0, dy=e.clientY-y0; x0=null;
+    if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.5||Date.now()-t0>800) return;
+    const p=sheetPt(); if(!p) return; const d=dx<0?1:-1, n=(p.shots||[]).length;
+    if(n>1&&(d>0?p.shot<n-1:p.shot>0)) setShot(p.file,p.shot+d); else shStep(d);
+  });
+  st.addEventListener('pointercancel',()=>{ x0=null; });
+})();
+let SHS=null;
+const locClone=p=>{ try{ return structuredClone(p); }catch(_){ return JSON.parse(JSON.stringify(p)); } };
+function shBack(){
+  if(LOCKED||!SHS||!SHS.touched.size||!dirty){ closeSheet(); return; }
+  const n=SHS.touched.size;
+  const nm=n===1?title(PTS.find(x=>x.file===[...SHS.touched][0])||{label:'this location'}):'';
+  openModal('<h2>'+(n===1?'Save changes to '+he(nm)+'?':'Save your changes?')+'</h2><div class="body"><div class="svnote">'
+    +(n===1?'This location was changed':'You changed '+n+' locations')+' and the survey has not been saved yet.</div>'
+    +'<div class="morelist ioslist"><button class="mi" data-b="save"><span class="ck"></span><b>Save</b></button>'
+    +'<button class="mi danger" data-b="drop"><span class="ck"></span>Discard Changes</button></div></div>',
+    null,null,{cancel:'Keep Editing'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-b]').forEach(el=>el.onclick=()=>{
+    const k=el.dataset.b, S=SHS; closeModal();
+    if(k==='save'){ closeSheet(); doSave(); return; }
+    pushWorld('discard changes');                  // Undo still brings them back
+    S.touched.forEach(f=>{ const j=PTS.findIndex(x=>x.file===f), sn=S.snaps[f]; if(j>=0&&sn) PTS[j]=locClone(sn); });
+    closeSheet(); render(true);
+    if(!S.wasDirty) setDirty(false); else setDirty(true);
+    banner('Changes discarded — Undo brings them back.',4000);
+  }),0);
+}
+let MOVE=null, EDIT0=null;
+const posOf=p=>({lat:p.lat,lon:p.lon,dlat:p.dlat,dlon:p.dlon,man:p.man,moved:p.moved,unplaced:p.unplaced,nudged:p.nudged,note:p.note,head:p.head});
+function moveOne(file){
+  const i=PTS.findIndex(x=>x.file===file), p=PTS[i]; if(!p||LOCKED) return;
+  const fromSheet=!!sheetFile;
+  map.closePopup(); closeSheet();
+  if(measOn) measSet(false); if(selMode) selSetMode(false);
+  if(p.unplaced){ armPlace(file); adjSync(); return; }
+  if(editing) bE.click();
+  MOVE={file:file,was:posOf(p),fromSheet:fromSheet};
+  select(i,false); map.panTo([p.dlat,p.dlon]);
+  render(true); adjSync();
+}
+function moveTo(ll){
+  const p=MOVE&&PTS.find(x=>x.file===MOVE.file); if(!p) return;
+  undoPoint(p,'move pin');
+  p.lat=p.dlat=ll.lat; p.lon=p.dlon=ll.lng; p.nudged=false;
+  if(!p.man){ p.moved=true; p.note=p.note||'Position adjusted on the map'; }
+  render(true); setDirty(true);
+}
+function moveEnd(keep){
+  if(!MOVE) return; const m=MOVE; MOVE=null;
+  if(!keep){ const p=PTS.find(x=>x.file===m.file);
+    if(p&&(p.dlat!==m.was.dlat||p.dlon!==m.was.dlon)){ pushWorld('cancel move'); Object.assign(p,m.was); setDirty(true); } }
+  render(true); adjSync();
+  if(m.fromSheet){ const i=PTS.findIndex(x=>x.file===m.file); if(i>=0) openSheet(i,true); }
+}
+function mapFocus(){
+  const on=MOBILE()&&(document.body.classList.contains('adjon')||measOn);
+  if(document.body.classList.contains('mapfocus')!==on){ document.body.classList.toggle('mapfocus',on);
+    setTimeout(()=>{ map.invalidateSize(); if(typeof sizeStage==='function') sizeStage(); },60); }
+}
+function adjSync(){
+  let t='', done=true;
+  if(MOVE){ t='Drag the pin, or tap where it goes'; }
+  else if(placing){ const p=PTS.find(x=>x.file===placing); t='Tap the map where '+(p&&(p.label||shotOf(p))?title(p):'this location')+' goes'; done=false; }
+  else if(editing){ t='Drag pins to move them · drag the amber knob to aim'; }
+  else if(aiming>=0){ t='Tap the spot '+title(PTS[aiming])+' is looking at'; done=false; }
+  document.body.classList.toggle('adjon',!!t);
+  $('adjTxt').textContent=t; $('adjDone').style.display=done?'':'none';
+  mapFocus();
+}
+$('adjDone').onclick=()=>{ if(MOVE) moveEnd(true); else if(editing){ EDIT0=null; bE.click(); } else if(placing) cancelPlace(); adjSync(); };
+$('adjCancel').onclick=()=>{
+  if(MOVE) moveEnd(false);
+  else if(placing){ const f=placing, q=PTS.find(x=>x.file===f); cancelPlace();
+    if(q&&q.unplaced&&!q.label&&!(q.shots||[]).length&&!(q.lines||[]).length&&!q.memo){
+      PTS.splice(PTS.indexOf(q),1); render(true); setDirty(true); } }
+  else if(aiming>=0){ aiming=-1; $('map').classList.remove('aiming'); $('aimbar').style.display='none'; }
+  else if(editing){ const w=EDIT0; EDIT0=null; bE.click();
+    if(w){ let ch=false; PTS.forEach(p=>{ const o=w[p.file]; if(o&&(o.dlat!==p.dlat||o.dlon!==p.dlon||o.head!==p.head)) ch=true; });
+      if(ch){ pushWorld('cancel pin moves'); PTS.forEach(p=>{ if(w[p.file]) Object.assign(p,w[p.file]); }); render(true); setDirty(true); } } }
+  adjSync();
+};
+function dlPick(file){
+  const p=file?PTS.find(x=>x.file===file):null;
+  const ps=p?[p]:navList();
+  const items=[]; ps.forEach(q=>(q.shots||[]).forEach((sh,k)=>{ if(sh&&sh.src) items.push({p:q,sh:sh,k:k}); }));
+  const n=items.length, V=TOUCH()?'Save':'Download';
+  if(!n){ banner(p?'This location has no photos yet.':'This survey has no photos yet.',3500); return; }
+  const sel=new Set();
+  if(p){ const cur=shotOf(p); items.forEach((it,j)=>{ if(it.sh===cur) sel.add(j); }); }
+  let html='', lastF=null;
+  items.forEach((it,j)=>{
+    if(!p&&it.p.file!==lastF){ lastF=it.p.file; html+=(j?'</div>':'')+'<div class="dlhead"><span>'+he((it.p.unplaced?'':it.p.i+' · ')+title(it.p))+'</span></div><div class="dlgrid">'; }
+    else if(!j) html+='<div class="dlgrid">';
+    html+='<label class="dlpk'+(sel.has(j)?' on':'')+'"><input type="checkbox" data-j="'+j+'"'+(sel.has(j)?' checked':'')+'>'
+      +'<img src="'+it.sh.src+'" alt="">'+(hasMk(it.sh)?'<b class="mkb">markup</b>':'')
+      +'<span>Photo '+(it.k+1)+(it.sh.inst?' · install':'')+'</span></label>';
+  });
+  html+='</div>';
+  const anyMk=items.some(it=>hasMk(it.sh));
+  openModal('<h2>'+he(p?((p.unplaced?'':p.i+' · ')+title(p)):'Photos in this survey')+'</h2><div class="body">'
+   +'<div class="morelist ioslist dlacts">'
+   +'<button class="mi" data-d="so"><span class="ck"></span><span id="dlSo"></span></button>'
+   +'<button class="mi" data-d="sm"><span class="ck"></span><span id="dlSm"></span></button>'
+   +'<button class="mi" data-d="ao"><span class="ck"></span>'+V+' all '+n+'</button>'
+   +'<button class="mi" data-d="am"'+(anyMk?'':' disabled')+'><span class="ck"></span>'+V+' all '+n+' with markup</button>'
+   +'</div>'+(anyMk?'':'<div class="hint" style="margin-top:8px">No markup drawn on '+(p?'this location':'any photo')+' yet.</div>')
+   +'<div class="dlhead"><span id="dlCount"></span><button id="dlAllT">Select all</button></div>'
+   +html
+   +'</div>',null,null,{cancel:'Cancel'});
+  $('modalDlg').classList.add('moresheet');
+  const paint=()=>{ const c=sel.size, mk=[...sel].some(j=>hasMk(items[j].sh));
+    $('dlCount').textContent=c?c+' selected':'Tap photos to pick them';
+    $('dlSo').textContent=V+' selected'+(c?' ('+c+')':'');
+    $('dlSm').textContent=V+' selected with markup'+(c?' ('+c+')':'');
+    document.querySelector('#modalDlg [data-d="so"]').disabled=!c;
+    document.querySelector('#modalDlg [data-d="sm"]').disabled=!c||!mk;
+    $('dlAllT').textContent=c===n?'Select none':'Select all'; };
+  setTimeout(()=>{
+    document.querySelectorAll('#modalDlg .dlpk input').forEach(cb=>cb.onchange=()=>{
+      const j=+cb.dataset.j; if(cb.checked) sel.add(j); else sel.delete(j);
+      cb.parentNode.classList.toggle('on',cb.checked); paint(); });
+    $('dlAllT').onclick=()=>{ const all=sel.size!==n; sel.clear(); if(all) items.forEach((_,j)=>sel.add(j));
+      document.querySelectorAll('#modalDlg .dlpk input').forEach(cb=>{ cb.checked=sel.has(+cb.dataset.j); cb.parentNode.classList.toggle('on',cb.checked); }); paint(); };
+    document.querySelectorAll('#modalDlg [data-d]').forEach(el=>el.onclick=()=>{
+      const k=el.dataset.d, pick=k[0]==='s'?[...sel].sort((a,b)=>a-b).map(j=>items[j]):items;
+      closeModal(); saveShots(pick,k[1]==='m',p); });
+    paint();
+  },0);
+}
+async function saveShots(list,withMarks,p){
+  if(!list.length) return;
+  const job=fname(BRAND.job||'Site Survey');
+  busyOpen('Getting '+list.length+' photo'+(list.length===1?'':'s')+' ready…');
+  const files=[], used={};
+  try{
+    for(let j=0;j<list.length;j++){
+      busyStep((j+1)+' of '+list.length);
+      const {p:q,sh,k}=list[j], mk=!!(withMarks&&hasMk(sh));
+      let nm=fname((q.unplaced?'':q.i+' ')+title(q)+(q.shots.length>1?' - photo '+(k+1):'')+(mk?' - markup':''))||'photo';
+      while(used[nm]) nm+='_'; used[nm]=1;
+      files.push({name:nm+'.jpg',blob:await shotBlob(sh,mk)});
+    }
+  }catch(e){ busyClose(); banner('Could not get the photos ready.',4000); return; }
+  busyClose();
+  if(TOUCH()){
+    const fl=files.map(f=>new File([f.blob],f.name,{type:'image/jpeg'}));
+    try{ if(navigator.share&&navigator.canShare&&navigator.canShare({files:fl})){ await navigator.share({files:fl,title:job}); return; } }
+    catch(err){ if(err&&(err.name==='AbortError'||err.name==='NotAllowedError')) return; }
+  }
+  if(files.length===1){ download(files[0].name,files[0].blob); banner('Downloaded '+files[0].name,3500); return; }
+  const zn=fname(job+(p?' - '+title(p):'')+(withMarks?' - photos with markup':' - photos'))+'.zip';
+  download(zn,await makeZip(files));
+  banner('Downloaded '+zn+' — '+files.length+' photos',4500);
+}
+const mkFlat=()=>{ const out=[]; navList().forEach(q=>(q.shots||[]).forEach((sh,k)=>{ if(sh&&sh.src&&!sh.inst) out.push({f:q.file,k:k}); })); return out; };
+function mkNavPaint(){
+  const L=mkFlat(), j=L.findIndex(x=>x.f===MKF&&x.k===MKK), p=PTS.find(x=>x.file===MKF);
+  $('mkPrev').disabled=j<=0; $('mkNext').disabled=j<0||j>=L.length-1;
+  if(p) $('mkWhere').innerHTML='<span class="nm">'+he((p.unplaced?'':p.i+' · ')+title(p))+'</span><span class="ph">'
+    +(p.shots.length>1?' · photo '+(MKK+1)+' of '+p.shots.length:'')+' ▾</span>';
+}
+function mkGo(d){ const L=mkFlat(), j=L.findIndex(x=>x.f===MKF&&x.k===MKK), t=L[j+d]; if(t) mkOpen(t.f,t.k); }
+$('mkPrev').onclick=()=>mkGo(-1);
+$('mkNext').onclick=()=>mkGo(1);
+$('mkWhere').onclick=()=>{
+  const ps=navList().filter(q=>(q.shots||[]).some(sh=>sh&&sh.src&&!sh.inst));
+  openModal('<h2>Mark up which photo?</h2><div class="body">'
+    +ps.map(q=>'<div class="dlhead"><span>'+he((q.unplaced?'':q.i+' · ')+title(q))+'</span></div><div class="dlgrid">'
+      +q.shots.map((sh,k)=>sh&&sh.src&&!sh.inst?'<label class="dlpk'+(q.file===MKF&&k===MKK?' on':'')+'" data-f="'+he(q.file)+'" data-k="'+k+'">'
+        +'<img src="'+sh.src+'" alt="">'+(hasMk(sh)?'<b class="mkb">markup</b>':'')+'<span>Photo '+(k+1)+'</span></label>':'').join('')+'</div>').join('')
+    +'</div>',null,null,{cancel:'Cancel'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg .dlpk[data-f]').forEach(el=>el.onclick=e=>{ e.preventDefault();
+    const f=el.dataset.f, k=+el.dataset.k; closeModal(); setTimeout(()=>mkOpen(f,k),0); }),0);
+};
+(function(){
+  const st=$('mkStage'); let x0=null,y0=0,t0=0;
+  st.addEventListener('pointerdown',e=>{ if(e.target!==st&&e.target!==$('mkImg')&&e.target!==$('mkSvg')&&e.target!==$('mkHandles')&&e.target!==$('mkWrap')&&!(e.target.closest&&e.target.closest('#mkSvg'))) return;
+    x0=e.clientX; y0=e.clientY; t0=Date.now(); });
+  st.addEventListener('pointerup',e=>{ if(x0==null) return; const dx=e.clientX-x0, dy=e.clientY-y0; x0=null;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&Date.now()-t0<800) mkGo(dx<0?1:-1); });
+})();
+function exportMap(){
+  const sz=map.getSize(); if(!sz.x||!sz.y) return;
+  const k=Math.min(2,4000/Math.max(sz.x,sz.y));
+  const Z=map.getZoom(), pts=placed().slice().sort((a,b)=>a.i-b.i);
+  const keyRows=Math.ceil(pts.length/2), HEAD=84, KEY=pts.length?(28+keyRows*20):0, FOOT=40;
+  const W=sz.x, H=sz.y+HEAD+KEY+FOOT;
+  const c=document.createElement('canvas'); c.width=Math.round(W*k); c.height=Math.round(H*k);
+  const g=c.getContext('2d'); g.scale(k,k);
+  g.fillStyle='#1a1d26'; g.fillRect(0,0,W,H);
+  g.fillStyle='#55606f'; g.fillRect(0,HEAD,W,sz.y);
+  busyOpen('Making the map image…');
+  const layers=[];
+  [sat,street,topo].forEach(l=>{ if(map.hasLayer(l)) layers.push(l); });
+  if(map.hasLayer(hdGroup)) hdGroup.eachLayer(l=>layers.push(l));
+  if(map.hasLayer(parcelGroup)) parcelGroup.eachLayer(l=>layers.push(l));
+  const load=u=>new Promise(res=>{ const im=new Image(); im.crossOrigin='anonymous';
+    const t=setTimeout(()=>res(null),9000); im.onload=()=>{ clearTimeout(t); res(im); };
+    im.onerror=()=>{ clearTimeout(t); res(null); }; im.src=u; });
+  let missed=0;
+  const drawLayer=async l=>{
+    const o=l.options||{}, z=Math.max(o.minZoom||0,Math.min(Math.round(Z),o.maxNativeZoom!=null?o.maxNativeZoom:(o.maxZoom||19)));
+    const ts=256, nw=map.project(map.containerPointToLatLng([0,0]),z), se=map.project(map.containerPointToLatLng([sz.x,sz.y]),z);
+    const jobs=[];
+    for(let x=Math.floor(nw.x/ts);x<=Math.floor(se.x/ts);x++) for(let y=Math.floor(nw.y/ts);y<=Math.floor(se.y/ts);y++){
+      const cp=L.point(x,y); cp.z=z; let u='';
+      try{ const keep=l._tileZoom; l._tileZoom=z; u=l.getTileUrl(cp); l._tileZoom=keep; }catch(_){ }
+      if(!u) continue;
+      const a=map.latLngToContainerPoint(map.unproject([x*ts,y*ts],z)), b=map.latLngToContainerPoint(map.unproject([(x+1)*ts,(y+1)*ts],z));
+      jobs.push(load(u).then(im=>{ if(im) g.drawImage(im,a.x,HEAD+a.y,b.x-a.x+0.5,b.y-a.y+0.5); else missed++; }));
+    }
+    await Promise.all(jobs);
+  };
+  (async()=>{
+    g.save(); g.beginPath(); g.rect(0,HEAD,W,sz.y); g.clip();
+    for(const l of layers){ g.globalAlpha=(l.options&&l.options.opacity!=null)?l.options.opacity:1; await drawLayer(l); }
+    g.globalAlpha=1; g.restore();
+    const P=ll=>{ const q=map.latLngToContainerPoint(ll); return [q.x,HEAD+q.y]; };
+    g.save(); g.beginPath(); g.rect(0,HEAD,W,sz.y); g.clip();
+    if(measPts.length>1){
+      const ring=measClosed?measPts.concat([measPts[0]]):measPts;
+      if(measClosed&&measPts.length>2){ g.beginPath(); measPts.forEach((ll,i)=>{ const [x,y]=P(ll); i?g.lineTo(x,y):g.moveTo(x,y); });
+        g.closePath(); g.fillStyle='rgba(255,183,3,.2)'; g.fill(); }
+      g.beginPath(); ring.forEach((ll,i)=>{ const [x,y]=P(ll); i?g.lineTo(x,y):g.moveTo(x,y); });
+      g.strokeStyle='#ffb703'; g.lineWidth=3; g.setLineDash([7,4]); g.stroke(); g.setLineDash([]);
+      measPts.forEach(ll=>{ const [x,y]=P(ll); g.beginPath(); g.arc(x,y,4.5,0,7); g.fillStyle='#ffb703'; g.fill(); g.strokeStyle='#1a1d26'; g.lineWidth=1.5; g.stroke(); });
+      g.font='600 12px system-ui,-apple-system,Segoe UI,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+      for(let i=1;i<ring.length;i++){ const a=ring[i-1], b=ring[i], [x,y]=P(L.latLng((a.lat+b.lat)/2,(a.lng+b.lng)/2)), t=ft(a.distanceTo(b));
+        const w=g.measureText(t).width+12; g.fillStyle='rgba(20,22,30,.9)'; g.fillRect(x-w/2,y-10,w,20);
+        g.fillStyle='#ffb703'; g.fillText(t,x,y); }
+    }
+    g.font='700 12px system-ui,-apple-system,Segoe UI,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    pts.forEach(p=>{ const [x,y]=P(L.latLng(p.dlat,p.dlon)); g.beginPath(); g.arc(x,y,12,0,7);
+      g.fillStyle='#fff'; g.fill(); g.lineWidth=2.5; g.strokeStyle=(p.man||p.moved)?'#ffb703':'#111'; g.stroke();
+      g.fillStyle='#111'; g.fillText(String(p.i),x,y+0.5); });
+    g.restore();
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillStyle='#e8eaf0'; g.font='650 18px system-ui,-apple-system,Segoe UI,sans-serif';
+    g.fillText(BRAND.job||'Site Survey',16,30);
+    g.fillStyle='#8f96ab'; g.font='12.5px system-ui,-apple-system,Segoe UI,sans-serif';
+    g.fillText([BRAND.site,new Date().toLocaleDateString()].filter(Boolean).join('  ·  '),16,50);
+    if(measPts.length>1){ g.fillStyle='#ffb703'; g.font='600 13px system-ui,-apple-system,Segoe UI,sans-serif';
+      let t='Measured: '+ft(measTotal());
+      if(measClosed&&measPts.length>2){ const sq=geodesicArea(measPts)*SQM2SQFT; t+='   ·   Area '+nfmt(sq,0)+' sq ft ('+nfmt(sq/SQFT_ACRE,2)+' acres)'; }
+      g.fillText(t,16,72); }
+    const nx=W-28, ny=HEAD+30; g.fillStyle='rgba(20,22,30,.85)'; g.beginPath(); g.arc(nx,ny,17,0,7); g.fill();
+    g.fillStyle='#e63946'; g.beginPath(); g.moveTo(nx,ny-12); g.lineTo(nx+6,ny+2); g.lineTo(nx-6,ny+2); g.fill();
+    g.fillStyle='#fff'; g.font='700 10px system-ui,sans-serif'; g.textAlign='center'; g.fillText('N',nx,ny+12);
+    const mpp=map.containerPointToLatLng([0,sz.y/2]).distanceTo(map.containerPointToLatLng([100,sz.y/2]))/100;
+    const nice=[5,10,20,25,50,100,200,250,500,1000,2000,5000].find(f=>f/M2FT/mpp>=60)||5000, px=nice/M2FT/mpp;
+    g.fillStyle='rgba(20,22,30,.85)'; g.fillRect(10,HEAD+sz.y-30,px+20,22);
+    g.fillStyle='#fff'; g.fillRect(20,HEAD+sz.y-16,px,3); g.font='11px system-ui,sans-serif'; g.textAlign='left';
+    g.fillText(nice+' ft',20,HEAD+sz.y-20);
+    if(pts.length){ let y=HEAD+sz.y+22; g.fillStyle='#8f96ab'; g.font='600 11px system-ui,sans-serif'; g.fillText('LOCATIONS',16,y);
+      g.font='12px system-ui,-apple-system,Segoe UI,sans-serif';
+      pts.forEach((p,j)=>{ const col=j<keyRows?0:1, row=j%keyRows, x=16+col*(W/2), yy=y+18+row*20;
+        g.fillStyle='#ffb703'; g.fillText(String(p.i),x,yy); g.fillStyle='#e8eaf0';
+        let t=title(p); while(g.measureText(t).width>W/2-48&&t.length>4) t=t.slice(0,-2);
+        if(t!==title(p)) t+='…'; g.fillText(t,x+24,yy); }); }
+    g.fillStyle='#8f96ab'; g.font='10.5px system-ui,sans-serif'; g.textAlign='left';
+    g.fillText('Planning estimate from the aerial — verify on site.   Imagery © Esri and the county services shown.',16,H-16);
+    c.toBlob(async b=>{ busyClose();
+      if(!b){ banner('Could not make the map image.',5000); return; }
+      const nm=fname((BRAND.job||'Site Survey')+' - map')+'.png';
+      if(missed) banner(missed+' map tile'+(missed===1?'':'s')+' would not export — that part of the aerial is blank in the picture.',7000);
+      const f=new File([b],nm,{type:'image/png'});
+      const r=TOUCH()?await shareFile(f,nm):'unsupported';
+      if(r==='unsupported'){ download(nm,b); if(!missed) banner('Downloaded '+nm,3500); }
+    },'image/png');
+  })().catch(()=>{ busyClose(); banner('Could not make the map image.',5000); });
 }
 buildMenubar();
 
@@ -9926,9 +10425,7 @@ function banner(msg,ms){
   const b=$('banner'); if(!b)return;
   b.textContent=msg; b.style.display='block';
   clearTimeout(bannerT);
-  bannerT=setTimeout(()=>{ b.style.display=editing?'block':'none';
-    if(editing)b.textContent='Edit mode — drag a pin to move it, drag the amber knob to set which way the camera faced';
-  }, ms||2600);
+  bannerT=setTimeout(()=>{ b.style.display='none'; }, ms||2600);
 }
 
 // ---- modal dialog; Esc, backdrop and Cancel all back out -----------
@@ -10424,6 +10921,8 @@ function render(keepView){
   // A photo with no GPS carries a placeholder at the map centre, miles from a rural site.
   // In the fit box that zoomed the whole survey out to county level.
   if(placed().length) bounds=L.latLngBounds(placed().map(p=>[p.dlat,p.dlon]));
+  if(typeof MOVE!=='undefined'&&MOVE){ const k=PTS.findIndex(x=>x.file===MOVE.file);
+    if(marks[k]){ marks[k].dragging.enable(); const el=document.getElementById('pin'+k); if(el) el.classList.add('moving'); } }
   applyCones(); refreshTray(); refreshList(); updateStats();
   if(typeof pinPanel==='function') pinPanel();
   $('empty').classList.toggle('show',!PTS.length&&!VIEWONLY&&!emptyDismissed);
@@ -10488,9 +10987,11 @@ function aimFromPhoto(file){
   document.getElementById('aimbar').style.display=aiming>=0?'block':'none';
   if(aiming>=0)document.getElementById('aimtxt').textContent=
     'Click the spot on the map that '+(PTS[i].label||PTS[i].file)+' is looking at';
+  adjSync();
 }
 let aiming=-1;
 map.on('click',e=>{
+  if(MOVE){ moveTo(e.latlng); return; }
   if(measOn){ measAdd(e.latlng); return; }
   if(placing){ if(placeMove) placeAt(placing,e.latlng); else dropOrAttach(placing,e.containerPoint,e.latlng); return; }
   if(aiming<0){ if(map.hasLayer(parcelGroup)&&parcelNow) lookupParcel(e.latlng); return; }
@@ -10500,6 +11001,7 @@ map.on('click',e=>{
   setHeading(aiming,d);
   aiming=-1; document.getElementById('map').classList.remove('aiming');
   document.getElementById('aimbar').style.display='none';
+  adjSync();
 });
 function applyCones(){
   const on=bC.classList.contains('on');
@@ -10536,6 +11038,7 @@ const linkBehind=()=>{ try{ return !!(AHEAD&&!VIEWONLY&&!INSTALL&&(HOSTED||CURID
 function paintSave(){ setDirty(dirty); }
 function setDirty(v){
   dirty=v; if(v) AHEAD=true;
+  if(v&&typeof SHS!=='undefined'&&SHS&&sheetFile) SHS.touched.add(sheetFile);
   const bar=document.getElementById('savebar'), b=document.getElementById('bSave');
   if(bar) bar.classList.toggle('show',v);
   // r13: "Saved 2:18" used to appear after an AUTOSAVE, which only writes to this device — the
@@ -10553,6 +11056,8 @@ function setDirty(v){
     m.textContent=t; m.style.display=t?'':'none';
   }
   if(v && typeof autoLater==='function') autoLater();
+  const ss=document.getElementById('shSave');
+  if(ss&&b){ const t=b.textContent; ss.textContent=/●/.test(t)?'Save ●':(/^Saved/.test(t)?'Saved':'Save'); ss.disabled=!/●/.test(t); }
 }
 window.addEventListener('beforeunload',e=>{ if(dirty){e.preventDefault(); e.returnValue='';} });
 
@@ -10749,8 +11254,7 @@ function locMenu(file){
   setTimeout(()=>document.querySelectorAll('#modalDlg [data-a]').forEach(el=>el.onclick=()=>{
     const a=el.dataset.a, i=PTS.indexOf(p); closeModal(); if(i<0) return;
     if(a==='ed'){ map.closePopup(); select(i,false); openSheet(i); }
-    else if(a==='mv'){ closeSheet(); map.closePopup(); armPlace(p.file);
-      banner('Tap the map where '+title(p)+' goes. Esc cancels.',5000); }
+    else if(a==='mv') moveOne(p.file);
     else if(a==='dup') dupAsk(p.file);
     else if(a==='add') addToPin(p.file);
     else if(a==='mk') mkOpen(p.file,p.shot||0);
@@ -10809,25 +11313,7 @@ const PHOTO_SAVE=()=>TOUCH()?'Save to Photos…':'Download…';
 // r12b — Aaron: "add to photo download: download original and download markup". One button opens
 // the choices; a choice with nothing to act on is shown greyed, the house rule for every menu.
 const hasMk=sh=>!!(sh&&sh.marks&&sh.marks.length);
-function dlPick(file){
-  const p=file?PTS.find(x=>x.file===file):null, sh=p?shotOf(p):null;
-  const all=p?p.shots.filter(x=>x&&x.src):PTS.flatMap(q=>(q.shots||[]).filter(x=>x&&x.src));
-  const n=all.length, anyMk=all.some(hasMk), V=TOUCH()?'Save':'Download';
-  const rows=[];
-  if(p&&sh){ rows.push(['o',V+' original',true],['m',V+' with markup',hasMk(sh)]); }
-  if(n>1||!p){ rows.push(['ao',V+' all '+n+' originals',n>0],['am',V+' all '+n+' with markup',anyMk]); }
-  openModal('<h2>'+he(p?((p.unplaced?'':p.i+' · ')+title(p)):'All photos in this survey')+'</h2><div class="body">'
-   +'<div class="morelist ioslist">'+rows.map(([k,l,on])=>'<button class="mi" data-d="'+k+'"'+(on?'':' disabled')+'>'
-     +'<span class="ck"></span>'+he(l)+'</button>').join('')+'</div>'
-   +(anyMk?'':'<div class="hint" style="margin-top:8px">No markup drawn on '+(p?'this location':'any photo')+' yet.</div>')
-   +'</div>',null,null,{cancel:'Cancel'});
-  $('modalDlg').classList.add('moresheet');
-  setTimeout(()=>document.querySelectorAll('#modalDlg [data-d]').forEach(el=>el.onclick=()=>{
-    const k=el.dataset.d; closeModal();
-    if(k==='o') dlShot(p.file,false); else if(k==='m') dlShot(p.file,true);
-    else saveAll(p?p.file:undefined,k==='am');
-  }),0);
-}
+// dlPick: see r13 below — the photo picker with checkboxes
 
 const fname=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
 // One photo as a JPEG blob: the stored copy, or with its markup drawn in when it has any.
@@ -10919,7 +11405,7 @@ function pop(p){
   // you click to open the sheet, and it calls the identical openSheet().
   return '<div class="pop"><img src="'+imgOf(p)+'" onclick="openSheet('+PTS.indexOf(p)+')">'
    +shotBar(p)
-   +'<div class="b"><h3>'+p.i+'. '+he(title(p))+'</h3>'
+   +'<div class="b">'+locNavHTML(p,'pop')+'<h3>'+p.i+'. '+he(title(p))+'</h3>'
    +(VIEWONLY?'':'<div style="color:#8f96ab;font-size:10.5px;margin:-4px 0 7px">'+he(p.file)+'</div>')
    +'<table>'
    +'<tr><td>Coords</td><td class="co">'+p.lat.toFixed(6)+', '+p.lon.toFixed(6)+'</td></tr>'
@@ -10950,6 +11436,7 @@ function pop(p){
      +'<div class="btnrow">'
      +'<button onclick="locMenu(\''+js(p.file)+'\')">Edit…</button>'
      +'<button onclick="addToPin(\''+js(p.file)+'\')">Add photo</button>'
+     +'<button onclick="moveOne(\''+js(p.file)+'\')">Move pin</button>'
      // Camera is gone from this row. The photo sheet dropped it in round 2 for a reason written
      // at :2456 that is exactly as true with a mouse: the operating system's own picker offers
      // Take Photo and Photo Library anyway, so this was a second button for one of them. That is
@@ -11074,7 +11561,12 @@ function openSheet(i,keep){
   // render() reopens the sheet to refresh it; only a new sheet takes focus, or the caret
   // jumps to the start of the field mid-word.
   const wasOpen=$('sheet').classList.contains('show');
+  // r13: a sheet visit starts here; each location seen is remembered as it was, so Back can offer
+  // to throw this visit's changes away
+  if(!wasOpen) SHS={snaps:{},touched:new Set(),wasDirty:dirty};
+  if(SHS&&!SHS.snaps[p.file]) SHS.snaps[p.file]=locClone(p);
   sheetIdx=i; sheetFile=p.file; curFile=p.file;
+  document.body.classList.add('sheetopen');
   // sh is null on a location nobody has photographed yet. This line used to be
   // `p.shots[p.shot]||p.shots[0]` and the next one read sh.src off it, so the sheet THREW and
   // did not open — on a phone, tapping a hand-made pin did nothing whatsoever. Everything below
@@ -11138,7 +11630,8 @@ function openSheet(i,keep){
       +'<div class="acts">'
       +'<button id="shMenu">Edit…</button>'
       +'<button id="shAdd">Add photo</button>'
-      +(multi?'<button id="shDelShot">Remove this photo</button>':'')
+      +'<button id="shMove">'+(p.unplaced?'Place pin':'Move pin')+'</button>'
+      +(multi?'<button id="shDelShot" class="danger">Remove this photo</button>':'')
       +((p.egps&&!byGPS(p))?'<button class="gps" id="shGps">Revert to GPS</button>':'')
       +(p.unplaced&&lastFix?'<button class="gps" id="shHere">Place at my location'
         +(fixUsable(lastFix)?'':' (\u00b1'+accTxt(lastFix.acc)+')')+'</button>':'')
@@ -11158,6 +11651,7 @@ function openSheet(i,keep){
     $('shLbl').oninput=e=>{ setLabel(p.file,e.target.value); $('shTtl').textContent=title(p); };
     $('shMemo').oninput=e=>setMemo(p.file,e.target.value);
     $('shMenu').onclick=()=>locMenu(p.file);
+    $('shMove').onclick=()=>moveOne(p.file);
     $('shHead').oninput=e=>{ const i2=PTS.indexOf(p); if(e.target.value==='')return;
                              setHeading(i2,+e.target.value,true);
                              $('shCmp').textContent=p.head==null?'not set':cmp(p.head); };
@@ -11178,12 +11672,20 @@ function openSheet(i,keep){
     $('shAim').onclick=()=>{ closeSheet(); aimFromPhoto(p.file); };
     $('shDel').onclick=()=>{ const f=p.file; closeSheet(); removePhoto(f); };
   }
+  // r13 QC: the action buttons ride below the scrolling panel, in one row that scrolls sideways —
+  // on an iPhone they were under the fold of the panel and looked cut off
+  { const a=$('shMeta').querySelector('.acts'), box=$('shActs'); box.innerHTML='';
+    if(a){ const order=['shMark','shAdd','shMove','shDl','shMenu','shHere','shGps','shDelShot','shDel'];
+      order.forEach(id=>{ const b=a.querySelector('#'+id); if(b) box.appendChild(b); });
+      [...a.children].forEach(b=>box.appendChild(b)); a.remove(); } }
   $('sheet').classList.add('show');
+  shNavPaint(p);
   if(!LOCKED&&!wasOpen&&!keep){ const l=$('shLbl'); if(l) setTimeout(()=>l.focus(),0); }
   syncUndo();
 }
-function closeSheet(){ sheetIdx=-1; sheetFile=null; $('sheet').classList.remove('show'); $('shImg').src=''; }
-$('shClose').onclick=closeSheet;
+function closeSheet(){ sheetIdx=-1; sheetFile=null; SHS=null; $('sheet').classList.remove('show'); $('shImg').src='';
+  document.body.classList.remove('sheetopen'); }
+$('shClose').onclick=()=>shBack();
 $('shUndo').onclick=doUndo;   // the sheet covers the toolbar on a phone
 $('shPrev').onclick=()=>{ const q=sheetPt(); if(q)stepShot(q.file,-1); };
 $('shNext').onclick=()=>{ const q=sheetPt(); if(q)stepShot(q.file,1); };
@@ -11385,12 +11887,15 @@ function armPlace(file){
   h.textContent=(p.label||shotOf(p))?'Tap the map where '+(p.label||p.file)+' goes'
                                     :'Tap the map where this location goes';
   h.style.display='block';
+  if(typeof adjSync==='function') adjSync();
 }
 function cancelPlace(){
   placing=null; placeMove=false;
+  try{ clearTimeout(bannerT); $('banner').style.display='none'; }catch(_){ }
   document.querySelectorAll('.trayitem').forEach(x=>x.classList.remove('armed'));
   document.getElementById('map').classList.remove('dropready');
   document.getElementById('drophint').style.display='none';
+  if(typeof adjSync==='function') adjSync();
 }
 function placeAt(file,latlng){
   const p=PTS.find(x=>x.file===file); if(!p)return;
@@ -11630,9 +12135,11 @@ bE.onclick=()=>{
   // All three could be live at once: three bars, two Done buttons, and Remove armed while
   // you measured. In gloves and bright sun a mis-tap is normal; one mode at a time.
   if(!editing){ if(measOn) measSet(false); if(selMode) selSetMode(false); }
+  if(!editing&&typeof MOVE!=='undefined'&&MOVE) moveEnd(true);
   editing=!editing; bE.classList.toggle('on',editing);
   document.getElementById('map').classList.toggle('editing',editing);
-  document.getElementById('banner').style.display=editing?'block':'none';
+  if(editing){ EDIT0={}; PTS.forEach(p=>{ EDIT0[p.file]=posOf(p); }); }
+  adjSync();
   marks.forEach(m=>editing?m.dragging.enable():m.dragging.disable());
   const i=curIdx();
   if(editing){ if(i>=0){showHandle(i); showDrag(PTS[i],L.latLng(PTS[i].dlat,PTS[i].dlon));} }
@@ -12551,7 +13058,6 @@ function addLocByHand(){
   const q=makeLoc('',null); PTS.push(q);
   render(true); setDirty(true);
   armPlace(q.file);
-  banner('Tap the map where this location goes',5000);
 }
 // The paperwork's own number, in decimal inches, exactly as CoreBridge printed it. Deliberately
 // NOT through fmtLen: at the ft/in default 30.80" would come out as 2' 6 13/16", which is the
@@ -15164,6 +15670,8 @@ async function shareFile(file,title){
 
 // ---- printable sign schedule ---------------------------------------
 function applyBrand(){
+  // r13: a measurement travels with the survey (BRAND.meas); a newly opened or pulled survey shows its own
+  try{ if(!measOn) measLoad(); }catch(_){ /* before the measuring code has loaded — it loads its own */ }
   const job=BRAND.job||'Site Survey';
   document.title=job+' — Site Survey Photo Map';
   $('hJob').textContent=job;
@@ -15578,10 +16086,12 @@ function mkOpen(file,k){
   im.src=sh.src;
   $('mkWrap').style.aspectRatio=MKAR;
   $('mkedit').classList.add('show');
-  mkDraw();
+  mkDraw(); if(typeof mkNavPaint==='function') mkNavPaint();
 }
-function mkClose(){ $('mkedit').classList.remove('show'); $('mkImg').src=''; MKF=null;
-                    if(sheetFile) openSheet(PTS.findIndex(x=>x.file===sheetFile),true); }
+function mkClose(){ const f=MKF, k=MKK; $('mkedit').classList.remove('show'); $('mkImg').src=''; MKF=null;
+                    // back to the sheet of the location last marked up — it may not be the one it opened from
+                    if(sheetFile){ const i=PTS.findIndex(x=>x.file===f); if(i>=0){ const p=PTS[i]; if(p.shot!==k&&p.shots[k]){ p.shot=k; syncPrimary(p); } }
+                      openSheet(i>=0?i:PTS.findIndex(x=>x.file===sheetFile),true); } }
 function mkTouch(){ if(!MKDIRTY){ pushWorld('photo markup'); MKDIRTY=true; } }
 function mkStep(){ MKU.push(JSON.stringify(MKM)); if(MKU.length>40)MKU.shift(); }
 function mkCommit(){
@@ -15773,8 +16283,22 @@ function measDraw(){
   if(measPoly){ map.removeLayer(measPoly); measPoly=null; }
   if(measClosed&&measPts.length>2)
     measPoly=L.polygon(measPts,{color:'#ffb703',weight:0,fillOpacity:.18}).addTo(map);
-  measPts.forEach(ll=>measMarks.push(L.marker(ll,{interactive:false,keyboard:false,
-    icon:L.divIcon({className:'',html:'<div class="mvert"></div>',iconSize:[11,11],iconAnchor:[5.5,5.5]})}).addTo(map)));
+  // r13 — Aaron: "measure on map feature, allow adjusting points once measured." While Measure is
+  // open every point is a handle: drag it and the lengths follow. Tapping the first point closes
+  // the loop. Closed with Done, the shape stays on the map (and in the survey) without handles.
+  measPts.forEach((ll,k)=>{
+    const big=measOn&&!LOCKED;
+    const m=L.marker(ll,{interactive:big,draggable:big,keyboard:false,zIndexOffset:900,
+      icon:L.divIcon({className:'',html:'<div class="mvert'+(big?' drag':'')+'"></div>',iconSize:big?[22,22]:[11,11],iconAnchor:big?[11,11]:[5.5,5.5]})}).addTo(map);
+    if(big){
+      m.on('drag',e=>{ measPts[k]=e.target.getLatLng();
+        const ring=measClosed?measPts.concat([measPts[0]]):measPts;
+        if(measLine) measLine.setLatLngs(ring); if(measPoly) measPoly.setLatLngs(measPts); measSync(); });
+      m.on('dragend',()=>{ measDraw(); measSave(); });
+      m.on('click',()=>{ if(k===0&&!measClosed&&measPts.length>2){ measClosed=true; measDraw(); measSave(); } });
+    }
+    measMarks.push(m);
+  });
   for(let i=1;i<ring.length;i++){
     const a=ring[i-1], b=ring[i];
     const mid=L.latLng((a.lat+b.lat)/2,(a.lng+b.lng)/2);
@@ -15798,16 +16322,18 @@ function measSync(){
   $('mUndo').disabled=!measPts.length;
   $('mCopy').disabled=measPts.length<2;
   // Two points is the first shape to close, copy or disclaim — and when the bar grows.
-  document.body.classList.toggle('mshape',measPts.length>=2);
+  document.body.classList.toggle('mshape',measOn&&measPts.length>=2);
+  const mc=$('mClear'); if(mc) mc.disabled=!measPts.length;
+  const me=$('mExport'); if(me) me.disabled=!(measPts.length>1||placed().length);
   // Double-tap on a Leaflet map is zoom, so on a touch device the old instruction told the
   // crew to do the one thing that cannot finish a measurement. Done is the only way out there,
   // and saying so is shorter than offering both.
   $('mhint').textContent=!measPts.length
     ? (TOUCH()?'Tap the start of the run — a property corner, or where the frontage begins.'
               :'Click the start of the run — a property corner, or where the frontage begins.')
-    : (measClosed?'Closed. Undo a point to reopen it.'
-       :(TOUCH()?'Keep tapping. Tap Done when you have finished.'
-                :'Keep clicking. Double-click, or Done, to finish.'));
+    : (measClosed?'Closed. Drag any point to adjust it, or Undo a point to reopen.'
+       :(TOUCH()?'Tap to add points · drag one to adjust.'
+                :'Keep clicking to add points. Drag a point to adjust it. Done keeps it on the map.'));
 }
 function measText(){
   const m=measTotal(); let t='Total '+ft(m);
@@ -15826,18 +16352,41 @@ function measSet(on){
   document.body.classList.toggle('measuring',measOn);
   document.getElementById('map').classList.toggle('measuring',measOn);
   $('bMeasure').classList.toggle('on',measOn);
-  if(measOn){ map.doubleClickZoom.disable(); measClear(); measSync(); }
-  else { map.doubleClickZoom.enable(); measClear(); document.body.classList.remove('mshape'); }
+  // r13: the shape is kept. Opening Measure again picks it up to adjust; Clear starts over.
+  if(typeof mapFocus==='function') setTimeout(mapFocus,0);
+  if(measOn){ map.doubleClickZoom.disable(); if(!measPts.length) measLoad(true); measDraw(); }
+  else { map.doubleClickZoom.enable(); if(measGhost){ map.removeLayer(measGhost); measGhost=null; }
+         measDraw(); document.body.classList.remove('mshape'); }
 }
 function measAdd(ll){
   if(measClosed) return;
-  measPts.push(ll); measDraw();
+  measPts.push(ll); measDraw(); measSave();
+}
+// Kept with the survey, so it is there on the other devices and in the map export.
+function measSave(){
+  if(LOCKED) return;
+  const was=JSON.stringify(BRAND.meas||null);
+  const nu=measPts.length?{pts:measPts.map(ll=>[+ll.lat.toFixed(7),+ll.lng.toFixed(7)]),closed:!!measClosed}:null;
+  if(JSON.stringify(nu)===was) return;
+  BRAND=Object.assign({},BRAND); if(nu) BRAND.meas=nu; else delete BRAND.meas;
+  setDirty(true);
+}
+function measLoad(quiet){
+  if(VIEWONLY) return;
+  const m=BRAND&&BRAND.meas;
+  [measLine,measPoly,measGhost].forEach(l=>{ if(l) map.removeLayer(l); }); measLine=measPoly=measGhost=null;
+  measMarks.forEach(x=>map.removeLayer(x)); measMarks=[]; measLabels.forEach(x=>map.removeLayer(x)); measLabels=[];
+  measPts=(m&&Array.isArray(m.pts))?m.pts.map(a=>L.latLng(a[0],a[1])):[]; measClosed=!!(m&&m.closed);
+  if(!quiet) measDraw();
 }
 $('bMeasure').onclick=()=>measSet(!measOn);
 $('mDone').onclick=()=>measSet(false);
-$('mUndo').onclick=()=>{ if(measClosed){ measClosed=false; measDraw(); return; }
-  measPts.pop(); measDraw(); };
-$('mClose').onclick=()=>{ if(measPts.length>2){ measClosed=true; measDraw(); } };
+$('mUndo').onclick=()=>{ if(measClosed){ measClosed=false; measDraw(); measSave(); return; }
+  measPts.pop(); measDraw(); measSave(); };
+$('mClose').onclick=()=>{ if(measPts.length>2){ measClosed=true; measDraw(); measSave(); } };
+$('mClear').onclick=()=>{ measClear(); measDraw(); measSave(); };
+$('mExport').onclick=()=>exportMap();
+measLoad();
 // The hint line is where measure messages go: the banner is hidden on a phone so that one
 // instruction is on screen instead of two, and anything sent there would vanish.
 let measSayT=0;
@@ -16006,7 +16555,7 @@ const MENUS=[
  ['file','File',[['bSave','Save'],['aSaveAs','Save as…',()=>saveAs()],['aVer','Version history…',()=>openVersions()],'-',
    ['bLib','My surveys'],['bOpen','Open a survey file…'],['bMerge','Merge in a survey file…'],'-',
    ['bWO','Import estimate, order or invoice…'],['aAll',()=>(TOUCH()?'Save all photos to Photos…':'Download all photos…'),()=>dlPick()],
-   ['bPrint','Print schedule or save as PDF']]],
+   ['bPrint','Print schedule or save as PDF'],['aExp',()=>(TOUCH()?'Save map image…':'Export map image…'),()=>exportMap()]]],
  ['loc','Location',[['bCam','Take photo'],['bAdd','Add photos'],['aHand','Add a location by hand',()=>addLocByHand()],'-',
    ['bSelect','Select several locations'],['bEdit','Edit pin positions'],'-',['bReset','Move every pin back to GPS',null,'danger']]],
  ['mark','Mark Up',[['aMk','Mark up a photo…',()=>markPick()],['bMeasure','Measure on the map']]],
@@ -16027,7 +16576,8 @@ const MB_FREE={aHelp:1,aAll:1,aNorth:1};
 const hasPhoto=()=>PTS.some(p=>shotOf(p));
 const MB_NEED={aSaveAs:()=>PTS.length>0, aVer:()=>!!verAddr(), aAll:hasPhoto, aMk:hasPhoto,
   bPrint:()=>PTS.length>0, bSelect:()=>PTS.length>0, bEdit:()=>placed().length>0,
-  bReset:()=>placed().length>0, bFit:()=>PTS.length>0, bDense:()=>PTS.length>0};
+  bReset:()=>placed().length>0, bFit:()=>PTS.length>0, bDense:()=>PTS.length>0,
+  aExp:()=>placed().length>0||((BRAND.meas&&BRAND.meas.pts||[]).length>1)};
 const MB_DESK={bOpen:1,bMerge:1,bWO:1};
 function mbItems(items){
   const out=[];
@@ -16120,6 +16670,341 @@ function markPick(){
   $('modalDlg').classList.add('moresheet');
   setTimeout(()=>document.querySelectorAll('#modalDlg .mi').forEach(el=>el.onclick=()=>{
     const p=PTS.find(x=>x.file===el.dataset.f); closeModal(); if(p) setTimeout(()=>mkOpen(p.file,p.shot||0),0); }),0);
+}
+// ==== r13 — Aaron, 2026-10-22, iPhone list ===================================================
+// ---- moving between locations: the popup, the photo sheet, and a swipe ----------------------
+// Order is the list's order: numbered pins first, by number, then the ones still waiting to be
+// placed, as the tray shows them.
+const navList=()=>placed().slice().sort((a,b)=>a.i-b.i).concat(waiting());
+function locNeighbour(file,d){ const L=navList(), k=L.findIndex(x=>x.file===file);
+  if(k<0) return null; return L[k+d]||null; }
+function locWhere(file){ const L=navList(), k=L.findIndex(x=>x.file===file); return k<0?'':(k+1)+' of '+L.length; }
+function locNavHTML(p,where){
+  const prev=locNeighbour(p.file,-1), next=locNeighbour(p.file,1);
+  return '<div class="locnav"><button '+(prev?'':'disabled ')+'onclick="popStep(\''+js(p.file)+'\',-1)" aria-label="Previous location">&#8249; Prev</button>'
+    +'<span>'+he(locWhere(p.file))+'</span>'
+    +'<button '+(next?'':'disabled ')+'onclick="popStep(\''+js(p.file)+'\',1)" aria-label="Next location">Next &#8250;</button></div>';
+}
+function goLoc(q,sheet){
+  const i=PTS.indexOf(q); if(i<0) return;
+  if(sheet||q.unplaced||TOUCH()){ select(i,false); openSheet(i,true);
+    if(!q.unplaced) map.panTo([q.dlat,q.dlon],{animate:true}); return; }
+  map.closePopup(); select(i,true);
+}
+function popStep(file,d){ const q=locNeighbour(file,d); if(q) goLoc(q,false); }
+function shStep(d){ const q=sheetFile&&locNeighbour(sheetFile,d); if(q) goLoc(q,true); }
+function shNavPaint(p){
+  const pv=$('shLprev'), nx=$('shLnext'), w=$('shWhere'), sv=$('shSave');
+  if(pv) pv.disabled=!locNeighbour(p.file,-1);
+  if(nx) nx.disabled=!locNeighbour(p.file,1);
+  if(w) w.textContent=locWhere(p.file)?'Location '+locWhere(p.file):'';
+  if(sv){ const t=$('bSave')?$('bSave').textContent:'Save'; sv.textContent=/●/.test(t)?'Save ●':(/^Saved/.test(t)?'Saved':'Save');
+    sv.disabled=!/●/.test(t); sv.style.display=VIEWONLY?'none':''; }
+}
+$('shLprev').onclick=()=>shStep(-1);
+$('shLnext').onclick=()=>shStep(1);
+$('shSave').onclick=()=>{ doSave().then(()=>{ const p=sheetPt(); if(p) shNavPaint(p); });
+  if(SHS) SHS.touched.clear(); };
+// Swipe on the photo: through this location's photos, then on to the next location.
+(function(){
+  const st=document.querySelector('#sheet .stage'); if(!st) return;
+  let x0=null,y0=0,t0=0;
+  st.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; x0=e.clientX; y0=e.clientY; t0=Date.now(); });
+  st.addEventListener('pointerup',e=>{
+    if(x0==null) return; const dx=e.clientX-x0, dy=e.clientY-y0; x0=null;
+    if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.5||Date.now()-t0>800) return;
+    const p=sheetPt(); if(!p) return; const d=dx<0?1:-1, n=(p.shots||[]).length;
+    if(n>1&&(d>0?p.shot<n-1:p.shot>0)) setShot(p.file,p.shot+d); else shStep(d);
+  });
+  st.addEventListener('pointercancel',()=>{ x0=null; });
+})();
+// ---- Back, and the question when this visit's changes are not saved ---------------------------
+let SHS=null;
+const locClone=p=>{ try{ return structuredClone(p); }catch(_){ return JSON.parse(JSON.stringify(p)); } };
+function shBack(){
+  if(LOCKED||!SHS||!SHS.touched.size||!dirty){ closeSheet(); return; }
+  const n=SHS.touched.size;
+  const nm=n===1?title(PTS.find(x=>x.file===[...SHS.touched][0])||{label:'this location'}):'';
+  openModal('<h2>'+(n===1?'Save changes to '+he(nm)+'?':'Save your changes?')+'</h2><div class="body"><div class="svnote">'
+    +(n===1?'This location was changed':'You changed '+n+' locations')+' and the survey has not been saved yet.</div>'
+    +'<div class="morelist ioslist"><button class="mi" data-b="save"><span class="ck"></span><b>Save</b></button>'
+    +'<button class="mi danger" data-b="drop"><span class="ck"></span>Discard Changes</button></div></div>',
+    null,null,{cancel:'Keep Editing'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-b]').forEach(el=>el.onclick=()=>{
+    const k=el.dataset.b, S=SHS; closeModal();
+    if(k==='save'){ closeSheet(); doSave(); return; }
+    pushWorld('discard changes');                  // Undo still brings them back
+    S.touched.forEach(f=>{ const j=PTS.findIndex(x=>x.file===f), sn=S.snaps[f]; if(j>=0&&sn) PTS[j]=locClone(sn); });
+    closeSheet(); render(true);
+    if(!S.wasDirty) setDirty(false); else setDirty(true);
+    banner('Changes discarded — Undo brings them back.',4000);
+  }),0);
+}
+// ---- Move pin, and one Done bar for every "adjusting" mode -----------------------------------
+// Aaron: "done button when working in any adjustments to save or close the adjustment (such as
+// moving pins)". Move pin, Edit pin positions, placing a pin and aiming all show the same bar at
+// the bottom of the map: what to do, Cancel (puts it back) and Done.
+let MOVE=null, EDIT0=null;
+const posOf=p=>({lat:p.lat,lon:p.lon,dlat:p.dlat,dlon:p.dlon,man:p.man,moved:p.moved,unplaced:p.unplaced,nudged:p.nudged,note:p.note,head:p.head});
+function moveOne(file){
+  const i=PTS.findIndex(x=>x.file===file), p=PTS[i]; if(!p||LOCKED) return;
+  const fromSheet=!!sheetFile;
+  map.closePopup(); closeSheet();
+  if(measOn) measSet(false); if(selMode) selSetMode(false);
+  if(p.unplaced){ armPlace(file); adjSync(); return; }
+  if(editing) bE.click();
+  MOVE={file:file,was:posOf(p),fromSheet:fromSheet};
+  select(i,false); map.panTo([p.dlat,p.dlon]);
+  render(true); adjSync();
+}
+function moveTo(ll){
+  const p=MOVE&&PTS.find(x=>x.file===MOVE.file); if(!p) return;
+  undoPoint(p,'move pin');
+  p.lat=p.dlat=ll.lat; p.lon=p.dlon=ll.lng; p.nudged=false;
+  if(!p.man){ p.moved=true; p.note=p.note||'Position adjusted on the map'; }
+  render(true); setDirty(true);
+}
+function moveEnd(keep){
+  if(!MOVE) return; const m=MOVE; MOVE=null;
+  if(!keep){ const p=PTS.find(x=>x.file===m.file);
+    if(p&&(p.dlat!==m.was.dlat||p.dlon!==m.was.dlon)){ pushWorld('cancel move'); Object.assign(p,m.was); setDirty(true); } }
+  render(true); adjSync();
+  if(m.fromSheet){ const i=PTS.findIndex(x=>x.file===m.file); if(i>=0) openSheet(i,true); }
+}
+function mapFocus(){
+  const on=MOBILE()&&(document.body.classList.contains('adjon')||measOn);
+  if(document.body.classList.contains('mapfocus')!==on){ document.body.classList.toggle('mapfocus',on);
+    setTimeout(()=>{ map.invalidateSize(); if(typeof sizeStage==='function') sizeStage(); },60); }
+}
+function adjSync(){
+  let t='', done=true;
+  if(MOVE){ t='Drag the pin, or tap where it goes'; }
+  else if(placing){ const p=PTS.find(x=>x.file===placing); t='Tap the map where '+(p&&(p.label||shotOf(p))?title(p):'this location')+' goes'; done=false; }
+  else if(editing){ t='Drag pins to move them · drag the amber knob to aim'; }
+  else if(aiming>=0){ t='Tap the spot '+title(PTS[aiming])+' is looking at'; done=false; }
+  document.body.classList.toggle('adjon',!!t);
+  $('adjTxt').textContent=t; $('adjDone').style.display=done?'':'none';
+  mapFocus();
+}
+$('adjDone').onclick=()=>{ if(MOVE) moveEnd(true); else if(editing){ EDIT0=null; bE.click(); } else if(placing) cancelPlace(); adjSync(); };
+$('adjCancel').onclick=()=>{
+  if(MOVE) moveEnd(false);
+  else if(placing){ const f=placing, q=PTS.find(x=>x.file===f); cancelPlace();
+    // "Add a location by hand" then Cancel: nothing named, no photo, never placed — take it away again
+    if(q&&q.unplaced&&!q.label&&!(q.shots||[]).length&&!(q.lines||[]).length&&!q.memo){
+      PTS.splice(PTS.indexOf(q),1); render(true); setDirty(true); } }
+  else if(aiming>=0){ aiming=-1; $('map').classList.remove('aiming'); $('aimbar').style.display='none'; }
+  else if(editing){ const w=EDIT0; EDIT0=null; bE.click();
+    if(w){ let ch=false; PTS.forEach(p=>{ const o=w[p.file]; if(o&&(o.dlat!==p.dlat||o.dlon!==p.dlon||o.head!==p.head)) ch=true; });
+      if(ch){ pushWorld('cancel pin moves'); PTS.forEach(p=>{ if(w[p.file]) Object.assign(p,w[p.file]); }); render(true); setDirty(true); } } }
+  adjSync();
+};
+// ---- photos: pick the ones you want ----------------------------------------------------------
+// Aaron: "save photo feature needs to have ability to check the ones you want to download. keep
+// the download all or all with markups."
+function dlPick(file){
+  const p=file?PTS.find(x=>x.file===file):null;
+  const ps=p?[p]:navList();
+  const items=[]; ps.forEach(q=>(q.shots||[]).forEach((sh,k)=>{ if(sh&&sh.src) items.push({p:q,sh:sh,k:k}); }));
+  const n=items.length, V=TOUCH()?'Save':'Download';
+  if(!n){ banner(p?'This location has no photos yet.':'This survey has no photos yet.',3500); return; }
+  const sel=new Set();
+  if(p){ const cur=shotOf(p); items.forEach((it,j)=>{ if(it.sh===cur) sel.add(j); }); }
+  let html='', lastF=null;
+  items.forEach((it,j)=>{
+    if(!p&&it.p.file!==lastF){ lastF=it.p.file; html+=(j?'</div>':'')+'<div class="dlhead"><span>'+he((it.p.unplaced?'':it.p.i+' · ')+title(it.p))+'</span></div><div class="dlgrid">'; }
+    else if(!j) html+='<div class="dlgrid">';
+    html+='<label class="dlpk'+(sel.has(j)?' on':'')+'"><input type="checkbox" data-j="'+j+'"'+(sel.has(j)?' checked':'')+'>'
+      +'<img src="'+it.sh.src+'" alt="">'+(hasMk(it.sh)?'<b class="mkb">markup</b>':'')
+      +'<span>Photo '+(it.k+1)+(it.sh.inst?' · install':'')+'</span></label>';
+  });
+  html+='</div>';
+  const anyMk=items.some(it=>hasMk(it.sh));
+  openModal('<h2>'+he(p?((p.unplaced?'':p.i+' · ')+title(p)):'Photos in this survey')+'</h2><div class="body">'
+   +'<div class="morelist ioslist dlacts">'
+   +'<button class="mi" data-d="so"><span class="ck"></span><span id="dlSo"></span></button>'
+   +'<button class="mi" data-d="sm"><span class="ck"></span><span id="dlSm"></span></button>'
+   +'<button class="mi" data-d="ao"><span class="ck"></span>'+V+' all '+n+'</button>'
+   +'<button class="mi" data-d="am"'+(anyMk?'':' disabled')+'><span class="ck"></span>'+V+' all '+n+' with markup</button>'
+   +'</div>'+(anyMk?'':'<div class="hint" style="margin-top:8px">No markup drawn on '+(p?'this location':'any photo')+' yet.</div>')
+   +'<div class="dlhead"><span id="dlCount"></span><button id="dlAllT">Select all</button></div>'
+   +html
+   +'</div>',null,null,{cancel:'Cancel'});
+  $('modalDlg').classList.add('moresheet');
+  const paint=()=>{ const c=sel.size, mk=[...sel].some(j=>hasMk(items[j].sh));
+    $('dlCount').textContent=c?c+' selected':'Tap photos to pick them';
+    $('dlSo').textContent=V+' selected'+(c?' ('+c+')':'');
+    $('dlSm').textContent=V+' selected with markup'+(c?' ('+c+')':'');
+    document.querySelector('#modalDlg [data-d="so"]').disabled=!c;
+    document.querySelector('#modalDlg [data-d="sm"]').disabled=!c||!mk;
+    $('dlAllT').textContent=c===n?'Select none':'Select all'; };
+  setTimeout(()=>{
+    document.querySelectorAll('#modalDlg .dlpk input').forEach(cb=>cb.onchange=()=>{
+      const j=+cb.dataset.j; if(cb.checked) sel.add(j); else sel.delete(j);
+      cb.parentNode.classList.toggle('on',cb.checked); paint(); });
+    $('dlAllT').onclick=()=>{ const all=sel.size!==n; sel.clear(); if(all) items.forEach((_,j)=>sel.add(j));
+      document.querySelectorAll('#modalDlg .dlpk input').forEach(cb=>{ cb.checked=sel.has(+cb.dataset.j); cb.parentNode.classList.toggle('on',cb.checked); }); paint(); };
+    document.querySelectorAll('#modalDlg [data-d]').forEach(el=>el.onclick=()=>{
+      const k=el.dataset.d, pick=k[0]==='s'?[...sel].sort((a,b)=>a-b).map(j=>items[j]):items;
+      closeModal(); saveShots(pick,k[1]==='m',p); });
+    paint();
+  },0);
+}
+async function saveShots(list,withMarks,p){
+  if(!list.length) return;
+  const job=fname(BRAND.job||'Site Survey');
+  busyOpen('Getting '+list.length+' photo'+(list.length===1?'':'s')+' ready…');
+  const files=[], used={};
+  try{
+    for(let j=0;j<list.length;j++){
+      busyStep((j+1)+' of '+list.length);
+      const {p:q,sh,k}=list[j], mk=!!(withMarks&&hasMk(sh));
+      let nm=fname((q.unplaced?'':q.i+' ')+title(q)+(q.shots.length>1?' - photo '+(k+1):'')+(mk?' - markup':''))||'photo';
+      while(used[nm]) nm+='_'; used[nm]=1;
+      files.push({name:nm+'.jpg',blob:await shotBlob(sh,mk)});
+    }
+  }catch(e){ busyClose(); banner('Could not get the photos ready.',4000); return; }
+  busyClose();
+  if(TOUCH()){
+    const fl=files.map(f=>new File([f.blob],f.name,{type:'image/jpeg'}));
+    try{ if(navigator.share&&navigator.canShare&&navigator.canShare({files:fl})){ await navigator.share({files:fl,title:job}); return; } }
+    catch(err){ if(err&&(err.name==='AbortError'||err.name==='NotAllowedError')) return; }
+  }
+  if(files.length===1){ download(files[0].name,files[0].blob); banner('Downloaded '+files[0].name,3500); return; }
+  const zn=fname(job+(p?' - '+title(p):'')+(withMarks?' - photos with markup':' - photos'))+'.zip';
+  download(zn,await makeZip(files));
+  banner('Downloaded '+zn+' — '+files.length+' photos',4500);
+}
+// ---- markup editor: other photos, other locations ---------------------------------------------
+const mkFlat=()=>{ const out=[]; navList().forEach(q=>(q.shots||[]).forEach((sh,k)=>{ if(sh&&sh.src&&!sh.inst) out.push({f:q.file,k:k}); })); return out; };
+function mkNavPaint(){
+  const L=mkFlat(), j=L.findIndex(x=>x.f===MKF&&x.k===MKK), p=PTS.find(x=>x.file===MKF);
+  $('mkPrev').disabled=j<=0; $('mkNext').disabled=j<0||j>=L.length-1;
+  if(p) $('mkWhere').innerHTML='<span class="nm">'+he((p.unplaced?'':p.i+' · ')+title(p))+'</span><span class="ph">'
+    +(p.shots.length>1?' · photo '+(MKK+1)+' of '+p.shots.length:'')+' ▾</span>';
+}
+function mkGo(d){ const L=mkFlat(), j=L.findIndex(x=>x.f===MKF&&x.k===MKK), t=L[j+d]; if(t) mkOpen(t.f,t.k); }
+$('mkPrev').onclick=()=>mkGo(-1);
+$('mkNext').onclick=()=>mkGo(1);
+$('mkWhere').onclick=()=>{
+  const ps=navList().filter(q=>(q.shots||[]).some(sh=>sh&&sh.src&&!sh.inst));
+  openModal('<h2>Mark up which photo?</h2><div class="body">'
+    +ps.map(q=>'<div class="dlhead"><span>'+he((q.unplaced?'':q.i+' · ')+title(q))+'</span></div><div class="dlgrid">'
+      +q.shots.map((sh,k)=>sh&&sh.src&&!sh.inst?'<label class="dlpk'+(q.file===MKF&&k===MKK?' on':'')+'" data-f="'+he(q.file)+'" data-k="'+k+'">'
+        +'<img src="'+sh.src+'" alt="">'+(hasMk(sh)?'<b class="mkb">markup</b>':'')+'<span>Photo '+(k+1)+'</span></label>':'').join('')+'</div>').join('')
+    +'</div>',null,null,{cancel:'Cancel'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg .dlpk[data-f]').forEach(el=>el.onclick=e=>{ e.preventDefault();
+    const f=el.dataset.f, k=+el.dataset.k; closeModal(); setTimeout(()=>mkOpen(f,k),0); }),0);
+};
+// swipe across the photo (not on a mark) for the next or previous photo
+(function(){
+  const st=$('mkStage'); let x0=null,y0=0,t0=0;
+  st.addEventListener('pointerdown',e=>{ if(e.target!==st&&e.target!==$('mkImg')&&e.target!==$('mkSvg')&&e.target!==$('mkHandles')&&e.target!==$('mkWrap')&&!(e.target.closest&&e.target.closest('#mkSvg'))) return;
+    x0=e.clientX; y0=e.clientY; t0=Date.now(); });
+  st.addEventListener('pointerup',e=>{ if(x0==null) return; const dx=e.clientX-x0, dy=e.clientY-y0; x0=null;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&Date.now()-t0<800) mkGo(dx<0?1:-1); });
+})();
+// ---- map export with the measurement (r13) ----------------------------------------------------
+// Aaron: "map export with measurements". A picture of what is on screen — the aerial, every pin
+// with its number, the measured lines with their lengths — plus a key and a title, as a PNG. The
+// tiles are fetched again with CORS so the picture can be saved; a tile the server will not hand
+// over that way is left blank rather than stopping the export. Always north-up.
+function exportMap(){
+  const sz=map.getSize(); if(!sz.x||!sz.y) return;
+  const k=Math.min(2,4000/Math.max(sz.x,sz.y));
+  const Z=map.getZoom(), pts=placed().slice().sort((a,b)=>a.i-b.i);
+  const keyRows=Math.ceil(pts.length/2), HEAD=84, KEY=pts.length?(28+keyRows*20):0, FOOT=40;
+  const W=sz.x, H=sz.y+HEAD+KEY+FOOT;
+  const c=document.createElement('canvas'); c.width=Math.round(W*k); c.height=Math.round(H*k);
+  const g=c.getContext('2d'); g.scale(k,k);
+  g.fillStyle='#1a1d26'; g.fillRect(0,0,W,H);
+  g.fillStyle='#55606f'; g.fillRect(0,HEAD,W,sz.y);
+  busyOpen('Making the map image…');
+  const layers=[];
+  [sat,street,topo].forEach(l=>{ if(map.hasLayer(l)) layers.push(l); });
+  if(map.hasLayer(hdGroup)) hdGroup.eachLayer(l=>layers.push(l));
+  if(map.hasLayer(parcelGroup)) parcelGroup.eachLayer(l=>layers.push(l));
+  const load=u=>new Promise(res=>{ const im=new Image(); im.crossOrigin='anonymous';
+    const t=setTimeout(()=>res(null),9000); im.onload=()=>{ clearTimeout(t); res(im); };
+    im.onerror=()=>{ clearTimeout(t); res(null); }; im.src=u; });
+  let missed=0;
+  const drawLayer=async l=>{
+    const o=l.options||{}, z=Math.max(o.minZoom||0,Math.min(Math.round(Z),o.maxNativeZoom!=null?o.maxNativeZoom:(o.maxZoom||19)));
+    const ts=256, nw=map.project(map.containerPointToLatLng([0,0]),z), se=map.project(map.containerPointToLatLng([sz.x,sz.y]),z);
+    const jobs=[];
+    for(let x=Math.floor(nw.x/ts);x<=Math.floor(se.x/ts);x++) for(let y=Math.floor(nw.y/ts);y<=Math.floor(se.y/ts);y++){
+      const cp=L.point(x,y); cp.z=z; let u='';
+      try{ const keep=l._tileZoom; l._tileZoom=z; u=l.getTileUrl(cp); l._tileZoom=keep; }catch(_){ }
+      if(!u) continue;
+      const a=map.latLngToContainerPoint(map.unproject([x*ts,y*ts],z)), b=map.latLngToContainerPoint(map.unproject([(x+1)*ts,(y+1)*ts],z));
+      jobs.push(load(u).then(im=>{ if(im) g.drawImage(im,a.x,HEAD+a.y,b.x-a.x+0.5,b.y-a.y+0.5); else missed++; }));
+    }
+    await Promise.all(jobs);
+  };
+  (async()=>{
+    g.save(); g.beginPath(); g.rect(0,HEAD,W,sz.y); g.clip();
+    for(const l of layers){ g.globalAlpha=(l.options&&l.options.opacity!=null)?l.options.opacity:1; await drawLayer(l); }
+    g.globalAlpha=1; g.restore();
+    const P=ll=>{ const q=map.latLngToContainerPoint(ll); return [q.x,HEAD+q.y]; };
+    g.save(); g.beginPath(); g.rect(0,HEAD,W,sz.y); g.clip();
+    // the measurement
+    if(measPts.length>1){
+      const ring=measClosed?measPts.concat([measPts[0]]):measPts;
+      if(measClosed&&measPts.length>2){ g.beginPath(); measPts.forEach((ll,i)=>{ const [x,y]=P(ll); i?g.lineTo(x,y):g.moveTo(x,y); });
+        g.closePath(); g.fillStyle='rgba(255,183,3,.2)'; g.fill(); }
+      g.beginPath(); ring.forEach((ll,i)=>{ const [x,y]=P(ll); i?g.lineTo(x,y):g.moveTo(x,y); });
+      g.strokeStyle='#ffb703'; g.lineWidth=3; g.setLineDash([7,4]); g.stroke(); g.setLineDash([]);
+      measPts.forEach(ll=>{ const [x,y]=P(ll); g.beginPath(); g.arc(x,y,4.5,0,7); g.fillStyle='#ffb703'; g.fill(); g.strokeStyle='#1a1d26'; g.lineWidth=1.5; g.stroke(); });
+      g.font='600 12px system-ui,-apple-system,Segoe UI,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+      for(let i=1;i<ring.length;i++){ const a=ring[i-1], b=ring[i], [x,y]=P(L.latLng((a.lat+b.lat)/2,(a.lng+b.lng)/2)), t=ft(a.distanceTo(b));
+        const w=g.measureText(t).width+12; g.fillStyle='rgba(20,22,30,.9)'; g.fillRect(x-w/2,y-10,w,20);
+        g.fillStyle='#ffb703'; g.fillText(t,x,y); }
+    }
+    // the pins
+    g.font='700 12px system-ui,-apple-system,Segoe UI,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    pts.forEach(p=>{ const [x,y]=P(L.latLng(p.dlat,p.dlon)); g.beginPath(); g.arc(x,y,12,0,7);
+      g.fillStyle='#fff'; g.fill(); g.lineWidth=2.5; g.strokeStyle=(p.man||p.moved)?'#ffb703':'#111'; g.stroke();
+      g.fillStyle='#111'; g.fillText(String(p.i),x,y+0.5); });
+    g.restore();
+    // title
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillStyle='#e8eaf0'; g.font='650 18px system-ui,-apple-system,Segoe UI,sans-serif';
+    g.fillText(BRAND.job||'Site Survey',16,30);
+    g.fillStyle='#8f96ab'; g.font='12.5px system-ui,-apple-system,Segoe UI,sans-serif';
+    g.fillText([BRAND.site,new Date().toLocaleDateString()].filter(Boolean).join('  ·  '),16,50);
+    if(measPts.length>1){ g.fillStyle='#ffb703'; g.font='600 13px system-ui,-apple-system,Segoe UI,sans-serif';
+      let t='Measured: '+ft(measTotal());
+      if(measClosed&&measPts.length>2){ const sq=geodesicArea(measPts)*SQM2SQFT; t+='   ·   Area '+nfmt(sq,0)+' sq ft ('+nfmt(sq/SQFT_ACRE,2)+' acres)'; }
+      g.fillText(t,16,72); }
+    // north arrow + scale
+    const nx=W-28, ny=HEAD+30; g.fillStyle='rgba(20,22,30,.85)'; g.beginPath(); g.arc(nx,ny,17,0,7); g.fill();
+    g.fillStyle='#e63946'; g.beginPath(); g.moveTo(nx,ny-12); g.lineTo(nx+6,ny+2); g.lineTo(nx-6,ny+2); g.fill();
+    g.fillStyle='#fff'; g.font='700 10px system-ui,sans-serif'; g.textAlign='center'; g.fillText('N',nx,ny+12);
+    const mpp=map.containerPointToLatLng([0,sz.y/2]).distanceTo(map.containerPointToLatLng([100,sz.y/2]))/100;
+    const nice=[5,10,20,25,50,100,200,250,500,1000,2000,5000].find(f=>f/M2FT/mpp>=60)||5000, px=nice/M2FT/mpp;
+    g.fillStyle='rgba(20,22,30,.85)'; g.fillRect(10,HEAD+sz.y-30,px+20,22);
+    g.fillStyle='#fff'; g.fillRect(20,HEAD+sz.y-16,px,3); g.font='11px system-ui,sans-serif'; g.textAlign='left';
+    g.fillText(nice+' ft',20,HEAD+sz.y-20);
+    // key
+    if(pts.length){ let y=HEAD+sz.y+22; g.fillStyle='#8f96ab'; g.font='600 11px system-ui,sans-serif'; g.fillText('LOCATIONS',16,y);
+      g.font='12px system-ui,-apple-system,Segoe UI,sans-serif';
+      pts.forEach((p,j)=>{ const col=j<keyRows?0:1, row=j%keyRows, x=16+col*(W/2), yy=y+18+row*20;
+        g.fillStyle='#ffb703'; g.fillText(String(p.i),x,yy); g.fillStyle='#e8eaf0';
+        let t=title(p); while(g.measureText(t).width>W/2-48&&t.length>4) t=t.slice(0,-2);
+        if(t!==title(p)) t+='…'; g.fillText(t,x+24,yy); }); }
+    g.fillStyle='#8f96ab'; g.font='10.5px system-ui,sans-serif'; g.textAlign='left';
+    g.fillText('Planning estimate from the aerial — verify on site.   Imagery © Esri and the county services shown.',16,H-16);
+    c.toBlob(async b=>{ busyClose();
+      if(!b){ banner('Could not make the map image.',5000); return; }
+      const nm=fname((BRAND.job||'Site Survey')+' - map')+'.png';
+      if(missed) banner(missed+' map tile'+(missed===1?'':'s')+' would not export — that part of the aerial is blank in the picture.',7000);
+      const f=new File([b],nm,{type:'image/png'});
+      const r=TOUCH()?await shareFile(f,nm):'unsupported';
+      if(r==='unsupported'){ download(nm,b); if(!missed) banner('Downloaded '+nm,3500); }
+    },'image/png');
+  })().catch(()=>{ busyClose(); banner('Could not make the map image.',5000); });
 }
 buildMenubar();
 
