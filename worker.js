@@ -4,7 +4,7 @@ export default {
     const slug = url.pathname.replace(/^\/+|\/+$/g, '');
     const cors = { 'Access-Control-Allow-Origin': '*',
                    'Access-Control-Allow-Methods': 'GET, HEAD, PUT, OPTIONS',
-                   'Access-Control-Allow-Headers': 'Content-Type, X-Publish-Key, X-Survey-Job, X-Survey-Count' };
+                   'Access-Control-Allow-Headers': 'Content-Type, X-Publish-Key, X-Survey-Job, X-Survey-Count, X-Keep-Version' };
     const say = (text, status, extra) => new Response(text, { status, headers: { ...cors, ...(extra || {}) } });
     if (req.method === 'OPTIONS') return say(null, 204);
     // the master opens every slug; HMAC-SHA256(master, slug), 16 bytes, base64url, opens that slug only
@@ -123,7 +123,7 @@ export default {
       // the job name and count ride beside the survey so the company list needs no survey opened
       let job = ''; try { job = decodeURIComponent(req.headers.get('X-Survey-Job') || '').slice(0, 120); } catch (_) {}
       const meta = { job: job, count: String(parseInt(req.headers.get('X-Survey-Count') || '0', 10) || 0) };
-      try { await keepVersion(env, slug); } catch (_) { /* a backup that fails never blocks the save */ }
+      try { await keepVersion(env, slug, req.headers.get('X-Keep-Version') === '1'); } catch (_) { /* a backup that fails never blocks the save */ }
       try { await env.SURVEYS.put(slug, req.body, { httpMetadata: { contentType: 'text/html; charset=utf-8' }, customMetadata: meta }); }
       catch (e) { return say('Storage refused the survey: ' + e.message + ' — check R2 in Cloudflare.', 507); }
       const out = { url: url.origin + '/' + slug };
@@ -166,9 +166,10 @@ async function versions(env, slug, prune) {
   if (prune && drop.length) { try { await env.SURVEYS.delete(drop.map(v => v.key)); } catch (_) {} }
   return keep.map(v => ({ id: v.id, at: new Date(+v.id).toISOString(), size: v.size, job: v.job, count: v.count }));
 }
-async function keepVersion(env, slug) {
+// force: the app is replacing a copy another device saved (r13b) — always keep it, whatever the gap
+async function keepVersion(env, slug, force) {
   const vs = await versions(env, slug, true);
-  if (vs.length && Date.now() - +vs[0].id < VGAP) return;
+  if (!force && vs.length && Date.now() - +vs[0].id < VGAP) return;
   const cur = await env.SURVEYS.get(slug);
   if (!cur) return;
   await env.SURVEYS.put('~v/' + slug + '/' + String(Date.now()).padStart(13, '0'),
