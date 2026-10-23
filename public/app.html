@@ -4318,7 +4318,7 @@ let bounds=START.length?L.latLngBounds(START.map(p=>[p.dlat,p.dlon])):null;
 if(bounds) map.fitBounds(bounds,{padding:[55,55]});
 else map.setView([M.center.lat,M.center.lon],M.center.z||17);
 
-var AHEAD=false;      // r10: this device has work its working link does not have yet
+var AHEAD=false, LAST_EDIT=0, FORCE_KEEP=false;   // r13b: newest wins; the other copy is always kept      // r10: this device has work its working link does not have yet
 let editing=false, dirty=false, marks=[], curFile=null, hIdx=-1, handle=null;
 let sheetIdx=-1, sheetFile=null, emptyDismissed=false;
 
@@ -4909,17 +4909,19 @@ window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{
 const linkBehind=()=>{ try{ return !!(AHEAD&&!VIEWONLY&&!INSTALL&&(HOSTED||CURID)&&pubCfg()&&pubWURL()); }catch(_){ return false; } };
 function paintSave(){ setDirty(dirty); }
 function setDirty(v){
-  dirty=v; if(v) AHEAD=true;
+  dirty=v; if(v){ AHEAD=true; LAST_EDIT=Date.now(); }
   if(v&&typeof SHS!=='undefined'&&SHS&&sheetFile) SHS.touched.add(sheetFile);
   const bar=document.getElementById('savebar'), b=document.getElementById('bSave');
   if(bar) bar.classList.toggle('show',v);
   const behind=!v&&linkBehind();
-  if(b) b.textContent = (v||behind) ? 'Save \u25cf'
+  let stuck=false; try{ stuck=!v&&!VIEWONLY&&!INSTALL&&!!CURID&&!!pubWURL()&&!pubCfg(); }catch(_){ }
+  if(b) b.textContent = (v||behind||stuck) ? 'Save \u25cf'
       : (savedAt ? ('Saved '+clockOf(savedAt)) : 'Save');
   if(bar&&behind) bar.classList.add('show');
   const m=document.getElementById('savemsg');
   if(m){
     const t = v ? 'Unsaved changes'
+        : stuck ? ('Saved on '+THIS_DEV()+' only \u2014 open SurveyWalk from the staff link so other devices get it')
         : behind ? ('Saved on '+THIS_DEV()+' '+clockOf(savedAt||Date.now())+' \u2014 not on the link yet')
         : (savedAt ? ('Saved '+clockOf(savedAt)+' \u2014 kept in this browser') : '');
     m.textContent=t; m.style.display=t?'':'none';
@@ -7539,7 +7541,7 @@ const pubCfg=()=>{
   try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
     if(c&&c.url&&c.key) return {url:String(c.url).replace(/\/+$/,''),key:String(c.key)}; }
   catch(_){ }
-  if(WEB&&!FROMFILE&&!ADMIN_PAGE){ let k=STAFF_HASH;
+  if(WEB&&!FROMFILE){ let k=STAFF_HASH;
     if(!k) try{ const o=JSON.parse(localStorage.getItem(STAFFK)||'null'); if(o&&o.url===location.origin) k=String(o.key||''); }catch(_){ }
     if(k) return {url:location.origin,key:k,staff:true}; }
   if(WEB&&!FROMFILE){ const p=BRAND.pub||{}, a=skAll(); if(p.wslug&&a[p.wslug]) return {url:location.origin,key:'',staff:true,slugOnly:true}; }
@@ -7601,7 +7603,8 @@ function publishTo(html,work){
   return fetch(target,{method:'PUT',mode:'cors',cache:'no-store',signal:ac.signal,
       headers:{'Content-Type':'text/html; charset=utf-8',
         'X-Publish-Key':KEYS[slug]||cfg.key||'',
-        'X-Survey-Job':encodeURIComponent(String(BRAND.job||'').slice(0,120)),'X-Survey-Count':String(placed().length)},body:html})
+        'X-Survey-Job':encodeURIComponent(String(BRAND.job||'').slice(0,120)),'X-Survey-Count':String(placed().length),
+        ...(FORCE_KEEP?{'X-Keep-Version':'1'}:{})},body:html})
     .then(r=>r.text().then(txt=>{
       if(r.status===401) throw pubFail('key',txt);
       if(isLimit(r.status,txt)) throw pubFail('limit',LIMIT_MSG);
@@ -7612,7 +7615,7 @@ function publishTo(html,work){
       return fetch(url,{method:'HEAD',mode:'cors',cache:'no-store',signal:ac.signal})
         .then(h=>{ if(h.status!==200) throw pubFail('notready','The link does not open yet ('+h.status+').');
                    const at=Date.parse(h.headers.get('Last-Modified')||'')||0;
-                   done(); setPubURL(url,slug,work,at?new Date(at).toISOString():''); return {url:url,at:at}; },
+                   FORCE_KEEP=false; done(); setPubURL(url,slug,work,at?new Date(at).toISOString():''); return {url:url,at:at}; },
               e=>{ if(isAbort(e)) throw e; throw pubFail('notready',String(e&&e.message||e)); });
     }))
     .catch(e=>{ done();
@@ -7647,11 +7650,14 @@ function staleCheck(){
   return newest(addrs).then(top=>{
       if(!(top[0]>SEEN_AT)) return true;
       return new Promise(res=>{ let go=false;
-        openModal('<h2>This survey was updated from another device '+touchedWords(top[0])+'.</h2>'
-         +'<div class="body"><div class="svnote">Publishing now will replace that. Open the link '
-         +'first to see it, or publish anyway.</div></div>',
-         ()=>{ go=true; return true; },'Publish anyway',{cancel:'See the newer copy',danger:true,onClose:()=>res(go)});
-        $('mCancel').onclick=()=>{ window.open(top[1],'_blank','noopener'); closeModal(); };
+        openModal('<h2>Someone saved this survey '+touchedWords(top[0])+', after you opened it</h2>'
+         +'<div class="body"><div class="svnote">Open the newest version — what you have here is kept in '
+         +'My surveys as its own copy. Or save yours over it — theirs is kept in Version history.</div></div>',
+         ()=>{ go=false; closeModal(); const a=liveAddr();
+               if(a) keepLocalCopy().then(nm=>pullNow(a,top[0]).then(v=>{ if(v&&nm) banner('Opened the newest version. Yours is kept in My surveys as “'+nm+'”.',9000); }));
+               return true; },'Open the newest version',
+         {cancel:'Save mine over it',onClose:()=>res(go)});
+        $('mCancel').onclick=()=>{ go=true; FORCE_KEEP=true; closeModal(); };
       });
     },()=>true);
 }
@@ -7670,9 +7676,29 @@ function pullCheck(why){
       if(at>VIEW_BASE){ VIEW_BASE=at; location.reload(); } return false; }
     if(why==='load'&&HOSTED){ SEEN_AT=Math.max(SEEN_AT,at); return false; }
     if(!at||!(at>SEEN_AT)) return false;
-    if(localAhead(at)){ if(PULL_ASKED!==at){ PULL_ASKED=at; askPull(a,at); } return false; }
+    if(localAhead(at)) return newestWins(a,at);
     return pullNow(a,at);
   },()=>false).then(v=>{ PULLING=false; return v; },()=>{ PULLING=false; return false; });
+}
+function newestWins(a,at){
+  const mine=Math.max(LAST_EDIT||0, OPENED_AT||0, (dirty||AHEAD)?(savedAt||0):0);
+  if(at+1000>=mine){
+    return keepLocalCopy().then(nm=>pullNow(a,at).then(v=>{
+      if(v) banner('Opened the newest version, saved '+touchedWords(at)+'.'
+        +(nm?' What this '+THIS_DEV().replace(/^this /,'')+' had is kept in My surveys as “'+nm+'”.':''),9000);
+      return v; }));
+  }
+  SEEN_AT=Math.max(SEEN_AT,at); FORCE_KEEP=true; AHEAD=true; paintSave();
+  if(!dirty) syncLater(1500);
+  return Promise.resolve(false);
+}
+function keepLocalCopy(){
+  if(!CURID||!PTS.length||!LIBON) return Promise.resolve('');
+  const rec=libRecord(libId()), when=new Date(Math.max(LAST_EDIT||0,OPENED_AT||0)||Date.now());
+  rec.name=(LIBNAME||BRAND.job||'Survey')+' — older copy, '+when.toLocaleDateString([],{month:'short',day:'numeric'})+' '+clockOf(+when);
+  rec.namedByHand=true; rec.wslug=''; rec.ahead=false; rec.seen=0;
+  rec.brand=Object.assign({},rec.brand||BRAND,{pub:null});
+  return libWrite(rec).then(()=>rec.name,()=>'');
 }
 function askPull(a,at){
   if($('modal')&&$('modal').classList.contains('show')) { PULL_ASKED=0; return; }   // ask on the next look
@@ -9118,7 +9144,7 @@ function mbItems(items){
     const [id,label,fn,opt]=it;
     if(opt==='desk'&&MOBILE()) return;
     if(fn){ if(!MB_FREE[id]&&LOCKED) return;
-      if((id==='aPub'||id==='aStaff')&&(HOSTED||STAFF())) return;
+      if((id==='aPub'||id==='aStaff')&&(HOSTED||(STAFF()&&!ADMIN_PAGE))) return;
       out.push(it); return; }
     const b=$(id); if(!b) return;
     if(LOCKED&&(b.style.display==='none'||id==='bFind')) return;
@@ -10204,7 +10230,7 @@ let bounds=START.length?L.latLngBounds(START.map(p=>[p.dlat,p.dlon])):null;
 if(bounds) map.fitBounds(bounds,{padding:[55,55]});
 else map.setView([M.center.lat,M.center.lon],M.center.z||17);
 
-var AHEAD=false;      // r10: this device has work its working link does not have yet
+var AHEAD=false, LAST_EDIT=0, FORCE_KEEP=false;   // r13b: newest wins; the other copy is always kept      // r10: this device has work its working link does not have yet
 let editing=false, dirty=false, marks=[], curFile=null, hIdx=-1, handle=null;
 let sheetIdx=-1, sheetFile=null, emptyDismissed=false;
 
@@ -11037,7 +11063,7 @@ window.addEventListener('resize',()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{
 const linkBehind=()=>{ try{ return !!(AHEAD&&!VIEWONLY&&!INSTALL&&(HOSTED||CURID)&&pubCfg()&&pubWURL()); }catch(_){ return false; } };
 function paintSave(){ setDirty(dirty); }
 function setDirty(v){
-  dirty=v; if(v) AHEAD=true;
+  dirty=v; if(v){ AHEAD=true; LAST_EDIT=Date.now(); }
   if(v&&typeof SHS!=='undefined'&&SHS&&sheetFile) SHS.touched.add(sheetFile);
   const bar=document.getElementById('savebar'), b=document.getElementById('bSave');
   if(bar) bar.classList.toggle('show',v);
@@ -11045,12 +11071,14 @@ function setDirty(v){
   // link (and so every other phone and computer) still had the old copy. The dot now stays until
   // the link has it too; the background sync below clears it.
   const behind=!v&&linkBehind();
-  if(b) b.textContent = (v||behind) ? 'Save \u25cf'
+  let stuck=false; try{ stuck=!v&&!VIEWONLY&&!INSTALL&&!!CURID&&!!pubWURL()&&!pubCfg(); }catch(_){ }
+  if(b) b.textContent = (v||behind||stuck) ? 'Save \u25cf'
       : (savedAt ? ('Saved '+clockOf(savedAt)) : 'Save');
   if(bar&&behind) bar.classList.add('show');
   const m=document.getElementById('savemsg');
   if(m){
     const t = v ? 'Unsaved changes'
+        : stuck ? ('Saved on '+THIS_DEV()+' only \u2014 open SurveyWalk from the staff link so other devices get it')
         : behind ? ('Saved on '+THIS_DEV()+' '+clockOf(savedAt||Date.now())+' \u2014 not on the link yet')
         : (savedAt ? ('Saved '+clockOf(savedAt)+' \u2014 kept in this browser') : '');
     m.textContent=t; m.style.display=t?'':'none';
@@ -14588,7 +14616,11 @@ const pubCfg=()=>{
     if(c&&c.url&&c.key) return {url:String(c.url).replace(/\/+$/,''),key:String(c.key)}; }
   catch(_){ }
   // A staff device: the app came from the publisher's /start, so the publisher is this origin.
-  if(WEB&&!FROMFILE&&!ADMIN_PAGE){ let k=STAFF_HASH;
+  // r13b: /admin too. Aaron's computer worked on /admin with no password typed: My surveys listed
+  // the company surveys (that uses the staff key), but Save had nowhere to send, so every save
+  // stayed on that computer ("Saved 2:44 pm — kept in this browser") and the phone never saw it.
+  // With the staff key on this device, /admin now saves to the link exactly like /start.
+  if(WEB&&!FROMFILE){ let k=STAFF_HASH;
     if(!k) try{ const o=JSON.parse(localStorage.getItem(STAFFK)||'null'); if(o&&o.url===location.origin) k=String(o.key||''); }catch(_){ }
     if(k) return {url:location.origin,key:k,staff:true}; }
   // r10e: a survey this device was SENT (Enter a code) carries its own key here — Save and Send to
@@ -14686,7 +14718,8 @@ function publishTo(html,work){
       headers:{'Content-Type':'text/html; charset=utf-8',
         'X-Publish-Key':KEYS[slug]||cfg.key||'',
         // r11: the name and count ride beside the survey for the company list
-        'X-Survey-Job':encodeURIComponent(String(BRAND.job||'').slice(0,120)),'X-Survey-Count':String(placed().length)},body:html})
+        'X-Survey-Job':encodeURIComponent(String(BRAND.job||'').slice(0,120)),'X-Survey-Count':String(placed().length),
+        ...(FORCE_KEEP?{'X-Keep-Version':'1'}:{})},body:html})
     .then(r=>r.text().then(txt=>{
       if(r.status===401) throw pubFail('key',txt);
       if(isLimit(r.status,txt)) throw pubFail('limit',LIMIT_MSG);
@@ -14699,7 +14732,7 @@ function publishTo(html,work){
       return fetch(url,{method:'HEAD',mode:'cors',cache:'no-store',signal:ac.signal})
         .then(h=>{ if(h.status!==200) throw pubFail('notready','The link does not open yet ('+h.status+').');
                    const at=Date.parse(h.headers.get('Last-Modified')||'')||0;
-                   done(); setPubURL(url,slug,work,at?new Date(at).toISOString():''); return {url:url,at:at}; },
+                   FORCE_KEEP=false; done(); setPubURL(url,slug,work,at?new Date(at).toISOString():''); return {url:url,at:at}; },
               e=>{ if(isAbort(e)) throw e; throw pubFail('notready',String(e&&e.message||e)); });
     }))
     .catch(e=>{ done();
@@ -14749,11 +14782,14 @@ function staleCheck(){
   return newest(addrs).then(top=>{
       if(!(top[0]>SEEN_AT)) return true;
       return new Promise(res=>{ let go=false;
-        openModal('<h2>This survey was updated from another device '+touchedWords(top[0])+'.</h2>'
-         +'<div class="body"><div class="svnote">Publishing now will replace that. Open the link '
-         +'first to see it, or publish anyway.</div></div>',
-         ()=>{ go=true; return true; },'Publish anyway',{cancel:'See the newer copy',danger:true,onClose:()=>res(go)});
-        $('mCancel').onclick=()=>{ window.open(top[1],'_blank','noopener'); closeModal(); };
+        openModal('<h2>Someone saved this survey '+touchedWords(top[0])+', after you opened it</h2>'
+         +'<div class="body"><div class="svnote">Open the newest version — what you have here is kept in '
+         +'My surveys as its own copy. Or save yours over it — theirs is kept in Version history.</div></div>',
+         ()=>{ go=false; closeModal(); const a=liveAddr();
+               if(a) keepLocalCopy().then(nm=>pullNow(a,top[0]).then(v=>{ if(v&&nm) banner('Opened the newest version. Yours is kept in My surveys as “'+nm+'”.',9000); }));
+               return true; },'Open the newest version',
+         {cancel:'Save mine over it',onClose:()=>res(go)});
+        $('mCancel').onclick=()=>{ go=true; FORCE_KEEP=true; closeModal(); };
       });
     },()=>true);
 }
@@ -14782,9 +14818,36 @@ function pullCheck(why){
     // a hosted copy was just served from this address, so on load the link IS what is on screen
     if(why==='load'&&HOSTED){ SEEN_AT=Math.max(SEEN_AT,at); return false; }
     if(!at||!(at>SEEN_AT)) return false;
-    if(localAhead(at)){ if(PULL_ASKED!==at){ PULL_ASKED=at; askPull(a,at); } return false; }
+    if(localAhead(at)) return newestWins(a,at);
     return pullNow(a,at);
   },()=>false).then(v=>{ PULLING=false; return v; },()=>{ PULLING=false; return false; });
+}
+// r13b — Aaron, 2026-10-23: "I don't want to open an old file and save by accident … revise to only
+// open the latest version." There is no "Keep mine" any more. When this device and the link both
+// have changes, the one saved LATER is what you get, with no question; the other is never lost:
+// this device's older copy is kept under My surveys as its own survey, and the link's older copy
+// goes into Version history before it is replaced.
+function newestWins(a,at){
+  const mine=Math.max(LAST_EDIT||0, OPENED_AT||0, (dirty||AHEAD)?(savedAt||0):0);
+  // Last-Modified is to the second, so a save in the same second as this edit counts as newer
+  if(at+1000>=mine){
+    return keepLocalCopy().then(nm=>pullNow(a,at).then(v=>{
+      if(v) banner('Opened the newest version, saved '+touchedWords(at)+'.'
+        +(nm?' What this '+THIS_DEV().replace(/^this /,'')+' had is kept in My surveys as “'+nm+'”.':''),9000);
+      return v; }));
+  }
+  // this device's changes are the newer ones: send them; the link's copy is kept in Version history
+  SEEN_AT=Math.max(SEEN_AT,at); FORCE_KEEP=true; AHEAD=true; paintSave();
+  if(!dirty) syncLater(1500);
+  return Promise.resolve(false);
+}
+function keepLocalCopy(){
+  if(!CURID||!PTS.length||!LIBON) return Promise.resolve('');
+  const rec=libRecord(libId()), when=new Date(Math.max(LAST_EDIT||0,OPENED_AT||0)||Date.now());
+  rec.name=(LIBNAME||BRAND.job||'Survey')+' — older copy, '+when.toLocaleDateString([],{month:'short',day:'numeric'})+' '+clockOf(+when);
+  rec.namedByHand=true; rec.wslug=''; rec.ahead=false; rec.seen=0;
+  rec.brand=Object.assign({},rec.brand||BRAND,{pub:null});
+  return libWrite(rec).then(()=>rec.name,()=>'');
 }
 function askPull(a,at){
   if($('modal')&&$('modal').classList.contains('show')) { PULL_ASKED=0; return; }   // ask on the next look
@@ -16586,7 +16649,7 @@ function mbItems(items){
     const [id,label,fn,opt]=it;
     if(opt==='desk'&&MOBILE()) return;
     if(fn){ if(!MB_FREE[id]&&LOCKED) return;
-      if((id==='aPub'||id==='aStaff')&&(HOSTED||STAFF())) return;
+      if((id==='aPub'||id==='aStaff')&&(HOSTED||(STAFF()&&!ADMIN_PAGE))) return;
       out.push(it); return; }
     const b=$(id); if(!b) return;
     if(LOCKED&&(b.style.display==='none'||id==='bFind')) return;
