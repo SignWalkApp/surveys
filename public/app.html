@@ -1822,6 +1822,23 @@ body.adjon #drag{bottom:calc(76px + var(--sab))}
 @media(pointer:coarse){ #sheet .sacts button{min-height:44px} #sheet .sbar .back,#sheet .sbar #shUndo{min-height:44px} #sheet .sfoot button{min-height:46px} .pop .locnav button{min-height:44px}
  #mkedit .mnav button{min-height:44px} #adjbar button{min-height:46px} }
 
+/* ---- r14: the install view — the installer's copy in its own window, over the survey ---------- */
+.dlg .mini.go{background:var(--edit);border-color:var(--edit);color:#241a00;font-weight:650}
+#instview{position:fixed;inset:0;z-index:5600;background:var(--bg);display:none;flex-direction:column;padding:var(--sat) var(--sar) var(--sab) var(--sal)}
+#instview.show{display:flex}
+#instview .ivbar{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+#instview .ttl{flex:1;min-width:0;font-weight:650;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#instview .ivbar>button{background:none;border:0;color:var(--edit);font-size:12.5px;cursor:pointer;min-height:34px}
+#instview iframe{flex:1;border:0;width:100%;background:var(--bg)}
+.seg{display:inline-flex;background:#242835;border:1px solid var(--line);border-radius:9px;padding:2px;gap:2px;flex:0 0 auto}
+.seg button{background:none;border:0;color:var(--txt);font-size:12px;padding:0 12px;min-height:30px;border-radius:7px;cursor:pointer;font-weight:550}
+.seg button.on{background:var(--edit);color:#241a00}
+#listbar .seg{display:none} body.hasinst #listbar .seg{display:inline-flex}
+body.hasinst #listbar .who{display:none}
+#listbar .seg button{border:0;min-height:28px;padding:0 11px;background:none}
+#listbar .seg button.on{background:var(--edit);color:#241a00}
+@media(pointer:coarse){ .seg button,#listbar .seg button{min-height:40px} #instview .ivbar>button{min-height:44px} }
+
 /* ---- 30px is the house minimum on a pointer device -------------------------
    All of these were invisible to the audit until round 2, because it measured <button> and
    these are <a>, <input> and <div>. Leaflet's own zoom control shipped at 26x26. */
@@ -2075,6 +2092,7 @@ body.sidehidden #showtools{display:block}
   <div id="listbar">
    <button id="bTools" title="Show or hide the tools above the list"><span class="chev">&#9660;</span>Tools</button>
    <span class="who" id="lbWho"></span>
+   <span class="seg" id="lbSeg"><button class="on" id="lbSurvey">Survey</button><button id="lbInst">Install</button></span>
    <button id="bDense" title="Switch between photo thumbnails and a compact list">Compact</button>
    <button class="hdrbtn" id="bPanel" title="Hide the tool panel">Hide tools</button>
   </div>
@@ -2183,6 +2201,9 @@ body.sidehidden #showtools{display:block}
  <div class="mhint" id="mkHint"></div>
 </div>
 <div id="mkLoupe"></div>
+<div id="instview"><div class="ivbar"><div class="seg"><button id="ivSurvey">Survey</button><button id="ivInst" class="on">Install</button></div>
+ <span class="ttl" id="ivTtl"></span><button id="ivNew" title="Open in a new browser tab">New tab</button></div>
+ <iframe id="ivFrame" title="Install view"></iframe></div>
 <div class="ovl" id="modal"><div class="dlg" id="modalDlg"></div></div>
 <div id="busy"><div class="box"><div class="t" id="busyT">Working…</div>
  <div class="s" id="busyS"></div><button id="busyC">Cancel</button></div></div>
@@ -3687,6 +3708,22 @@ body.adjon #drag{bottom:calc(76px + var(--sab))}
 @media(pointer:coarse){ #sheet .sacts button{min-height:44px} #sheet .sbar .back,#sheet .sbar #shUndo{min-height:44px} #sheet .sfoot button{min-height:46px} .pop .locnav button{min-height:44px}
  #mkedit .mnav button{min-height:44px} #adjbar button{min-height:46px} }
 
+.dlg .mini.go{background:var(--edit);border-color:var(--edit);color:#241a00;font-weight:650}
+#instview{position:fixed;inset:0;z-index:5600;background:var(--bg);display:none;flex-direction:column;padding:var(--sat) var(--sar) var(--sab) var(--sal)}
+#instview.show{display:flex}
+#instview .ivbar{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+#instview .ttl{flex:1;min-width:0;font-weight:650;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#instview .ivbar>button{background:none;border:0;color:var(--edit);font-size:12.5px;cursor:pointer;min-height:34px}
+#instview iframe{flex:1;border:0;width:100%;background:var(--bg)}
+.seg{display:inline-flex;background:#242835;border:1px solid var(--line);border-radius:9px;padding:2px;gap:2px;flex:0 0 auto}
+.seg button{background:none;border:0;color:var(--txt);font-size:12px;padding:0 12px;min-height:30px;border-radius:7px;cursor:pointer;font-weight:550}
+.seg button.on{background:var(--edit);color:#241a00}
+#listbar .seg{display:none} body.hasinst #listbar .seg{display:inline-flex}
+body.hasinst #listbar .who{display:none}
+#listbar .seg button{border:0;min-height:28px;padding:0 11px;background:none}
+#listbar .seg button.on{background:var(--edit);color:#241a00}
+@media(pointer:coarse){ .seg button,#listbar .seg button{min-height:40px} #instview .ivbar>button{min-height:44px} }
+
 .leaflet-control-zoom a,.leaflet-container a.leaflet-popup-close-button,
 .leaflet-control-layers-toggle{min-width:30px;min-height:30px;line-height:30px}
 .pop a{min-height:30px;line-height:30px}
@@ -3892,6 +3929,7 @@ body.sidehidden #showtools{display:block}
   <div id="listbar">
    <button id="bTools" title="Show or hide the tools above the list"><span class="chev">&#9660;</span>Tools</button>
    <span class="who" id="lbWho"></span>
+   <span class="seg" id="lbSeg"><button class="on" id="lbSurvey">Survey</button><button id="lbInst">Install</button></span>
    <button id="bDense" title="Switch between photo thumbnails and a compact list">Compact</button>
    <button class="hdrbtn" id="bPanel" title="Hide the tool panel">Hide tools</button>
   </div>
@@ -4000,6 +4038,9 @@ body.sidehidden #showtools{display:block}
  <div class="mhint" id="mkHint"></div>
 </div>
 <div id="mkLoupe"></div>
+<div id="instview"><div class="ivbar"><div class="seg"><button id="ivSurvey">Survey</button><button id="ivInst" class="on">Install</button></div>
+ <span class="ttl" id="ivTtl"></span><button id="ivNew" title="Open in a new browser tab">New tab</button></div>
+ <iframe id="ivFrame" title="Install view"></iframe></div>
 <div class="ovl" id="modal"><div class="dlg" id="modalDlg"></div></div>
 <div id="busy"><div class="box"><div class="t" id="busyT">Working…</div>
  <div class="s" id="busyS"></div><button id="busyC">Cancel</button></div></div>
@@ -4754,7 +4795,7 @@ function updateStats(){
   document.getElementById('subline').textContent =
     ds.length===0?'':ds.length===1?ds[0]:ds[0]+' \u2013 '+ds[ds.length-1];
   const w=document.getElementById('lbWho');
-  if(w) w.textContent=(BRAND.job||'Site Survey')+' \u00b7 '+placed().length
+  if(w) w.textContent=(INSTALL?instName(BRAND.job||'Site Survey'):(BRAND.job||'Site Survey'))+' \u00b7 '+placed().length
     +(placed().length===1?' location':' locations');
   const empty=!PTS.length;
   ['bPrint','bFit','bSelect','bEdit'].forEach(id=>{
@@ -7092,7 +7133,7 @@ function bindRows(root,compact){
   root.querySelectorAll('.svdel').forEach(el=>{
     el.onclick=ev=>{ ev.stopPropagation(); confirmRemove(el.dataset.id); }; });
 }
-let COMPANY=null;
+let COMPANY=null, INSTALLS=[];
 const localRows=()=>LIB.filter(r=>!(COMPANY&&r.wslug&&COMPANY.some(c=>c.slug===r.wslug)));
 function redrawLibRows(){ const r=$('svRows'); if(!r) return;
   r.innerHTML=localRows().map(x=>svRow(x,false)).join(''); bindRows(r,false); }
@@ -7105,11 +7146,23 @@ const companyCfg=()=>{
 function companyList(){
   const c=companyCfg(); if(!c) return Promise.reject(new Error('nokey'));
   return fetch(c.url+'/~list',{cache:'no-store',headers:{'X-Publish-Key':c.key}}).then(r=>{
-    if(r.status!==200) throw new Error(r.status===404?'old':'key'); return r.json(); }).then(j=>{ COMPANY=j.surveys||[]; return COMPANY; });
+    if(r.status!==200) throw new Error(r.status===404?'old':'key'); return r.json(); }).then(j=>{ COMPANY=j.surveys||[]; INSTALLS=j.installs||[]; return COMPANY; });
 }
 function coRow(c){
   return '<div class="svrow corow" data-slug="'+he(c.slug)+'"><div class="svm"><b class="svname">'+he(c.job||c.slug)+'</b>'
    +'<span class="svwhen">'+(c.count!=null?c.count+(c.count===1?' location':' locations')+' · ':'')+'saved '+he(touchedWords(Date.parse(c.at)))+'</span></div></div>';
+}
+function instName(job){ return String(job||'Survey').replace(/\s+install$/i,'')+' install'; }
+function paintInstalls(filter){
+  const box=$('inRows'); if(!box) return;
+  const f=String(filter||'').trim().toLowerCase();
+  const rows=(INSTALLS||[]).filter(c=>!f||String(c.job||'').toLowerCase().indexOf(f)>=0);
+  box.innerHTML=rows.length?rows.map(c=>'<div class="svrow corow inrow" data-slug="'+he(c.slug)+'"><div class="svm"><b class="svname">'
+      +he(instName(c.job))+'</b><span class="svwhen">'+(c.count!=null?c.count+(c.count===1?' location':' locations')+' · ':'')
+      +'saved '+he(touchedWords(Date.parse(c.at)))+'</span></div></div>').join('')
+    :'<div class="hint">'+(f?'No install project matches.':'No install projects yet. Share → Send to the installer makes one.')+'</div>';
+  box.querySelectorAll('.inrow').forEach(el=>el.onclick=()=>{ const sl=el.dataset.slug, c=INSTALLS.find(x=>x.slug===sl);
+    modalClose=null; closeModal(); openInstall(location.origin+'/'+sl, instName(c&&c.job)); });
 }
 function paintCompany(filter){
   const box=$('coRows'); if(!box||!COMPANY) return;
@@ -7136,6 +7189,7 @@ function openLib(){
         +'<input class="lblinp" id="coFind" placeholder="Find a survey…" autocomplete="off">'
         +'<div class="svlist" id="coRows"><div class="hint">Loading…</div></div>'
        :'<div class="svnote">To see every company survey here, open SurveyWalk once from your staff link on '+THIS_DEV()+'.</div>')
+     +(companyCfg()?'<div class="moregrp">Install projects</div><div class="svlist" id="inRows"><div class="hint">Loading…</div></div>':'')
      +'<div class="moregrp">On '+THIS_DEV()+' only</div>'
      +'<div id="svRoom"></div>'
      +(LIB.length ? '<div class="svlist" id="svRows">'+localRows().map(r=>svRow(r,false)).join('')+'</div>'
@@ -7153,8 +7207,8 @@ function openLib(){
      +'</div>',null,null,{cancel:'Close'});
     $('modalDlg').classList.add('moresheet');
     setTimeout(()=>{ bindRows($('svRows'),false); roomLine();
-      if(companyCfg()) companyList().then(()=>{ paintCompany(); redrawLibRows();
-          const f=$('coFind'); if(f) f.oninput=()=>paintCompany(f.value); },
+      if(companyCfg()) companyList().then(()=>{ paintCompany(); paintInstalls(); redrawLibRows();
+          const f=$('coFind'); if(f) f.oninput=()=>{ paintCompany(f.value); paintInstalls(f.value); }; },
         e=>{ const b=$('coRows'); if(b) b.innerHTML='<div class="hint">'+(e.message==='key'
           ?'The publisher refused this device’s key — ask the office for the new staff link.'
           :'Could not reach the company list — check the signal and open My surveys again.')+'</div>'; }); },0);
@@ -7835,7 +7889,7 @@ function publish(kind){
         +(jobs.length>1?' The client’s link is current too.':'')
         :jobs.length>1?(kind==='save'?'Saved':'Published')+' — both links are current: the client’s, and your working link.'
         :INSTALL?'Saved — the shop can bring your photos in.'
-        :kind==='inst'?'Sent — the installer link is on the Share card: Copy link, or Send the link.'
+        :kind==='inst'?'Installer link ready — Share → Text or Email sends it.'
         :moved?'Published at a new address — send this one; the old link still opens.'
         :'Published. The link is on the Share card — Copy link, or Send the link.',7000);
     },err=>{
@@ -7932,10 +7986,13 @@ function openShare(minted){
         +(link?'':re)+'</div>'
         +'<div class="hint">Anyone with this link can edit the survey and save over it — the key is in '
         +'the link. Needs signal to open; once open it keeps working.</div></div>':'')
-   +(HOSTED?'':il?'<div class="pubnow" style="margin-top:9px"><div class="lbl">Installer link</div>'
-        +'<a href="'+he(il)+'" target="_blank" rel="noopener">'+he(il)+'</a>'
-        +'<div class="row"><button class="mini" id="siCopy">Copy link</button>'
-        +'<button class="mini" id="siMail">Send the link…</button>'
+   +(HOSTED?'':il?'<div class="pubnow" style="margin-top:9px"><div class="lbl">Installer link — '+he(instName(BRAND.job))+'</div>'
+        +'<a href="'+he(il)+'" id="siOpenA">'+he(il)+'</a>'
+        +'<div class="row"><button class="mini go" id="siText">Text</button>'
+        +'<button class="mini go" id="siMail">Email</button>'
+        +(TOUCH()&&navigator.share?'<button class="mini" id="siShare">Share…</button>':'')
+        +'<button class="mini" id="siCopy">Copy link</button></div>'
+        +'<div class="row"><button class="mini" id="siOpen">Open install view</button>'
         +'<button class="mini" id="siIn">Bring install photos in</button></div>'
         +'<div class="hint" id="siStat">Installer: checking…</div></div>'
      :'<div class="morelist"><button class="saveopt" data-sh="inst"><b>Send to the installer</b>'
@@ -7961,7 +8018,12 @@ function openShare(minted){
     const dv=$('shDev'); if(dv) dv.onclick=()=>sendToDevice();
     const ic=$('siCopy'), im=$('siMail'), ii=$('siIn'), is=$('siStat');
     if(ic) ic.onclick=()=>copyText(il,'Installer link copied.');
-    if(im) im.onclick=()=>{ closeModal(); pickMailer(il,instText(il)); };
+    if(im) im.onclick=()=>{ closeModal(); if(TOUCH()) mailLink(il,instText(il)); else pickMailer(il,instText(il)); };
+    const it=$('siText'), ish=$('siShare'), io=$('siOpen'), ia=$('siOpenA');
+    if(it) it.onclick=()=>{ closeModal(); smsLink(il,instText(il)); };
+    if(ish) ish.onclick=()=>{ closeModal(); shareLink(il,instText(il)); };
+    if(io) io.onclick=()=>{ closeModal(); openInstall(il,instName(BRAND.job)); };
+    if(ia) ia.onclick=e=>{ e.preventDefault(); closeModal(); openInstall(il,instName(BRAND.job)); };
     if(ii) ii.onclick=instBringIn;
     if(is) instFetch().then(o=>{ const s=$('siStat'); if(s) s.textContent='Installer: '+instCount(o.doc)
         +(o.at?' · updated '+touchedWords(o.at):''); },
@@ -8188,6 +8250,12 @@ function instText(link){
       +'location. Set Done or Problem and write a note if needed. Press Save and it reaches the shop.\n'
       +'Do not forward this link.\n\n'+(BRAND.footer||''),
     text:'Install photos for '+job+' — open on the phone at the site.'};
+}
+function smsLink(link,t){
+  t=t||mailText(link);
+  const body=(t.text||t.subject)+'\n'+link;
+  location.href='sms:?&body='+encodeURIComponent(body);
+  if(!TOUCH()) banner('Your texting app should open with the link in it. If nothing opens, use Email or Copy link.',6000);
 }
 function mailLink(link,t){
   t=t||mailText(link);
@@ -8417,7 +8485,7 @@ async function shareFile(file,title){
 
 function applyBrand(){
   try{ if(!measOn) measLoad(); }catch(_){ /* before the measuring code has loaded — it loads its own */ }
-  const job=BRAND.job||'Site Survey';
+  const job=INSTALL?instName(BRAND.job||'Site Survey'):(BRAND.job||'Site Survey');
   document.title=job+' — Site Survey Photo Map';
   $('hJob').textContent=job;
   $('hSite').textContent=BRAND.site||'';
@@ -9537,6 +9605,23 @@ function exportMap(){
     },'image/png');
   })().catch(()=>{ busyClose(); banner('Could not make the map image.',5000); });
 }
+let IV_URL='';
+function openInstall(url,name){
+  if(!url) return;
+  const f=$('ivFrame');
+  if(IV_URL!==url){ IV_URL=url; f.src=url; }
+  $('ivTtl').textContent=name||'Install';
+  try{ clearTimeout(bannerT); $('banner').style.display='none'; }catch(_){ }
+  $('instview').classList.add('show');
+}
+function closeInstall(){ $('instview').classList.remove('show'); }
+$('ivSurvey').onclick=closeInstall;
+$('ivNew').onclick=()=>{ if(IV_URL) window.open(IV_URL,'_blank','noopener'); };
+$('lbInst').onclick=()=>{ const il=iLink(); if(il) openInstall(il,instName(BRAND.job)); };
+$('lbSurvey').onclick=closeInstall;
+function instToggleSync(){ document.body.classList.toggle('hasinst',!LOCKED&&!HOSTED&&!!pubIURL()); }
+setInterval(instToggleSync,2000); instToggleSync();
+
 buildMenubar();
 
 
@@ -10882,7 +10967,7 @@ function updateStats(){
     ds.length===0?'':ds.length===1?ds[0]:ds[0]+' \u2013 '+ds[ds.length-1];
   // With the header folded away this strip is the only thing naming the job.
   const w=document.getElementById('lbWho');
-  if(w) w.textContent=(BRAND.job||'Site Survey')+' \u00b7 '+placed().length
+  if(w) w.textContent=(INSTALL?instName(BRAND.job||'Site Survey'):(BRAND.job||'Site Survey'))+' \u00b7 '+placed().length
     +(placed().length===1?' location':' locations');
   // With nothing on the map, Print schedule opened a dialog on an empty table and Share
   // handed over an empty file. Say so on the button, the way Undo already does. Measure is
@@ -14023,7 +14108,7 @@ function bindRows(root,compact){
     el.onclick=ev=>{ ev.stopPropagation(); confirmRemove(el.dataset.id); }; });
 }
 // r11: the local rows hide what the company list already shows (same working address)
-let COMPANY=null;
+let COMPANY=null, INSTALLS=[];
 const localRows=()=>LIB.filter(r=>!(COMPANY&&r.wslug&&COMPANY.some(c=>c.slug===r.wslug)));
 function redrawLibRows(){ const r=$('svRows'); if(!r) return;
   r.innerHTML=localRows().map(x=>svRow(x,false)).join(''); bindRows(r,false); }
@@ -14039,11 +14124,25 @@ const companyCfg=()=>{
 function companyList(){
   const c=companyCfg(); if(!c) return Promise.reject(new Error('nokey'));
   return fetch(c.url+'/~list',{cache:'no-store',headers:{'X-Publish-Key':c.key}}).then(r=>{
-    if(r.status!==200) throw new Error(r.status===404?'old':'key'); return r.json(); }).then(j=>{ COMPANY=j.surveys||[]; return COMPANY; });
+    if(r.status!==200) throw new Error(r.status===404?'old':'key'); return r.json(); }).then(j=>{ COMPANY=j.surveys||[]; INSTALLS=j.installs||[]; return COMPANY; });
 }
 function coRow(c){
   return '<div class="svrow corow" data-slug="'+he(c.slug)+'"><div class="svm"><b class="svname">'+he(c.job||c.slug)+'</b>'
    +'<span class="svwhen">'+(c.count!=null?c.count+(c.count===1?' location':' locations')+' · ':'')+'saved '+he(touchedWords(Date.parse(c.at)))+'</span></div></div>';
+}
+// An install project is always "<job> install": the name comes from the office's survey and the
+// installer's copy has no way to change it.
+function instName(job){ return String(job||'Survey').replace(/\s+install$/i,'')+' install'; }
+function paintInstalls(filter){
+  const box=$('inRows'); if(!box) return;
+  const f=String(filter||'').trim().toLowerCase();
+  const rows=(INSTALLS||[]).filter(c=>!f||String(c.job||'').toLowerCase().indexOf(f)>=0);
+  box.innerHTML=rows.length?rows.map(c=>'<div class="svrow corow inrow" data-slug="'+he(c.slug)+'"><div class="svm"><b class="svname">'
+      +he(instName(c.job))+'</b><span class="svwhen">'+(c.count!=null?c.count+(c.count===1?' location':' locations')+' · ':'')
+      +'saved '+he(touchedWords(Date.parse(c.at)))+'</span></div></div>').join('')
+    :'<div class="hint">'+(f?'No install project matches.':'No install projects yet. Share → Send to the installer makes one.')+'</div>';
+  box.querySelectorAll('.inrow').forEach(el=>el.onclick=()=>{ const sl=el.dataset.slug, c=INSTALLS.find(x=>x.slug===sl);
+    modalClose=null; closeModal(); openInstall(location.origin+'/'+sl, instName(c&&c.job)); });
 }
 function paintCompany(filter){
   const box=$('coRows'); if(!box||!COMPANY) return;
@@ -14073,6 +14172,8 @@ function openLib(){
         +'<input class="lblinp" id="coFind" placeholder="Find a survey…" autocomplete="off">'
         +'<div class="svlist" id="coRows"><div class="hint">Loading…</div></div>'
        :'<div class="svnote">To see every company survey here, open SurveyWalk once from your staff link on '+THIS_DEV()+'.</div>')
+     // r14 — Aaron: "a place where the saved install projects live, separate from the company projects"
+     +(companyCfg()?'<div class="moregrp">Install projects</div><div class="svlist" id="inRows"><div class="hint">Loading…</div></div>':'')
      +'<div class="moregrp">On '+THIS_DEV()+' only</div>'
      +'<div id="svRoom"></div>'
      +(LIB.length ? '<div class="svlist" id="svRows">'+localRows().map(r=>svRow(r,false)).join('')+'</div>'
@@ -14090,8 +14191,8 @@ function openLib(){
      +'</div>',null,null,{cancel:'Close'});
     $('modalDlg').classList.add('moresheet');
     setTimeout(()=>{ bindRows($('svRows'),false); roomLine();
-      if(companyCfg()) companyList().then(()=>{ paintCompany(); redrawLibRows();
-          const f=$('coFind'); if(f) f.oninput=()=>paintCompany(f.value); },
+      if(companyCfg()) companyList().then(()=>{ paintCompany(); paintInstalls(); redrawLibRows();
+          const f=$('coFind'); if(f) f.oninput=()=>{ paintCompany(f.value); paintInstalls(f.value); }; },
         e=>{ const b=$('coRows'); if(b) b.innerHTML='<div class="hint">'+(e.message==='key'
           ?'The publisher refused this device’s key — ask the office for the new staff link.'
           :'Could not reach the company list — check the signal and open My surveys again.')+'</div>'; }); },0);
@@ -14658,6 +14759,7 @@ function mintKeys(){
 // carries ONE key — it publishes to one address, and the working link never carries its key.
 const wLink=()=>{ const p=BRAND.pub||{}, u=pubWURL();
   return u&&KEYS[p.wslug]?u+'#k='+KEYS[p.wslug]+(KEYS[p.slug]?'.'+KEYS[p.slug]:''):u; };
+// r14: Messages/Mail take a short line plus the link
 const iLink=()=>{ const p=BRAND.pub||{}, u=pubIURL(); return u&&KEYS[p.islug]?u+'#k='+KEYS[p.islug]:u; };
 // Random characters from the browser's own generator, never Math.random: the slug tail and the
 // publish password are both things nobody must be able to guess.
@@ -15003,7 +15105,7 @@ function publish(kind){
         +(jobs.length>1?' The client’s link is current too.':'')
         :jobs.length>1?(kind==='save'?'Saved':'Published')+' — both links are current: the client’s, and your working link.'
         :INSTALL?'Saved — the shop can bring your photos in.'
-        :kind==='inst'?'Sent — the installer link is on the Share card: Copy link, or Send the link.'
+        :kind==='inst'?'Installer link ready — Share → Text or Email sends it.'
         :moved?'Published at a new address — send this one; the old link still opens.'
         :'Published. The link is on the Share card — Copy link, or Send the link.',7000);
     },err=>{
@@ -15121,10 +15223,13 @@ function openShare(minted){
         +'the link. Needs signal to open; once open it keeps working.</div></div>':'')
    // The installer (r8): office only — the key is minted here. Offered until there is one; then
    // the link, and Bring install photos in beside it. Never re-published from here.
-   +(HOSTED?'':il?'<div class="pubnow" style="margin-top:9px"><div class="lbl">Installer link</div>'
-        +'<a href="'+he(il)+'" target="_blank" rel="noopener">'+he(il)+'</a>'
-        +'<div class="row"><button class="mini" id="siCopy">Copy link</button>'
-        +'<button class="mini" id="siMail">Send the link…</button>'
+   +(HOSTED?'':il?'<div class="pubnow" style="margin-top:9px"><div class="lbl">Installer link — '+he(instName(BRAND.job))+'</div>'
+        +'<a href="'+he(il)+'" id="siOpenA">'+he(il)+'</a>'
+        +'<div class="row"><button class="mini go" id="siText">Text</button>'
+        +'<button class="mini go" id="siMail">Email</button>'
+        +(TOUCH()&&navigator.share?'<button class="mini" id="siShare">Share…</button>':'')
+        +'<button class="mini" id="siCopy">Copy link</button></div>'
+        +'<div class="row"><button class="mini" id="siOpen">Open install view</button>'
         +'<button class="mini" id="siIn">Bring install photos in</button></div>'
         +'<div class="hint" id="siStat">Installer: checking…</div></div>'
      :'<div class="morelist"><button class="saveopt" data-sh="inst"><b>Send to the installer</b>'
@@ -15152,7 +15257,13 @@ function openShare(minted){
     const dv=$('shDev'); if(dv) dv.onclick=()=>sendToDevice();
     const ic=$('siCopy'), im=$('siMail'), ii=$('siIn'), is=$('siStat');
     if(ic) ic.onclick=()=>copyText(il,'Installer link copied.');
-    if(im) im.onclick=()=>{ closeModal(); pickMailer(il,instText(il)); };
+    if(im) im.onclick=()=>{ closeModal(); if(TOUCH()) mailLink(il,instText(il)); else pickMailer(il,instText(il)); };
+    const it=$('siText'), ish=$('siShare'), io=$('siOpen'), ia=$('siOpenA');
+    if(it) it.onclick=()=>{ closeModal(); smsLink(il,instText(il)); };
+    if(ish) ish.onclick=()=>{ closeModal(); shareLink(il,instText(il)); };
+    // the link must not replace this survey in the same window (the home-screen app does that)
+    if(io) io.onclick=()=>{ closeModal(); openInstall(il,instName(BRAND.job)); };
+    if(ia) ia.onclick=e=>{ e.preventDefault(); closeModal(); openInstall(il,instName(BRAND.job)); };
     if(ii) ii.onclick=instBringIn;
     if(is) instFetch().then(o=>{ const s=$('siStat'); if(s) s.textContent='Installer: '+instCount(o.doc)
         +(o.at?' · updated '+touchedWords(o.at):''); },
@@ -15420,6 +15531,14 @@ function instText(link){
       +'location. Set Done or Problem and write a note if needed. Press Save and it reaches the shop.\n'
       +'Do not forward this link.\n\n'+(BRAND.footer||''),
     text:'Install photos for '+job+' — open on the phone at the site.'};
+}
+// r14 — Aaron: "text or email the link directly without having to copy". The phone's Messages
+// (or, on Windows, Phone Link) opens with the message and the link already written in.
+function smsLink(link,t){
+  t=t||mailText(link);
+  const body=(t.text||t.subject)+'\n'+link;
+  location.href='sms:?&body='+encodeURIComponent(body);
+  if(!TOUCH()) banner('Your texting app should open with the link in it. If nothing opens, use Email or Copy link.',6000);
 }
 function mailLink(link,t){
   t=t||mailText(link);
@@ -15735,7 +15854,7 @@ async function shareFile(file,title){
 function applyBrand(){
   // r13: a measurement travels with the survey (BRAND.meas); a newly opened or pulled survey shows its own
   try{ if(!measOn) measLoad(); }catch(_){ /* before the measuring code has loaded — it loads its own */ }
-  const job=BRAND.job||'Site Survey';
+  const job=INSTALL?instName(BRAND.job||'Site Survey'):(BRAND.job||'Site Survey');
   document.title=job+' — Site Survey Photo Map';
   $('hJob').textContent=job;
   $('hSite').textContent=BRAND.site||'';
@@ -17069,6 +17188,28 @@ function exportMap(){
     },'image/png');
   })().catch(()=>{ busyClose(); banner('Could not make the map image.',5000); });
 }
+// ---- r14: install view ----------------------------------------------------------------------
+// Aaron, 2026-10-25: "when the install link opens, it opens in the same application window and
+// overwrites the current project … a way to toggle the company project and the install variant or it
+// opens in a different window." It opens in its own frame over the survey — a different page, so
+// nothing it does can touch the survey on screen — with Survey | Install to flip between them.
+let IV_URL='';
+function openInstall(url,name){
+  if(!url) return;
+  const f=$('ivFrame');
+  if(IV_URL!==url){ IV_URL=url; f.src=url; }
+  $('ivTtl').textContent=name||'Install';
+  try{ clearTimeout(bannerT); $('banner').style.display='none'; }catch(_){ }
+  $('instview').classList.add('show');
+}
+function closeInstall(){ $('instview').classList.remove('show'); }
+$('ivSurvey').onclick=closeInstall;
+$('ivNew').onclick=()=>{ if(IV_URL) window.open(IV_URL,'_blank','noopener'); };
+$('lbInst').onclick=()=>{ const il=iLink(); if(il) openInstall(il,instName(BRAND.job)); };
+$('lbSurvey').onclick=closeInstall;
+function instToggleSync(){ document.body.classList.toggle('hasinst',!LOCKED&&!HOSTED&&!!pubIURL()); }
+setInterval(instToggleSync,2000); instToggleSync();
+
 buildMenubar();
 
 
