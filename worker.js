@@ -58,20 +58,22 @@ export default {
     if (slug === '~list' && req.method === 'GET') {
       if (!env.SURVEYS) return say('The publisher has no storage attached.', 500);
       if (!env.PUBLISH_KEY || !(given === env.PUBLISH_KEY || (given !== '' && given === await derive('~staff')))) return say('Wrong publish key.', 401);
-      const rows = []; let cursor;
+      // r14: install links (-i-) come back in their own list — the app shows them apart from the
+      // company surveys, named "<job> install"
+      const rows = [], inst = []; let cursor;
       for (let n = 0; n < 20; n++) {
         const r = await env.SURVEYS.list({ cursor: cursor, limit: 1000, include: ['customMetadata'] });
         r.objects.forEach(o => {
           if (o.key.charAt(0) === '~') return;            // pairing codes and old versions
-          const m = /^(.*?)(?:-\d{4}-\d{2})?-w-[a-z0-9]{10}$/.exec(o.key); if (!m) return;
+          const m = /^(.*?)(?:-\d{4}-\d{2})?-(w|i)-[a-z0-9]{10}$/.exec(o.key); if (!m) return;
           const cm = o.customMetadata || {};
           const guess = m[1].replace(/-+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-          rows.push({ slug: o.key, job: cm.job || guess, count: cm.count ? +cm.count : null, at: o.uploaded.toISOString() });
+          (m[2] === 'i' ? inst : rows).push({ slug: o.key, job: cm.job || guess, count: cm.count ? +cm.count : null, at: o.uploaded.toISOString() });
         });
         if (!r.truncated) break; cursor = r.cursor;
       }
-      rows.sort((a, b) => b.at < a.at ? -1 : 1);
-      return say(JSON.stringify({ surveys: rows }), 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      rows.sort((a, b) => b.at < a.at ? -1 : 1); inst.sort((a, b) => b.at < a.at ? -1 : 1);
+      return say(JSON.stringify({ surveys: rows, installs: inst }), 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     }
     // r12 — version history. Aaron: "add 20 version history for backup", "versions fall off after
     // 30 days". Every Save that overwrites a survey first copies what was there to
