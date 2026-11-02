@@ -1929,8 +1929,14 @@ body.sidehidden #showtools{display:block}
 #print{display:none}
 @media print{
  html,body{height:auto;overflow:visible;background:#fff;color:#000}
- #app,.leaflet-container{display:none!important}
- #print{display:block;font:11pt/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;color:#111}
+ /* Everything on this page except #print is a screen overlay, and ANY of them left open when
+    Print is pressed lands on the paper. #hoverprev did exactly that: hover a row in the list,
+    hit Print schedule, and the preview card printed on top of every page of the client's PDF
+    — the pointer never leaves the row, so mouseleave never fires. Naming the overlays one by
+    one is how the next one added gets missed, so the rule runs the other way: nothing prints
+    but the schedule. #print wins on specificity, both marked important. */
+ body>*{display:none!important}
+ #print{display:block!important;font:11pt/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;color:#111}
  @page{size:letter portrait;margin:0.5in}
  #print .head{display:flex;align-items:center;justify-content:space-between;
   border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
@@ -3785,8 +3791,8 @@ body.sidehidden #showtools{display:block}
 #print{display:none}
 @media print{
  html,body{height:auto;overflow:visible;background:#fff;color:#000}
- #app,.leaflet-container{display:none!important}
- #print{display:block;font:11pt/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;color:#111}
+ body>*{display:none!important}
+ #print{display:block!important;font:11pt/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;color:#111}
  @page{size:letter portrait;margin:0.5in}
  #print .head{display:flex;align-items:center;justify-content:space-between;
   border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
@@ -8615,6 +8621,35 @@ function schedCells(p){
   return '<td class="fill w-type">'+col(0)+'</td><td class="fill w-size">'+col(1)+'</td>'
         +'<td class="fill w-qty">'+col(2)+'</td><td class="fill w-notes">'+col(3)+memo+'</td>';
 }
+const PTHUMB=new Map(), PT_PX=480, PT_Q=0.75;
+function printThumb(src){
+  if(PTHUMB.has(src)) return Promise.resolve(PTHUMB.get(src));
+  return new Promise(res=>{
+    const im=new Image();
+    const bail=()=>{ PTHUMB.set(src,''); res(''); };
+    im.onload=()=>{ try{
+      const s=Math.min(1,PT_PX/Math.max(im.naturalWidth,im.naturalHeight,1));
+      if(s>=1){ PTHUMB.set(src,''); return res(''); }      // already small: leave it alone
+      const w=Math.max(1,Math.round(im.naturalWidth*s)), h=Math.max(1,Math.round(im.naturalHeight*s));
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      const g=cv.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(im,0,0,w,h);
+      const d=cv.toDataURL('image/jpeg',PT_Q);
+      PTHUMB.set(src, d.length<src.length?d:'');           // never swap in something bigger
+      res(PTHUMB.get(src));
+    }catch(_){ bail(); } };
+    im.onerror=bail; im.src=src;
+  });
+}
+function bigShotSrcs(){
+  return new Set(PTS.filter(p=>{ const sh=p.shots[p.shot]||p.shots[0];
+                                 return sh&&sh.marks&&sh.marks.length&&sh.ar; })
+                    .map(p=>(p.shots[p.shot]||p.shots[0]).src));
+}
+function primePrintThumbs(){
+  const big=bigShotSrcs();
+  const want=placed().map(p=>shotOf(p)).filter(sh=>sh&&sh.src&&!big.has(sh.src)).map(sh=>sh.src);
+  return Promise.all([...new Set(want)].map(printThumb));
+}
 function buildPrint(){
   const ds=[...new Set(PTS.filter(p=>p.date).map(p=>p.date))].sort();
   const when=ds.length?(ds.length===1?ds[0]:ds[0]+' – '+ds[ds.length-1]):'';
@@ -8632,9 +8667,11 @@ function buildPrint(){
    +'<th class="fill w-type">Type</th><th class="fill w-size">Size</th>'
    +'<th class="fill w-qty">Qty</th><th class="fill w-notes">Notes</th>'
    +'<th class="co">Coordinates</th></tr></thead><tbody>';
+  const bigSrc=bigShotSrcs();
   placed().forEach(p=>{
+    const rsh=shotOf(p);
     h+='<tr><td class="num">'+p.i+'</td>'
-     +'<td class="ph">'+photoHTML(shotOf(p))+'</td>'
+     +'<td class="ph">'+photoHTML(rsh,'',!(rsh&&bigSrc.has(rsh.src)))+'</td>'
      +'<td class="loc"><div class="lbl">'+he(title(p))+'</div>'
      +(realFile(p)?'<div class="meta">'+he(p.file)+'</div>':'')
      +(p.head!=null?'<div class="meta">Camera facing '+p.head.toFixed(0)+'° '+cmp(p.head)+'</div>':'')
@@ -8646,7 +8683,7 @@ function buildPrint(){
   });
   h+='</tbody></table>';
   const marked=PTS.filter(p=>{ const sh=p.shots[p.shot]||p.shots[0];
-                               return sh&&sh.marks&&sh.marks.length&&sh.ar; });
+                               return sh&&sh.marks&&sh.marks.length&&sh.ar; });  // matches bigShotSrcs()
   if(marked.length){
     h+='<div class="mkpage"><h3>Measured photos \u00b7 '+marked.length+' location'
       +(marked.length===1?'':'s')+'</h3><div class="mkgrid">';
@@ -8673,7 +8710,12 @@ function buildPrint(){
    +'<span>'+he(BRAND.job||'')+(when?' \u00b7 '+when:'')+'</span></div>';
   document.getElementById('print').innerHTML=h;
 }
-document.getElementById('bPrint').onclick=()=>{ buildPrint(); setTimeout(()=>window.print(),80); };
+document.getElementById('bPrint').onclick=()=>{
+  const go=()=>{ buildPrint(); setTimeout(()=>window.print(),80); };
+  const n=placed().length, busy=n>6;
+  if(busy) busyOpen('Preparing the schedule\u2026');
+  primePrintThumbs().catch(()=>{}).then(()=>{ if(busy) busyClose(); go(); });
+};
 window.addEventListener('beforeprint',buildPrint);
 
 
@@ -8738,11 +8780,12 @@ function wrapTxt(s,n,max){
   if(out.length>max){ out.length=max; out[max-1]=out[max-1].slice(0,n-1)+'…'; }
   return out.length?out:[''];
 }
-function photoHTML(sh,imgAttr){
+function photoHTML(sh,imgAttr,useThumb){
   const on=MK_ON()&&sh&&sh.marks&&sh.marks.length;
   if(!sh||!sh.src) return '<div class="phw"></div>';
+  const psrc=(useThumb&&PTHUMB.get(sh.src))||sh.src;
   return '<div class="phw"'+(sh.ar?' style="aspect-ratio:'+sh.ar+'"':'')+'>'
-    +'<img src="'+sh.src+'" '+(imgAttr||'')+' alt="">'
+    +'<img src="'+psrc+'" '+(imgAttr||'')+' alt="">'
     +(on?mkSVG(sh.marks,sh.ar):'')+'</div>';
 }
 
@@ -16005,6 +16048,50 @@ function schedCells(p){
   return '<td class="fill w-type">'+col(0)+'</td><td class="fill w-size">'+col(1)+'</td>'
         +'<td class="fill w-qty">'+col(2)+'</td><td class="fill w-notes">'+col(3)+memo+'</td>';
 }
+// ---- print thumbnails ------------------------------------------------------
+// The schedule's photo column is a 78x58 box, but the <img> in it pointed at the 900px
+// working copy, so every location put a whole photograph into the PDF whether or not it
+// was ever printed bigger than a postage stamp. Chrome reuses one image object for both
+// places a photo appears, so a MEASURED photo costs nothing extra here - it has to carry
+// the full copy for its own page anyway. The waste is the locations that appear only as a
+// thumbnail: on a 40-location survey with five measured photos that is most of a 10 MB
+// file, and the file gets emailed to a client. 480px on the long side covers the box at
+// 600 dpi with room to spare.
+// Keyed by the photo's own data URL and held in this tab only - nothing is written into
+// the survey file, so saved surveys do not change size and nothing has to migrate.
+const PTHUMB=new Map(), PT_PX=480, PT_Q=0.75;
+function printThumb(src){
+  if(PTHUMB.has(src)) return Promise.resolve(PTHUMB.get(src));
+  return new Promise(res=>{
+    const im=new Image();
+    const bail=()=>{ PTHUMB.set(src,''); res(''); };
+    im.onload=()=>{ try{
+      const s=Math.min(1,PT_PX/Math.max(im.naturalWidth,im.naturalHeight,1));
+      if(s>=1){ PTHUMB.set(src,''); return res(''); }      // already small: leave it alone
+      const w=Math.max(1,Math.round(im.naturalWidth*s)), h=Math.max(1,Math.round(im.naturalHeight*s));
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      const g=cv.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(im,0,0,w,h);
+      const d=cv.toDataURL('image/jpeg',PT_Q);
+      PTHUMB.set(src, d.length<src.length?d:'');           // never swap in something bigger
+      res(PTHUMB.get(src));
+    }catch(_){ bail(); } };
+    im.onerror=bail; im.src=src;
+  });
+}
+// The shot that also prints full size on a measured page, for every point that has one.
+function bigShotSrcs(){
+  return new Set(PTS.filter(p=>{ const sh=p.shots[p.shot]||p.shots[0];
+                                 return sh&&sh.marks&&sh.marks.length&&sh.ar; })
+                    .map(p=>(p.shots[p.shot]||p.shots[0]).src));
+}
+// Primed before the Print button builds the page. Ctrl+P goes straight to beforeprint and
+// cannot wait for a decode, so a cold cache there just prints the full-size photos - the
+// same paper, a heavier PDF.
+function primePrintThumbs(){
+  const big=bigShotSrcs();
+  const want=placed().map(p=>shotOf(p)).filter(sh=>sh&&sh.src&&!big.has(sh.src)).map(sh=>sh.src);
+  return Promise.all([...new Set(want)].map(printThumb));
+}
 function buildPrint(){
   const ds=[...new Set(PTS.filter(p=>p.date).map(p=>p.date))].sort();
   const when=ds.length?(ds.length===1?ds[0]:ds[0]+' – '+ds[ds.length-1]):'';
@@ -16032,9 +16119,11 @@ function buildPrint(){
    +'<th class="co">Coordinates</th></tr></thead><tbody>';
   // Only pins whose position we know. A photo with no GPS printed as row 0 with another
   // pin's coordinate, and this schedule can end up attached to a permit.
+  const bigSrc=bigShotSrcs();
   placed().forEach(p=>{
+    const rsh=shotOf(p);
     h+='<tr><td class="num">'+p.i+'</td>'
-     +'<td class="ph">'+photoHTML(shotOf(p))+'</td>'
+     +'<td class="ph">'+photoHTML(rsh,'',!(rsh&&bigSrc.has(rsh.src)))+'</td>'
      +'<td class="loc"><div class="lbl">'+he(title(p))+'</div>'
      // Only a real photograph's file name. This cell is on the page that goes to the client and
      // gets attached to a permit, and it was printing loc-1 on every location made from a line
@@ -16055,7 +16144,7 @@ function buildPrint(){
   // lists only placed pins does not apply here — and a photo somebody measured is work
   // that must not vanish because its GPS was missing. Include it, and say so.
   const marked=PTS.filter(p=>{ const sh=p.shots[p.shot]||p.shots[0];
-                               return sh&&sh.marks&&sh.marks.length&&sh.ar; });
+                               return sh&&sh.marks&&sh.marks.length&&sh.ar; });  // matches bigShotSrcs()
   if(marked.length){
     h+='<div class="mkpage"><h3>Measured photos \u00b7 '+marked.length+' location'
       +(marked.length===1?'':'s')+'</h3><div class="mkgrid">';
@@ -16085,7 +16174,12 @@ function buildPrint(){
    +'<span>'+he(BRAND.job||'')+(when?' \u00b7 '+when:'')+'</span></div>';
   document.getElementById('print').innerHTML=h;
 }
-document.getElementById('bPrint').onclick=()=>{ buildPrint(); setTimeout(()=>window.print(),80); };
+document.getElementById('bPrint').onclick=()=>{
+  const go=()=>{ buildPrint(); setTimeout(()=>window.print(),80); };
+  const n=placed().length, busy=n>6;
+  if(busy) busyOpen('Preparing the schedule\u2026');
+  primePrintThumbs().catch(()=>{}).then(()=>{ if(busy) busyClose(); go(); });
+};
 window.addEventListener('beforeprint',buildPrint);
 
 // ====================================================================
@@ -16183,15 +16277,18 @@ function wrapTxt(s,n,max){
 // A photo plus its marks, as one block that keeps them registered at any size. The
 // aspect ratio is carried on the shot because the printed schedule has to lay this out
 // before any image has loaded.
-function photoHTML(sh,imgAttr){
+function photoHTML(sh,imgAttr,useThumb){
   const on=MK_ON()&&sh&&sh.marks&&sh.marks.length;
   // No shot at all is a location somebody added by hand and has not photographed yet. It gets
   // the same empty ruled box the schedule has always printed for a missing picture — an <img>
   // with no src is a broken-image glyph on paper, and ink is not the place for an amber
   // placeholder. What says the photograph is missing is the box being empty.
   if(!sh||!sh.src) return '<div class="phw"></div>';
+  // The schedule passes useThumb: a 78px box does not need the 900px copy in the file.
+  // An empty cache entry means 'no thumbnail worth using', so it falls back to the full src.
+  const psrc=(useThumb&&PTHUMB.get(sh.src))||sh.src;
   return '<div class="phw"'+(sh.ar?' style="aspect-ratio:'+sh.ar+'"':'')+'>'
-    +'<img src="'+sh.src+'" '+(imgAttr||'')+' alt="">'
+    +'<img src="'+psrc+'" '+(imgAttr||'')+' alt="">'
     +(on?mkSVG(sh.marks,sh.ar):'')+'</div>';
 }
 
