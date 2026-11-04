@@ -4824,7 +4824,7 @@ function render(keepView){
       +(selSet.has(p.file)?' picked':'')+(hasNotes(p)?' noted':'')+'" id="pin'+idx+'">'+p.i+'</div></div>',
       iconSize:[24,24],iconAnchor:[12,12]});
     const m=L.marker([p.dlat,p.dlon],{icon:ic,riseOnHover:true,zIndexOffset:idx,draggable:editing}).addTo(map);
-    if(!TOUCH()) m.bindPopup(pop(p),{maxWidth:306,minWidth:296});
+    if(!TOUCH()) m.bindPopup(pop(p),{maxWidth:306,minWidth:296,autoPanPadding:[26,30]});
     m.on('click',ev=>{
       if(selMode){ selToggle(p.file); return; }
       if(placing&&placeMove){ placeAt(placing,ev&&ev.latlng?ev.latlng:L.latLng(p.dlat,p.dlon)); return; }
@@ -11041,7 +11041,15 @@ function render(keepView){
     // they were being handed the desktop's marker popup — which does not fit a 393px-tall
     // window and cannot scroll — while a tap on the same location's list row opened the
     // full-screen photo sheet. One behaviour per input device, not per width.
-    if(!TOUCH()) m.bindPopup(pop(p),{maxWidth:306,minWidth:296});
+    // autoPanPadding. Leaflet's default is 5px, and clicking a row in the list runs
+    // setView() straight into openPopup(), so autoPan slides a tall popup up until it
+    // sits FLUSH against the top of the map - the photograph at the top of the popup
+    // then reads as cut off, which is what Aaron reported. Measured on his 1920x855
+    // screen, clicking locations 7 and 13 in the list: 5px from the top edge before,
+    // 30px after. Locations that already sat clear of the edge did not move.
+    // Padding alone does it - a maxHeight cap and keepInView were tried against the
+    // same screen and changed nothing, so they are not here.
+    if(!TOUCH()) m.bindPopup(pop(p),{maxWidth:306,minWidth:296,autoPanPadding:[26,30]});
     m.on('click',ev=>{
       if(selMode){ selToggle(p.file); return; }
       // This used to refuse — "Tap the aerial, not a pin, to drop this photo." — and the
