@@ -4669,6 +4669,19 @@ function flashFix(f){
   geoT=setTimeout(clearFix,6000);
 }
 map.on('dragstart',clearFix);
+function popIntoView(){
+  const el=document.querySelector('.leaflet-popup'); if(!el) return;
+  const p=el.getBoundingClientRect(), PADX=26, PADY=30;
+  let dx=0, dy=0;
+  if(p.left<PADX) dx=PADX-p.left; else if(p.right>innerWidth-PADX) dx=(innerWidth-PADX)-p.right;
+  if(p.top<PADY) dy=PADY-p.top;   else if(p.bottom>innerHeight-PADY) dy=(innerHeight-PADY)-p.bottom;
+  if(!dx&&!dy) return;
+  const a=((BRAND.ui&&BRAND.ui.bearing)||0)*Math.PI/180, cos=Math.cos(a), sin=Math.sin(a);
+  map.panBy([-(dx*cos+dy*sin), -(-dx*sin+dy*cos)],{animate:false});
+}
+map.on('popupopen',()=>{ let done=false;
+  const go=()=>{ if(done) return; done=true; popIntoView(); setTimeout(popIntoView,450); };
+  map.once('moveend',go); setTimeout(go,700); });
 function geoError(err){
   const m={1:'Location permission was denied. Allow location for this page and try again.',
            2:'Your location is not available right now — no GPS or network fix.',
@@ -10855,6 +10868,33 @@ function flashFix(f){
 // Only a real pan clears it. Binding zoomstart too meant locate()'s own setView
 // raced the dot it had just drawn and wiped it.
 map.on('dragstart',clearFix);
+// ---- keep an open popup inside the WINDOW, not just inside the stage -------------------
+// Leaflet auto-pans a popup until it sits inside the map container. #mapstage is deliberately
+// bigger than the window and offset under it, so that turning the map still fills the screen —
+// measured on Aaron's 1920x855 window it is 2413x2403 at top:-774,left:-71. "Inside the stage"
+// is therefore not "on the screen": with this survey turned 40.2 degrees, NINE of Bouchaine's
+// thirteen locations opened their popup outside the window, up to 666px past the bottom edge.
+// Clicking the row looked like it had done nothing. Zero of thirteen after this.
+// The nudge is measured in SCREEN pixels and then rotated into the stage's axes, because
+// panBy moves the map in stage coordinates and the stage is turned.
+function popIntoView(){
+  const el=document.querySelector('.leaflet-popup'); if(!el) return;
+  const p=el.getBoundingClientRect(), PADX=26, PADY=30;
+  let dx=0, dy=0;
+  if(p.left<PADX) dx=PADX-p.left; else if(p.right>innerWidth-PADX) dx=(innerWidth-PADX)-p.right;
+  if(p.top<PADY) dy=PADY-p.top;   else if(p.bottom>innerHeight-PADY) dy=(innerHeight-PADY)-p.bottom;
+  if(!dx&&!dy) return;
+  const a=((BRAND.ui&&BRAND.ui.bearing)||0)*Math.PI/180, cos=Math.cos(a), sin=Math.sin(a);
+  map.panBy([-(dx*cos+dy*sin), -(-dx*sin+dy*cos)],{animate:false});
+}
+// Run it once autoPan has finished. autoPan may not move at all (the popup can already be
+// inside the stage while being off the screen), so moveend is backed by a timer, and the flag
+// stops the panBy above from re-entering through its own moveend.
+// Two passes: autoPan can land a second correction after the first one, which left
+// location 1 of Bouchaine 22px under the bottom edge on a single pass.
+map.on('popupopen',()=>{ let done=false;
+  const go=()=>{ if(done) return; done=true; popIntoView(); setTimeout(popIntoView,450); };
+  map.once('moveend',go); setTimeout(go,700); });
 function geoError(err){
   const m={1:'Location permission was denied. Allow location for this page and try again.',
            2:'Your location is not available right now — no GPS or network fix.',
