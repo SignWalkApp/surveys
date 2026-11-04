@@ -5317,8 +5317,9 @@ function pop(p){
 
 function refreshPin(p){
   const i=PTS.indexOf(p), m=marks[i];
-  if(m&&m.getPopup()&&m.isPopupOpen()) m.setPopupContent(pop(p));
-  else if(m&&m.getPopup()) m.setPopupContent(pop(p));
+  if(m&&m.getPopup()) setTimeout(()=>{
+    if(marks[PTS.indexOf(p)]===m&&m.getPopup()) m.setPopupContent(pop(p));
+  },0);
   refreshList();
   if(sheetFile===p.file) openSheet(PTS.indexOf(p),true);
 }
@@ -11662,8 +11663,20 @@ function pop(p){
 // ---- multiple photos on one pin ------------------------------------
 function refreshPin(p){
   const i=PTS.indexOf(p), m=marks[i];
-  if(m&&m.getPopup()&&m.isPopupOpen()) m.setPopupContent(pop(p));
-  else if(m&&m.getPopup()) m.setPopupContent(pop(p));
+  // The content is replaced OUT of the click that asked for it, and that timing is the
+  // whole point. Replacing it inside the click destroys the button that was clicked, so
+  // the rest of that click bubbles up a path that no longer passes through Leaflet's
+  // .leaflet-popup-content-wrapper - which is where Leaflet marks a click as handled.
+  // It reaches the map instead, and closePopupOnClick shuts the popup. The photo had
+  // already switched; the popup just vanished before you could see it. On Bouchaine that
+  // killed next photo, previous photo, Show all and every gallery thumbnail. Clicking an
+  // inert part of the popup never closed it, which is what pins the cause on the swap
+  // rather than on propagation being broken in general. One turn of the event loop is
+  // all it needs. The guard re-reads marks[] because a render may have replaced the
+  // marker in between.
+  if(m&&m.getPopup()) setTimeout(()=>{
+    if(marks[PTS.indexOf(p)]===m&&m.getPopup()) m.setPopupContent(pop(p));
+  },0);
   refreshList();
   if(sheetFile===p.file) openSheet(PTS.indexOf(p),true);
 }
