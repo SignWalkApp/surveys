@@ -4679,9 +4679,9 @@ function popIntoView(){
   const a=((BRAND.ui&&BRAND.ui.bearing)||0)*Math.PI/180, cos=Math.cos(a), sin=Math.sin(a);
   map.panBy([-(dx*cos+dy*sin), -(-dx*sin+dy*cos)],{animate:false});
 }
-map.on('popupopen',()=>{ let done=false;
-  const go=()=>{ if(done) return; done=true; popIntoView(); setTimeout(popIntoView,450); };
-  map.once('moveend',go); setTimeout(go,700); });
+map.on('popupopen',()=>{ let n=0;
+  const tick=()=>{ popIntoView(); if(++n<8) setTimeout(tick,150); };
+  setTimeout(tick,120); });
 function geoError(err){
   const m={1:'Location permission was denied. Allow location for this page and try again.',
            2:'Your location is not available right now — no GPS or network fix.',
@@ -10890,11 +10890,15 @@ function popIntoView(){
 // Run it once autoPan has finished. autoPan may not move at all (the popup can already be
 // inside the stage while being off the screen), so moveend is backed by a timer, and the flag
 // stops the panBy above from re-entering through its own moveend.
-// Two passes: autoPan can land a second correction after the first one, which left
-// location 1 of Bouchaine 22px under the bottom edge on a single pass.
-map.on('popupopen',()=>{ let done=false;
-  const go=()=>{ if(done) return; done=true; popIntoView(); setTimeout(popIntoView,450); };
-  map.once('moveend',go); setTimeout(go,700); });
+// Poll rather than wait for moveend. select() runs setView() straight into openPopup(),
+// so the FIRST moveend is the fly-to finishing, not autoPan — latching onto it ran the
+// correction while the popup was still mid-flight, it measured as fine, and autoPan then
+// pushed it off screen afterwards. That is why locations 6 and 7 were still off the edge
+// on the first live r17 build. popIntoView() is a no-op whenever the popup is already
+// inside the window, so running it eight times over ~1.2s simply outlasts autoPan.
+map.on('popupopen',()=>{ let n=0;
+  const tick=()=>{ popIntoView(); if(++n<8) setTimeout(tick,150); };
+  setTimeout(tick,120); });
 function geoError(err){
   const m={1:'Location permission was denied. Allow location for this page and try again.',
            2:'Your location is not available right now — no GPS or network fix.',
