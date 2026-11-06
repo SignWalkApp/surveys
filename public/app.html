@@ -5307,6 +5307,7 @@ function pop(p){
      +'<button onclick="moveOne(\''+js(p.file)+'\')">Move pin</button>'
      +(shotOf(p)?'<button onclick="mkOpen(\''+js(p.file)+'\','+(p.shot||0)+')">Mark up</button>':'')
      +(shotOf(p)?'<button onclick="dlPick(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>':'')
+     +(shotOf(p)?'<button class="danger" onclick="removeShot(\''+js(p.file)+'\','+(p.shot||0)+')">Remove this photo</button>':'')
      +(waiting().length?'<button onclick="attachFromTray(\''+js(p.file)+'\')">Attach from tray</button>':'')
      +((p.egps&&!byGPS(p))?'<button class="gps" onclick="revertGPS(\''+js(p.file)+'\')">Revert to GPS</button>':'')
      +'<button class="danger" onclick="removePhoto(\''+js(p.file)+'\')">Remove pin</button>'
@@ -5395,12 +5396,19 @@ function addToPin(file,cam){
 function removeShot(file,k){
   const p=PTS.find(x=>x.file===file); if(!p||!p.shots[k]||VIEWONLY)return;
   if(INSTALL&&!p.shots[k].inst) return;               // the survey's photographs are not theirs to remove
-  if(p.shots.length<2&&!INSTALL){ banner('That is the only photo on this pin — remove the pin instead.',4000); return; }
+  const n=p.shots.length, mk=(p.shots[k].marks||[]).length;
+  if(!confirm('Remove '+(n>1?'photo '+(k+1)+' of '+n:'the photo')+' from '+title(p)+'?'
+      +(mk?'\n\nIts '+mk+' markup item'+(mk===1?'':'s')+' go with it.':'')
+      +(n>1?'':'\n\nThe location stays, with no photo on it.'))) return;
   pushWorld('remove photo');
+  const wasOpen=!TOUCH()&&(()=>{ const m=marks[PTS.indexOf(p)]; return !!(m&&m.isPopupOpen&&m.isPopupOpen()); })();
   p.shots.splice(k,1);
   if(p.shot>=p.shots.length)p.shot=Math.max(0,p.shots.length-1);
-  if(!p.shots.length) delete p.src;                   // an installer took their only photo back off
+  if(!p.shots.length) delete p.src;                   // nothing left for syncPrimary to derive it from
   syncPrimary(p); render(true); setDirty(true);
+  if(wasOpen){ const m=marks[PTS.indexOf(p)]; if(m) m.openPopup(); }
+  banner('Photo removed from “'+title(p)+'”'+(p.shots.length?' — '+p.shots.length+' left':'')
+    +'. Undo puts it back.',4500);
 }
 
 function sheetPt(){ return sheetFile?PTS.find(x=>x.file===sheetFile):null; }
@@ -5456,7 +5464,7 @@ function openSheet(i,keep){
       +'<button id="shMenu">Edit…</button>'
       +'<button id="shAdd">Add photo</button>'
       +'<button id="shMove">'+(p.unplaced?'Place pin':'Move pin')+'</button>'
-      +(multi?'<button id="shDelShot" class="danger">Remove this photo</button>':'')
+      +(sh?'<button id="shDelShot" class="danger">Remove this photo</button>':'')
       +((p.egps&&!byGPS(p))?'<button class="gps" id="shGps">Revert to GPS</button>':'')
       +(p.unplaced&&lastFix?'<button class="gps" id="shHere">Place at my location'
         +(fixUsable(lastFix)?'':' (\u00b1'+accTxt(lastFix.acc)+')')+'</button>':'')
@@ -6870,15 +6878,30 @@ $('bAdd').onclick=()=>{ hideEmpty(); if(INSTALL) instAdd(false); else importPhot
 $('bCam').onclick=()=>{ hideEmpty(); if(INSTALL){ instAdd(true); return; } if(fixAge()>25) takeFix(null); importPhotos(true); };
 function removePhoto(file){
   const i=PTS.findIndex(p=>p.file===file); if(i<0||LOCKED)return;
-  const obj=PTS[i];
-  const nl=(obj.lines||[]).length;
-  if(!confirm('Remove '+title(obj)+' from the map'
-      +(nl?', with the '+nl+' sign line'+(nl===1?'':'s')+' on it?':'?')))return;
+  const obj=PTS[i], nl=(obj.lines||[]).length;
+  if(!nl){ if(!confirm('Remove '+title(obj)+' from the map?'))return; return rmLoc(file,false); }
+  openModal('<h2>Remove '+he(title(obj))+'?</h2><div class="body"><div class="svnote">'
+   +nl+' sign line'+(nl===1?'':'s')+' from the paperwork '+(nl===1?'is':'are')+' on this location.</div>'
+   +'<div class="morelist ioslist">'
+   +'<button class="mi" data-r="keep"><span class="ck"></span><b>Remove it, put the '
+   +(nl===1?'line':'lines')+' back in “to place”</b></button>'
+   +'<button class="mi danger" data-r="both"><span class="ck"></span>Remove the location and the '
+   +(nl===1?'line':'lines')+'</button></div></div>',null,null,{cancel:'Keep it'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-r]').forEach(el=>el.onclick=()=>{
+    const keep=el.dataset.r==='keep'; closeModal(); rmLoc(file,keep); }),0);
+}
+function rmLoc(file,keepLines){
+  const i=PTS.findIndex(p=>p.file===file); if(i<0||LOCKED)return;
+  const obj=PTS[i], lines=keepLines?(obj.lines||[]).slice():[];
   pushWorld('remove pin');
   PTS.splice(i,1);
   if(curFile===file) curFile=PTS.length?PTS[Math.min(i,PTS.length-1)].file:null;
+  lines.forEach(l=>PTS.push(makeLoc(l.nm,[l])));
   showHandle(-1); dragBox.style.display='none';
   render(true); setDirty(true);
+  if(lines.length) banner(lines.length+' sign line'+(lines.length===1?'':'s')+' back in “to place” '
+    +'— tap the card, then tap the map.',6000);
 }
 
 function download(name,data,type){
@@ -7423,7 +7446,7 @@ function doRemove(id,wasOpen){
 }
 
 function loadRecord(rec){
-  pushWorld('open '+(rec.name||'survey'));
+  UNDO.length=0; REDO.length=0; syncUndo();
   PTS.length=0; (rec.pts||[]).forEach(q=>PTS.push(migratePoint(q)));
   REORDERED=!!rec.reordered;
   if(rec.brand){ BRAND=Object.assign({},rec.brand); applyBrand();
@@ -7608,10 +7631,13 @@ if(HOSTED){ const ks=Object.keys(KEYS);
   if(ks.length) ks.forEach(s=>skPut(s,KEYS[s]));
   else { const a=skAll(), p=BRAND.pub||{}; [HKEY().slice(2),p.slug].forEach(s=>{ if(s&&a[s]) KEYS[s]=a[s]; }); } }
 const pubCfg=()=>{
-  if(HOSTED){ if(KEYS[HKEY().slice(2)]) return {url:location.origin,key:''};
+  if(HOSTED){
+    let c2=null;
     try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
-      if(c&&c.key&&String(c.url).replace(/\/+$/,'')===location.origin) return {url:location.origin,key:String(c.key)}; }catch(_){ }
-    const k=STAFF_KEY(); return k?{url:location.origin,key:k,staff:true}:null; }
+      if(c&&c.key&&String(c.url).replace(/\/+$/,'')===location.origin) c2={url:location.origin,key:String(c.key)}; }catch(_){ }
+    if(!c2){ const k=STAFF_KEY(); if(k) c2={url:location.origin,key:k,staff:true}; }
+    if(KEYS[HKEY().slice(2)]) return c2||{url:location.origin,key:''};
+    return c2||null; }
   try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
     if(c&&c.url&&c.key) return {url:String(c.url).replace(/\/+$/,''),key:String(c.key)}; }
   catch(_){ }
@@ -7644,6 +7670,9 @@ function mintKeys(){
 }
 const wLink=()=>{ const p=BRAND.pub||{}, u=pubWURL();
   return u&&KEYS[p.wslug]?u+'#k='+KEYS[p.wslug]+(KEYS[p.slug]?'.'+KEYS[p.slug]:''):u; };
+const canClientLink=()=>{ if(INSTALL) return false;
+  const p=BRAND.pub||{}; if(p.slug&&KEYS[p.slug]) return true;
+  const c=pubCfg(); return !!(c&&c.key); };
 const iLink=()=>{ const p=BRAND.pub||{}, u=pubIURL(); return u&&KEYS[p.islug]?u+'#k='+KEYS[p.islug]:u; };
 function randChars(n,alpha){
   const a=new Uint8Array(n*2), lim=256-(256%alpha.length); let out='';
@@ -7879,10 +7908,27 @@ function publish(kind){
   if(kind==='inst'||INSTALL) jobs.push('i');
   else { if(pubWURL()||kind==='work'||kind==='save') jobs.push('w'); if(pubURL()||kind==='link'||kind==='work') jobs.push(''); }
   if(!jobs.length) return;
+  const slugFor=w=>{ const P=pairOf(w); return (BRAND.pub||{})[P+'slug']||''; };
+  const canSend=w=>{ const sl=slugFor(w); return sl?!!(KEYS[sl]||cfg.key):!!cfg.key; };
+  const held=jobs.filter(w=>!canSend(w));
+  held.forEach(w=>{ const k=jobs.indexOf(w); if(k>=0) jobs.splice(k,1); });
+  const heldTxt=()=>{
+    if(!held.length) return '';
+    const what=held.map(w=>w===''?'The client’s link':w==='i'?'The installer’s link':'Your working link');
+    const t=what.join(' and ').replace(/ and The/,' and the').replace(/ and Your/,' and your');
+    return ' '+t+(held.length>1?' were':' was')+' not updated — this device has no key for '
+      +(held.length>1?'them':'it')+'. Press Save on the shop computer, or open SurveyWalk from '
+      +'your staff link.';
+  };
+  if(!jobs.length){ closeModal();
+    banner('Nothing could be sent from here — this device has no key for '
+      +(held.length>1?'those addresses':'that address')+'. Press Save on the shop computer, or '
+      +'open SurveyWalk from your staff link.',12000); return; }
   const oldLink=pubURL(), keep=BRAND.pub?Object.assign({},BRAND.pub):null, wasShare=!!$('shStat');
   const setBusy=on=>{ document.querySelectorAll('#modalDlg [data-sh],#modalDlg .pubnow button')
     .forEach(b=>b.disabled=on); };
-  const WHY={offline:'no connection',timeout:'no answer within a minute',limit:'over the daily limit'};
+  const WHY={offline:'no connection',timeout:'no answer within a minute',limit:'over the daily limit',
+             key:'the publisher refused this device’s key for that address'};
   const PRESS=kind==='save'?'press Save again':'press Get a link again', AGAIN=kind==='save'?'Save':'Publish an update';
   const card=()=>{ if(wasShare&&!$('shStat')){ closeModal(); openShare(); } };   // after the stale question
   PUBLISHING=true; setBusy(true);
@@ -7905,13 +7951,14 @@ function publish(kind){
         libWrite(rec).then(()=>{ LIBSEEN=rec.updated; savedAt=rec.updated; AHEAD=false; setDirty(false); },()=>{}); }
       const moved=oldLink && pubURL()!==oldLink;
       if($('shStat')){ closeModal(); openShare(); }
-      banner(kind==='save'&&!HOSTED&&!INSTALL?'Saved on '+THIS_DEV()+' and at its link — open it on any device and it is this version.'
+      banner((kind==='save'&&!HOSTED&&!INSTALL?'Saved on '+THIS_DEV()+' and at its link — open it on any device and it is this version.'
         +(jobs.length>1?' The client’s link is current too.':'')
         :jobs.length>1?(kind==='save'?'Saved':'Published')+' — both links are current: the client’s, and your working link.'
         :INSTALL?'Saved — the shop can bring your photos in.'
         :kind==='inst'?'Installer link ready — Share → Text or Email sends it.'
         :moved?'Published at a new address — send this one; the old link still opens.'
-        :'Published. The link is on the Share card — Copy link, or Send the link.',7000);
+        :'Published. The link is on the Share card — Copy link, or Send the link.')+heldTxt(),
+        held.length?12000:7000);
     },err=>{
       PUBLISHING=false; setBusy(false);
       const st=$('shStat'); if(st) st.innerHTML='';
@@ -7920,6 +7967,9 @@ function publish(kind){
       else if(keep&&keep.url){ BRAND.pub.url=keep.url; BRAND.pub.slug=keep.slug; }
       else { delete BRAND.pub.url; delete BRAND.pub.slug; }
       if(HOSTED) setDirty(false);                   // the work is in the slot; setPubURL had lit the dot
+      if(i>0){ if($('shStat')){ closeModal(); openShare(); }
+        banner('Your working link is current, but the client link is not — '+(WHY[code]||String(err&&err.message||err).slice(0,120))
+              +'. Press '+AGAIN+' to try it again.',12000); return; }
       if(code==='key'&&HOSTED){ banner('The publisher refused this link’s key — the password was changed. '
                                        +'Ask for a fresh '+(INSTALL?'installer':'working')+' link from the shop computer.',12000); return; }
       if(code==='key'&&(pubCfg()||{}).slugOnly){ banner('This device can update the surveys it was sent, but cannot make a new link. '
@@ -7928,9 +7978,6 @@ function publish(kind){
                                        +'Ask the shop for the new staff start link.',12000); return; }
       if(code==='key'){ closeModal(); openPubSetup(KEY_MSG,true); return; }
       if(code==='setup'){ closeModal(); openPubSetup('',true); return; }
-      if(i>0){ if($('shStat')){ closeModal(); openShare(); }
-        banner('Your working link is current, but the client link is not — '+(WHY[code]||String(err&&err.message||err).slice(0,120))
-              +'. Press '+AGAIN+' to try it again.',12000); return; }
       if(code==='limit') banner(LIMIT_MSG+' Nothing was changed; the survey is saved on '+THIS_DEV()+'.',12000);
       else if(code==='offline')
         banner('No connection here. The survey is saved on '+THIS_DEV()+' — '+PRESS+' when you have signal.',9000);
@@ -7994,8 +8041,9 @@ function openShare(minted){
           +'<div class="row"><button class="mini" id="shCopy">Copy link</button>'
           +'<button class="mini" id="shMail">Send the link…</button>'+re+'</div></div>':'')
    +'<div class="morelist">'
-   +(link||HOSTED?'':'<button class="saveopt" data-sh="link"><b>Get a link to send</b>'
-       +'<span>One press; the client gets a web address, not a file.</span></button>')
+   +(link||(HOSTED&&!canClientLink())?'':'<button class="saveopt" data-sh="link"><b>Get a link to send</b>'
+       +'<span>One press; the client gets a web address, not a file.'
+       +(HOSTED?' Every Save after that keeps it current.':'')+'</span></button>')
    +'<div id="shStat"></div>'
    +'<button class="saveopt" data-sh="file"><b>Send the working file</b>'
      +'<span>For the office. Whoever opens it can add photos and move pins.</span></button>'
@@ -9208,7 +9256,7 @@ const MORE_GROUPS=[
 ];
 function openMore(){
   const live=id=>{ const b=$(id);
-    return !!b && b.style.display!=='none' && !b.getClientRects().length; };
+    return !!b && b.style.display!=='none' && !mbHidden(b) && !b.getClientRects().length; };
   let rows='', acts={};
   MORE_GROUPS.forEach(([head,items])=>{
     const on=items.filter(([id,l,fn])=>fn?id==='aHelp'||(!LOCKED&&!((HOSTED||STAFF())&&(id==='aPub'||id==='aStaff'))):live(id));
@@ -9251,7 +9299,6 @@ const MENUS=[
  ['mark','Mark Up',[['aMk','Mark up a photo…',()=>markPick()],['bMeasure','Measure on the map']]],
  ['view','View',[['bFit','Fit all locations'],['bLoc','My location'],['aNorth','Face north',()=>faceNorth()],'-',
    ['bCone','Show shot direction'],['bFind','Address search'],['bDense','Compact list',null,'desk'],['bPanel','Hide tools',null,'desk']]],
- ['share','Share',[['bShare','Share…']],'direct'],
  ['setup','Setup',[['bSetup','Project setup'],['bGeoStat','Location status'],['aPub','Publishing setup',()=>openPubSetup()],
    ['aStaff','Staff start link',()=>openStaffLink()]]],
  ['help','Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]],'direct']];
@@ -9262,6 +9309,8 @@ const MB_NEED={aSaveAs:()=>PTS.length>0, aVer:()=>!!verAddr(), aAll:hasPhoto, aM
   bReset:()=>placed().length>0, bFit:()=>PTS.length>0, bDense:()=>PTS.length>0,
   aExp:()=>placed().length>0||((BRAND.meas&&BRAND.meas.pts||[]).length>1)};
 const MB_DESK={bOpen:1,bMerge:1,bWO:1};
+const mbHidden=b=>{ for(let n=b;n&&n!==document.body;n=n.parentElement){
+  if(n.style&&n.style.display==='none') return true; } return false; };
 function mbItems(items){
   const out=[];
   items.forEach(it=>{
@@ -9272,8 +9321,8 @@ function mbItems(items){
       if((id==='aPub'||id==='aStaff')&&(HOSTED||(STAFF()&&!ADMIN_PAGE))) return;
       out.push(it); return; }
     const b=$(id); if(!b) return;
-    if(LOCKED&&(b.style.display==='none'||id==='bFind')) return;
-    if(b.style.display==='none'&&!(MB_DESK[id]&&TOUCH())) return;
+    if(LOCKED&&(mbHidden(b)||id==='bFind')) return;
+    if(mbHidden(b)&&!(MB_DESK[id]&&TOUCH())) return;
     out.push(it);
   });
   while(out.length&&out[out.length-1]==='-') out.pop();
@@ -9988,7 +10037,8 @@ syncUndo();
 if(VIEWONLY){ document.querySelector('.findrow').style.display='none';
               $('bCam').style.display='none'; $('bSetup').style.display='none';
               $('listbar').style.display='none';
-              $('bGeoStat').style.display='none'; $('shUndo').style.display='none'; }
+              $('bGeoStat').style.display='none'; $('shUndo').style.display='none';
+              buildMenubar(); }
 render(false); if(PTS.length&&!INSTALL) select(0,false); setDirty(false);
 setTimeout(helpNudge,2500);
 
@@ -11652,6 +11702,9 @@ function pop(p){
      // what pays for the lines block above — the row goes from five to four.
      +(shotOf(p)?'<button onclick="mkOpen(\''+js(p.file)+'\','+(p.shot||0)+')">Mark up</button>':'')
      +(shotOf(p)?'<button onclick="dlPick(\''+js(p.file)+'\')">'+PHOTO_SAVE()+'</button>':'')
+     // r19: the computer had no way to take a photograph off a location at all — only the
+     // installer copy did. Same call the phone sheet makes, on whichever photo is showing.
+     +(shotOf(p)?'<button class="danger" onclick="removeShot(\''+js(p.file)+'\','+(p.shot||0)+')">Remove this photo</button>':'')
      +(waiting().length?'<button onclick="attachFromTray(\''+js(p.file)+'\')">Attach from tray</button>':'')
      +((p.egps&&!byGPS(p))?'<button class="gps" onclick="revertGPS(\''+js(p.file)+'\')">Revert to GPS</button>':'')
      +'<button class="danger" onclick="removePhoto(\''+js(p.file)+'\')">Remove pin</button>'
@@ -11767,12 +11820,27 @@ function addToPin(file,cam){
 function removeShot(file,k){
   const p=PTS.find(x=>x.file===file); if(!p||!p.shots[k]||VIEWONLY)return;
   if(INSTALL&&!p.shots[k].inst) return;               // the survey's photographs are not theirs to remove
-  if(p.shots.length<2&&!INSTALL){ banner('That is the only photo on this pin — remove the pin instead.',4000); return; }
+  // r19: the last photo on a location can go too. The old refusal ("remove the pin instead") sent
+  // you to Remove pin to re-shoot one bad picture, which threw away the label, the notes, the
+  // heading and the sign lines with it. A location with no photo is not a broken state — it is
+  // what every location imported off a work order starts as, and noPhotoSrc() already draws it.
+  const n=p.shots.length, mk=(p.shots[k].marks||[]).length;
+  if(!confirm('Remove '+(n>1?'photo '+(k+1)+' of '+n:'the photo')+' from '+title(p)+'?'
+      +(mk?'\n\nIts '+mk+' markup item'+(mk===1?'':'s')+' go with it.':'')
+      +(n>1?'':'\n\nThe location stays, with no photo on it.'))) return;
   pushWorld('remove photo');
+  // render() destroys and rebuilds every marker, which takes the open popup with it. On the
+  // phone render() reopens the sheet itself; on a computer nothing did, so the popup vanished
+  // the moment you removed a photo and you could not see what was left or remove a second one.
+  // The sheet path needs none of this — openSheet(k,true) at the end of render() covers it.
+  const wasOpen=!TOUCH()&&(()=>{ const m=marks[PTS.indexOf(p)]; return !!(m&&m.isPopupOpen&&m.isPopupOpen()); })();
   p.shots.splice(k,1);
   if(p.shot>=p.shots.length)p.shot=Math.max(0,p.shots.length-1);
-  if(!p.shots.length) delete p.src;                   // an installer took their only photo back off
+  if(!p.shots.length) delete p.src;                   // nothing left for syncPrimary to derive it from
   syncPrimary(p); render(true); setDirty(true);
+  if(wasOpen){ const m=marks[PTS.indexOf(p)]; if(m) m.openPopup(); }
+  banner('Photo removed from “'+title(p)+'”'+(p.shots.length?' — '+p.shots.length+' left':'')
+    +'. Undo puts it back.',4500);
 }
 
 // ---- the big photo view (this is what a pin tap opens on a phone) ---
@@ -11852,13 +11920,14 @@ function openSheet(i,keep){
       +'<button id="shMenu">Edit…</button>'
       +'<button id="shAdd">Add photo</button>'
       +'<button id="shMove">'+(p.unplaced?'Place pin':'Move pin')+'</button>'
-      +(multi?'<button id="shDelShot" class="danger">Remove this photo</button>':'')
+      +(sh?'<button id="shDelShot" class="danger">Remove this photo</button>':'')
       +((p.egps&&!byGPS(p))?'<button class="gps" id="shGps">Revert to GPS</button>':'')
       +(p.unplaced&&lastFix?'<button class="gps" id="shHere">Place at my location'
         +(fixUsable(lastFix)?'':' (\u00b1'+accTxt(lastFix.acc)+')')+'</button>':'')
       // Mark up needs a photograph to draw over. mkOpen() already refuses without one, which
       // would make the button do nothing at all and say nothing — so it does not appear until
-      // there is a picture, the same way Remove this photo waits for a second one.
+      // there is a picture. Remove this photo waits on the same condition (r19 — it used to wait
+      // for a SECOND photo, which left no way to take a bad single photo back off a location).
       +(sh?'<button id="shMark">Mark up</button>':'')
       +(sh?'<button id="shDl">'+PHOTO_SAVE()+'</button>':'')
       +'<button class="danger" id="shDel">Remove pin</button>'
@@ -13823,21 +13892,42 @@ $('bAdd').onclick=()=>{ hideEmpty(); if(INSTALL) instAdd(false); else importPhot
 $('bCam').onclick=()=>{ hideEmpty(); if(INSTALL){ instAdd(true); return; } if(fixAge()>25) takeFix(null); importPhotos(true); };
 function removePhoto(file){
   const i=PTS.findIndex(p=>p.file===file); if(i<0||LOCKED)return;
-  const obj=PTS[i];
-  // The question has to name what else goes. Removing a location splices the point whole, and the
-  // sign lines live ON the point, so an estimator answering a question about a photograph was
-  // deleting an ordered sign off the job. Undo brings it back; nothing said there was anything to
-  // undo. Not putting the lines back in "to place" instead — reasoned in Tom's item 8: a Remove
-  // that quietly keeps part of the thing is a second surprise, and Select all → Remove is how a
-  // survey gets cleared.
-  const nl=(obj.lines||[]).length;
-  if(!confirm('Remove '+title(obj)+' from the map'
-      +(nl?', with the '+nl+' sign line'+(nl===1?'':'s')+' on it?':'?')))return;
+  const obj=PTS[i], nl=(obj.lines||[]).length;
+  // No paperwork on it: one question, as before.
+  if(!nl){ if(!confirm('Remove '+title(obj)+' from the map?'))return; return rmLoc(file,false); }
+  // r20 — the sign lines get their own answer. The old confirm DID name them ("with the 1 sign
+  // line on it"), and the reasoning for taking them was that a Remove which quietly keeps part of
+  // the thing is a second surprise. That reasoning held until you tried to get the line back:
+  // Undo is the only route, and only in the same session, because re-importing the estimate to
+  // recover it is refused whole — "EST-70100 is already on this survey — 1 of its lines is on
+  // locations and 0 are waiting. Nothing has been imported." So a priced sign could leave the job
+  // with no trace on the schedule and no way back. Not a surprise either way now: the question
+  // says what happens to the line, and "to place" is where an unassigned line already lives.
+  openModal('<h2>Remove '+he(title(obj))+'?</h2><div class="body"><div class="svnote">'
+   +nl+' sign line'+(nl===1?'':'s')+' from the paperwork '+(nl===1?'is':'are')+' on this location.</div>'
+   +'<div class="morelist ioslist">'
+   +'<button class="mi" data-r="keep"><span class="ck"></span><b>Remove it, put the '
+   +(nl===1?'line':'lines')+' back in “to place”</b></button>'
+   +'<button class="mi danger" data-r="both"><span class="ck"></span>Remove the location and the '
+   +(nl===1?'line':'lines')+'</button></div></div>',null,null,{cancel:'Keep it'});
+  $('modalDlg').classList.add('moresheet');
+  setTimeout(()=>document.querySelectorAll('#modalDlg [data-r]').forEach(el=>el.onclick=()=>{
+    const keep=el.dataset.r==='keep'; closeModal(); rmLoc(file,keep); }),0);
+}
+// One place that actually removes a location, for both answers above. keepLines puts each line
+// back as its own "to place" card — the same makeLoc() route Move a line → "Take it off this
+// location" already uses, so there is one behaviour to remember and one to test.
+function rmLoc(file,keepLines){
+  const i=PTS.findIndex(p=>p.file===file); if(i<0||LOCKED)return;
+  const obj=PTS[i], lines=keepLines?(obj.lines||[]).slice():[];
   pushWorld('remove pin');
   PTS.splice(i,1);
   if(curFile===file) curFile=PTS.length?PTS[Math.min(i,PTS.length-1)].file:null;
+  lines.forEach(l=>PTS.push(makeLoc(l.nm,[l])));
   showHandle(-1); dragBox.style.display='none';
   render(true); setDirty(true);
+  if(lines.length) banner(lines.length+' sign line'+(lines.length===1?'':'s')+' back in “to place” '
+    +'— tap the card, then tap the map.',6000);
 }
 
 // ---- save / export -------------------------------------------------
@@ -14520,8 +14610,19 @@ function doRemove(id,wasOpen){
 }
 
 // ---- opening one -------------------------------------------------------
+// r20: this used to be an undo step - pushWorld('open <name>') - and that was data loss.
+// worldSnap() carries the points and BRAND but NOT which survey they belong to: CURID, LIBNAME,
+// LIBMADE, LIBHAND, LIBSEEN, savedAt, SEEN_AT and AHEAD are all set by the CALLER, after this
+// returns. So one Undo straight after opening survey A restored survey B's points and B's BRAND
+// while CURID still said A - and the autosave then wrote B's walk into A's library record, with
+// nobody touching anything and no second copy of A anywhere. Repro that is now a test (r20):
+// Survey A, Save as Survey B, add a location, Save, open A, press Undo, wait.
+// Every caller of loadRecord crosses from one stored survey into another (My surveys, a pasted
+// link, carrying on from a draft), so there is nothing here that one undo step could coherently
+// take back. Crossing that line clears the timeline instead. In-survey time travel is untouched:
+// Version history does its own pushWorld and swaps the points in place, inside one survey.
 function loadRecord(rec){
-  pushWorld('open '+(rec.name||'survey'));
+  UNDO.length=0; REDO.length=0; syncUndo();
   PTS.length=0; (rec.pts||[]).forEach(q=>PTS.push(migratePoint(q)));
   REORDERED=!!rec.reordered;
   if(rec.brand){ BRAND=Object.assign({},rec.brand); applyBrand();
@@ -14817,10 +14918,19 @@ if(HOSTED){ const ks=Object.keys(KEYS);
 const pubCfg=()=>{
   // A hosted copy: the publisher is where the page came from; the key is the one in its link.
   // r11: no key in the link → the office password or the staff link on this device opens it anyway
-  if(HOSTED){ if(KEYS[HKEY().slice(2)]) return {url:location.origin,key:''};
+  if(HOSTED){
+    // The office password or the staff key on this device, if either is here.
+    let c2=null;
     try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
-      if(c&&c.key&&String(c.url).replace(/\/+$/,'')===location.origin) return {url:location.origin,key:String(c.key)}; }catch(_){ }
-    const k=STAFF_KEY(); return k?{url:location.origin,key:k,staff:true}:null; }
+      if(c&&c.key&&String(c.url).replace(/\/+$/,'')===location.origin) c2={url:location.origin,key:String(c.key)}; }catch(_){ }
+    if(!c2){ const k=STAFF_KEY(); if(k) c2={url:location.origin,key:k,staff:true}; }
+    // r19: this used to return {key:''} the moment the link carried its own key, and stop there.
+    // publishTo() sends KEYS[slug] || cfg.key, so saving THIS address was fine — but a brand-new
+    // address (the client link) had no key to send and came back 401, which is why Get a link to
+    // send was hidden on every hosted page. The per-slug key still wins for addresses we have one
+    // for; a wider key is only the fallback for an address being made for the first time.
+    if(KEYS[HKEY().slice(2)]) return c2||{url:location.origin,key:''};
+    return c2||null; }
   try{ const c=JSON.parse(localStorage.getItem(PUBK)||'null');
     if(c&&c.url&&c.key) return {url:String(c.url).replace(/\/+$/,''),key:String(c.key)}; }
   catch(_){ }
@@ -14867,6 +14977,14 @@ function mintKeys(){
 // carries ONE key — it publishes to one address, and the working link never carries its key.
 const wLink=()=>{ const p=BRAND.pub||{}, u=pubWURL();
   return u&&KEYS[p.wslug]?u+'#k='+KEYS[p.wslug]+(KEYS[p.slug]?'.'+KEYS[p.slug]:''):u; };
+// r19 — can this copy make the client link? Aaron, 4 Nov: "we need the client link back in the
+// share button." Since r11 everybody opens a survey from its hosted working link, and Get a link
+// to send was hidden on every hosted page, so for most surveys the client link had no way to
+// exist. It is offered when this device holds a key that can write that address: the client key
+// already on the link, the staff key, or the office password.
+const canClientLink=()=>{ if(INSTALL) return false;
+  const p=BRAND.pub||{}; if(p.slug&&KEYS[p.slug]) return true;
+  const c=pubCfg(); return !!(c&&c.key); };
 // r14: Messages/Mail take a short line plus the link
 const iLink=()=>{ const p=BRAND.pub||{}, u=pubIURL(); return u&&KEYS[p.islug]?u+'#k='+KEYS[p.islug]:u; };
 // Random characters from the browser's own generator, never Math.random: the slug tail and the
@@ -15178,10 +15296,34 @@ function publish(kind){
   if(kind==='inst'||INSTALL) jobs.push('i');
   else { if(pubWURL()||kind==='work'||kind==='save') jobs.push('w'); if(pubURL()||kind==='link'||kind==='work') jobs.push(''); }
   if(!jobs.length) return;
+  // r20 — a job this device cannot authenticate is dropped HERE rather than sent and refused.
+  // publishTo() sends KEYS[slug] || cfg.key, and a hosted copy holds only the key in its own
+  // link, so a crew phone saving a survey that already HAS a client link sent the client PUT
+  // with no key at all. The worker answered 401, the client's copy silently stayed behind, and
+  // the error handler blamed the publish password — which had not been changed. An address this
+  // device has a key for, or a wider key (the office password or the staff key), is sendable;
+  // anything else is said out loud instead of failing.
+  const slugFor=w=>{ const P=pairOf(w); return (BRAND.pub||{})[P+'slug']||''; };
+  const canSend=w=>{ const sl=slugFor(w); return sl?!!(KEYS[sl]||cfg.key):!!cfg.key; };
+  const held=jobs.filter(w=>!canSend(w));
+  held.forEach(w=>{ const k=jobs.indexOf(w); if(k>=0) jobs.splice(k,1); });
+  const heldTxt=()=>{
+    if(!held.length) return '';
+    const what=held.map(w=>w===''?'The client’s link':w==='i'?'The installer’s link':'Your working link');
+    const t=what.join(' and ').replace(/ and The/,' and the').replace(/ and Your/,' and your');
+    return ' '+t+(held.length>1?' were':' was')+' not updated — this device has no key for '
+      +(held.length>1?'them':'it')+'. Press Save on the shop computer, or open SurveyWalk from '
+      +'your staff link.';
+  };
+  if(!jobs.length){ closeModal();
+    banner('Nothing could be sent from here — this device has no key for '
+      +(held.length>1?'those addresses':'that address')+'. Press Save on the shop computer, or '
+      +'open SurveyWalk from your staff link.',12000); return; }
   const oldLink=pubURL(), keep=BRAND.pub?Object.assign({},BRAND.pub):null, wasShare=!!$('shStat');
   const setBusy=on=>{ document.querySelectorAll('#modalDlg [data-sh],#modalDlg .pubnow button')
     .forEach(b=>b.disabled=on); };
-  const WHY={offline:'no connection',timeout:'no answer within a minute',limit:'over the daily limit'};
+  const WHY={offline:'no connection',timeout:'no answer within a minute',limit:'over the daily limit',
+             key:'the publisher refused this device’s key for that address'};
   const PRESS=kind==='save'?'press Save again':'press Get a link again', AGAIN=kind==='save'?'Save':'Publish an update';
   const card=()=>{ if(wasShare&&!$('shStat')){ closeModal(); openShare(); } };   // after the stale question
   PUBLISHING=true; setBusy(true);
@@ -15209,13 +15351,14 @@ function publish(kind){
       // old link still opens (the old copy, or — same store, same object — this one).
       const moved=oldLink && pubURL()!==oldLink;
       if($('shStat')){ closeModal(); openShare(); }
-      banner(kind==='save'&&!HOSTED&&!INSTALL?'Saved on '+THIS_DEV()+' and at its link — open it on any device and it is this version.'
+      banner((kind==='save'&&!HOSTED&&!INSTALL?'Saved on '+THIS_DEV()+' and at its link — open it on any device and it is this version.'
         +(jobs.length>1?' The client’s link is current too.':'')
         :jobs.length>1?(kind==='save'?'Saved':'Published')+' — both links are current: the client’s, and your working link.'
         :INSTALL?'Saved — the shop can bring your photos in.'
         :kind==='inst'?'Installer link ready — Share → Text or Email sends it.'
         :moved?'Published at a new address — send this one; the old link still opens.'
-        :'Published. The link is on the Share card — Copy link, or Send the link.',7000);
+        :'Published. The link is on the Share card — Copy link, or Send the link.')+heldTxt(),
+        held.length?12000:7000);
     },err=>{
       PUBLISHING=false; setBusy(false);
       const st=$('shStat'); if(st) st.innerHTML='';
@@ -15225,6 +15368,13 @@ function publish(kind){
       else if(keep&&keep.url){ BRAND.pub.url=keep.url; BRAND.pub.slug=keep.slug; }
       else { delete BRAND.pub.url; delete BRAND.pub.slug; }
       if(HOSTED) setDirty(false);                   // the work is in the slot; setPubURL had lit the dot
+      // r20 — the partial-failure branch now comes FIRST. It used to sit below the hosted-401
+      // branch, so when the second half of a two-address publish was refused the person was told
+      // the publish password had been changed and never told that one of the two links is behind.
+      // Whatever the reason, "one went up and one did not" is the thing they need to know.
+      if(i>0){ if($('shStat')){ closeModal(); openShare(); }
+        banner('Your working link is current, but the client link is not — '+(WHY[code]||String(err&&err.message||err).slice(0,120))
+              +'. Press '+AGAIN+' to try it again.',12000); return; }
       // a hosted 401: the master was changed and this link's key is stale — one sentence, no form
       if(code==='key'&&HOSTED){ banner('The publisher refused this link’s key — the password was changed. '
                                        +'Ask for a fresh '+(INSTALL?'installer':'working')+' link from the shop computer.',12000); return; }
@@ -15234,10 +15384,6 @@ function publish(kind){
                                        +'Ask the shop for the new staff start link.',12000); return; }
       if(code==='key'){ closeModal(); openPubSetup(KEY_MSG,true); return; }
       if(code==='setup'){ closeModal(); openPubSetup('',true); return; }
-      // partial: the working copy went up, the client copy did not. Never "nothing was changed".
-      if(i>0){ if($('shStat')){ closeModal(); openShare(); }
-        banner('Your working link is current, but the client link is not — '+(WHY[code]||String(err&&err.message||err).slice(0,120))
-              +'. Press '+AGAIN+' to try it again.',12000); return; }
       if(code==='limit') banner(LIMIT_MSG+' Nothing was changed; the survey is saved on '+THIS_DEV()+'.',12000);
       else if(code==='offline')
         banner('No connection here. The survey is saved on '+THIS_DEV()+' — '+PRESS+' when you have signal.',9000);
@@ -15316,8 +15462,9 @@ function openShare(minted){
           +'<button class="mini" id="shMail">Send the link…</button>'+re+'</div></div>':'')
    +'<div class="morelist">'
    // r11: Send to device is retired from the card — every staff device sees every company survey
-   +(link||HOSTED?'':'<button class="saveopt" data-sh="link"><b>Get a link to send</b>'
-       +'<span>One press; the client gets a web address, not a file.</span></button>')
+   +(link||(HOSTED&&!canClientLink())?'':'<button class="saveopt" data-sh="link"><b>Get a link to send</b>'
+       +'<span>One press; the client gets a web address, not a file.'
+       +(HOSTED?' Every Save after that keeps it current.':'')+'</span></button>')
    +'<div id="shStat"></div>'
    +'<button class="saveopt" data-sh="file"><b>Send the working file</b>'
      +'<span>For the office. Whoever opens it can add photos and move pins.</span></button>'
@@ -16850,8 +16997,10 @@ function openMore(){
   // see it" — a menu that lists a button sitting in front of you is a menu nobody maintained.
   // getClientRects() is empty for anything display:none by any route, and that is the whole
   // test: no box, not on screen, so the menu carries it. Nothing to keep in step by hand.
+  // live = a real button that is not on screen right now, which is exactly what More... is for.
+  // r20: ...but not one whose whole bar was hidden because this copy is not allowed to use it.
   const live=id=>{ const b=$(id);
-    return !!b && b.style.display!=='none' && !b.getClientRects().length; };
+    return !!b && b.style.display!=='none' && !mbHidden(b) && !b.getClientRects().length; };
   // A third element in a MORE_GROUPS entry is an ACTION, and then there is no button behind the
   // line at all. "Add a location by hand" has no place in the tool row — it is a once-a-job
   // thing, not a tool — and putting a hidden button in the markup to stand for it would add an id
@@ -16905,9 +17054,11 @@ const MENUS=[
  ['mark','Mark Up',[['aMk','Mark up a photo…',()=>markPick()],['bMeasure','Measure on the map']]],
  ['view','View',[['bFit','Fit all locations'],['bLoc','My location'],['aNorth','Face north',()=>faceNorth()],'-',
    ['bCone','Show shot direction'],['bFind','Address search'],['bDense','Compact list',null,'desk'],['bPanel','Hide tools',null,'desk']]],
- // Share and Help are one press each: Share opens the share sheet Help's steps describe
- // ("Share → Get a link to send"), and Help had a single line under it.
- ['share','Share',[['bShare','Share…']],'direct'],
+ // r19 — no Share header here. There were two Share buttons doing the identical thing: this
+ // one-press header, and the Share beside Save in the save row. The save row keeps it, because
+ // that pairing is the one that reads right ("Save keeps it here, Share gives it to somebody
+ // else") and because the save row is on screen on a phone, where the menu bar scrolls.
+ // Help is one press: it had a single line under it.
  ['setup','Setup',[['bSetup','Project setup'],['bGeoStat','Location status'],['aPub','Publishing setup',()=>openPubSetup()],
    ['aStaff','Staff start link',()=>openStaffLink()]]],
  ['help','Help',[['aHelp','How to use SurveyWalk',()=>openHelp()]],'direct']];
@@ -16923,6 +17074,12 @@ const MB_NEED={aSaveAs:()=>PTS.length>0, aVer:()=>!!verAddr(), aAll:hasPhoto, aM
   bReset:()=>placed().length>0, bFit:()=>PTS.length>0, bDense:()=>PTS.length>0,
   aExp:()=>placed().length>0||((BRAND.meas&&BRAND.meas.pts||[]).length>1)};
 const MB_DESK={bOpen:1,bMerge:1,bWO:1};
+// r20 — VIEWONLY and INSTALL hide their buttons with INLINE styles, and some of them by hiding
+// a whole bar: `savebar.style.display='none'` leaves #bSave's own style untouched. Both menu
+// filters tested the button's own style only, so the client's copy listed File → Save, ungreyed,
+// and pressing it did nothing at all. Walk up instead.
+const mbHidden=b=>{ for(let n=b;n&&n!==document.body;n=n.parentElement){
+  if(n.style&&n.style.display==='none') return true; } return false; };
 function mbItems(items){
   const out=[];
   items.forEach(it=>{
@@ -16933,8 +17090,8 @@ function mbItems(items){
       if((id==='aPub'||id==='aStaff')&&(HOSTED||(STAFF()&&!ADMIN_PAGE))) return;
       out.push(it); return; }
     const b=$(id); if(!b) return;
-    if(LOCKED&&(b.style.display==='none'||id==='bFind')) return;
-    if(b.style.display==='none'&&!(MB_DESK[id]&&TOUCH())) return;
+    if(LOCKED&&(mbHidden(b)||id==='bFind')) return;
+    if(mbHidden(b)&&!(MB_DESK[id]&&TOUCH())) return;
     out.push(it);
   });
   while(out.length&&out[out.length-1]==='-') out.pop();
@@ -17732,7 +17889,13 @@ syncUndo();
 if(VIEWONLY){ document.querySelector('.findrow').style.display='none';
               $('bCam').style.display='none'; $('bSetup').style.display='none';
               $('listbar').style.display='none';
-              $('bGeoStat').style.display='none'; $('shUndo').style.display='none'; }
+              $('bGeoStat').style.display='none'; $('shUndo').style.display='none';
+              // r20 — this block runs AFTER buildMenubar(), and it is what empties Location (bCam
+              // was its last survivor) and Setup (bSetup, bGeoStat). buildMenubar() already drops
+              // a group with no items, but it had run before these lines, so the client's copy
+              // carried a Location header and a Setup header that opened nothing at all — no
+              // popup, no message. Build it again now that every copy's buttons are settled.
+              buildMenubar(); }
 // An installer copy opens with NOTHING selected: Take photo attaches to the selected location,
 // so a preselected row 1 would put an installer's first photo on location 1 unasked — and
 // their first tap on row 1 would deselect it instead of opening it.
